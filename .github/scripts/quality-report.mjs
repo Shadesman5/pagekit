@@ -10,7 +10,9 @@
 //   - what does this PR head measure? — from the artifacts uploaded by each gate's latest run for the
 //     head SHA (Clover coverage, JUnit counts, PHPStan errors, Infection diff MSI, Playwright specs);
 //   - how does that compare to develop? — against the live snapshot on the quality-data branch, the
-//     same file the Pages dashboard renders.
+//     same file the Pages dashboard renders. PHPStan's comparison is the baseline file at this head
+//     (sum of `count:`) minus the snapshot's suppressed-error total, because the analyse artifact
+//     never contains findings the baseline already swallows.
 // Check-run conclusions are still read, but only to explain a MISSING number (pending / skipped).
 //
 // The comment is upserted idempotently via a hidden marker, so repeated gate completions update one
@@ -50,6 +52,7 @@ const CHECK_E2E = 'e2e-smoke';
 // against, read from the same branch the Pages dashboard serves.
 const DATA_BRANCH = 'quality-data';
 const SNAPSHOT_PATH = '.github/quality/quality-snapshot.json';
+const BASELINE_PATH = 'phpstan-baseline.neon';
 
 const REPO = required('GITHUB_REPOSITORY');
 const DRY_RUN = process.env.DRY_RUN === '1';
@@ -104,6 +107,7 @@ function main() {
     checks,
     floor: readFloor(),
     baseline: readBaseline(),
+    headBaseline: readHeadBaseline(sha),
     ...artifacts
   });
 
@@ -266,6 +270,34 @@ function readBaseline() {
   return parsed;
 }
 
+// workflow_run checks out develop, so the working tree's baseline is not this PR's. Read the file at
+// the head SHA. The sum of `count:` is the same suppressed-error total quality-snapshot.mjs publishes.
+function readHeadBaseline(sha) {
+  const raw = gh(
+    [
+      'api',
+      '-H',
+      'Accept: application/vnd.github.raw',
+      `/repos/${REPO}/contents/${BASELINE_PATH}?ref=${sha}`
+    ],
+    { allowFail: true }
+  );
+  if (!raw) {
+    log(`no ${BASELINE_PATH} at ${sha} — PHPStan debt delta omitted.`);
+    return null;
+  }
+  const counted = countBaseline(raw);
+  if (!counted)
+    log(`${BASELINE_PATH} at ${sha} has no count entries — PHPStan debt delta omitted.`);
+  return counted;
+}
+
+function countBaseline(text) {
+  const counts = [...String(text).matchAll(/^\s*count:\s*(\d+)\s*$/gm)].map(m => Number(m[1]));
+  if (!counts.length) return null;
+  return { blocks: counts.length, suppressed: counts.reduce((a, b) => a + b, 0) };
+}
+
 function readCoverage(path) {
   const xml = readFileSync(path, 'utf8');
   // Clover's project-level aggregate is the <metrics/> element directly before </project>.
@@ -353,7 +385,13 @@ function renderComment(d) {
       coverageCell(d.coverage, d.floor),
       coverageDelta(d.coverage, b)
     ),
-    row('PHPStan (level 8)', d.checks, CHECK_PHPSTAN, phpstanCell(d.phpstan), phpstanDelta(b)),
+    row(
+      'PHPStan (level 8)',
+      d.checks,
+      CHECK_PHPSTAN,
+      phpstanCell(d.phpstan),
+      phpstanDelta(d.headBaseline, b)
+    ),
     row(
       'Infection (diff)',
       d.checks,
@@ -437,12 +475,20 @@ function phpunitDelta(junit, baseline) {
   return `${signed(junit.tests - base, 0)} tests`;
 }
 
-// PHPStan reports only NON-baselined errors, so "this PR" is already the delta. The baseline debt is
-// the trend worth watching next to it.
-function phpstanDelta(baseline) {
-  const s = baseline?.phpstan;
-  if (!s || s.suppressedErrors == null) return null;
-  return `baseline ${s.baselineBlocks}/${s.suppressedErrors} suppressed`;
+// "0 new errors" only means the analyse run found nothing outside the baseline. The cell keeps both
+// totals (ignore blocks / suppressed errors) and the suppressed-error delta. Negative means debt removed.
+function phpstanDelta(head, baseline) {
+  const stock = baseline?.phpstan;
+  const develop = stock?.suppressedErrors;
+  const developBlocks = stock?.baselineBlocks;
+  if (develop == null || developBlocks == null) return null;
+  if (head?.suppressed == null || head?.blocks == null) {
+    return `baseline ${developBlocks}/${develop} suppressed`;
+  }
+  const delta = `${signed(head.suppressed - develop, 0)} suppressed`;
+  const from = `${developBlocks}/${develop}`;
+  const to = `${head.blocks}/${head.suppressed}`;
+  return from === to ? `${delta} (${from})` : `${delta} (${from} → ${to})`;
 }
 
 // Deliberately never a number: the PR runs Infection over the diff, the nightly over the whole source

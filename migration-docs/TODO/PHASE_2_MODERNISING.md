@@ -72,10 +72,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-## Step 2.1: Static Analysis & Code Quality Tools
+## ✅ Step 2.1: Static Analysis & Code Quality Tools
 
 - **Goal**: Code quality tooling and static analysis — tools for developers, core stays lightweight.
-- **Open sub-steps**: 2.1.13 (TinyMCE), 2.1.14 (PHP 8.5). Completed work: see Docs under each ✅ row.
 
 **Sub-steps Overview**:
 
@@ -215,170 +214,75 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-## Step 2.3: Docker Developer Experience & Image Hygiene
+## ✅ Step 2.3: Docker Developer Experience & Image Hygiene
 
-- **Goal**: A clean, reproducible dev container workflow; fix the drift in the existing Docker artefacts. No production image.
-- **What**:
-  - **Extensions**: drop `xml`/`dom`/`xmlwriter`/`simplexml` (built-in on PHP 8.5) and reconcile the `Dockerfile` set with `.cursor/Dockerfile`; keep `pdo_mysql`, `pdo_sqlite`, `mbstring`, `gd`, `zip` and verify `exif`/`bcmath`/`pcntl` are actually used. `ext-intl` is not needed (no `NumberFormatter`/`ext-intl` usage).
-  - **`.dockerignore`**: exclude non-runtime paths (`migration-docs/`, `tests/`, `docs-site/`, `.github/`, `.cursor/`, `*.md`, coverage/report artefacts).
-  - **Dev compose**: MySQL `healthcheck` + `depends_on: condition: service_healthy`; document the SQLite (zero-DB) path.
-  - **DB init**: remove the hardcoded password in `01-create-database.sql`; rely on the image `MYSQL_*` env.
-  - **Env**: mark `docker.env.example` as dev-only.
-  - **Docs**: align the Docker dev quickstart in `README` / `AGENTS.md`.
-- **Out of scope**: multi-stage / production image, webserver change → Step 2.5; Vite pipeline → Step 2.4.
-- **Risk**: Low.
+- **Goal**: Dev containers match the extensions and credentials they actually need; the standalone Docker E2E wrapper is gone.
+- **Docs**: `migration-docs/branches/phase-2/step-2-3-docker-dev-experience-image-hygiene.md`
+- **Forward**: E2E spec rework → Step 3.6.1
 
 ---
 
-## Step 2.4: Build Tools Modernization
+## ✅ Step 2.4: Build Tools Modernization
 
-- **Goal**: Replace Yarn 1 + Webpack 4 + Gulp with **pnpm + Vite** (single frontend pipeline).
-- **Why**: Prerequisite for Phase 3; one modern toolchain instead of three legacy ones.
-- **What**:
-  - pnpm as package manager; Vite for JS + LESS/assets; remove Webpack/Gulp/Yarn
-  - Minimal Vue 2.6.12 → **2.7.16** bump (pull-forward of the Step 3.2 version bump, approved 2026-07-24): the Vue-2.6-only `vite-plugin-vue2` is EOL (Vite ≤ 4), the official `@vitejs/plugin-vue2` requires Vue ≥ 2.7 — bump + plugin swap + compat verification only; Composition-API trials and deprecation analysis stay in Step 3.2
-  - ESLint 9 Flat Config; update CI, Docker, `AGENTS.md`
-  - Decide the final formatting policy: Prettier is pinned as an advisory devDependency and the `frontend` CI job only checks changed files (`continue-on-error`) because the tree carries ~13k pre-existing style violations — either format the tree once and make the check blocking, or drop Prettier
-  - Dropping Webpack 4 removes its vulnerable locked transitives (picomatch, braces, micromatch, serialize-javascript, elliptic — the bulk of the JS audit findings); verify the advisory drop with a before/after dependency audit
-  - Verify: `pnpm install && pnpm build` + Playwright smoke + PHPUnit green
-- **Out of scope**: Webpack 5, Yarn Berry, Vue 3 / Composition-API adoption, TinyMCE 6+
-- **Risk**: Medium–High
+- **Goal**: pnpm + Vite replace Yarn 1, Webpack 4 and Gulp; Vue is 2.7.16; Prettier and ESLint block on the whole tree.
+- **Docs**: `migration-docs/branches/phase-2/step-2-4-build-tools-pnpm-vite/step-2-4-build-tools-pnpm-vite.md`
+- **Forward**: Composition API and the Vue 3 toolchain → Phase 3; prebuilt third-party bundles → Step 2.8
 
 ---
 
-## Step 2.4.1: Webroot Modernization — Adopt `public/`
+## ✅ Step 2.4.1: Webroot Modernization — Adopt `public/`
 
-- **Depends on**: Step 2.4 (Vite/pnpm asset build) — this step targets the final build-output paths directly, so it must land first.
-- **Goal**: Move the web-servable surface to a dedicated `public/` directory (the Symfony/Laravel convention) so that `app/`, `config.php`, `tmp/`, `vendor/`, and the non-public parts of `storage/` become **structurally** unreachable over HTTP — not just denied by `.htaccess` pattern-matching.
-- **Why now (not later, and independent of the webserver engine)**: Step 2.4 already rewrites every asset-output path in the repository (17 module build configs); targeting `public/` directly from that rewrite is one pass instead of two. The webroot **layout** is independent of the webserver/runtime **engine** (Apache today; FrankenPHP is the Step 4.12 candidate) — `public/` works fine under Apache, exactly like it does for every Symfony/Laravel app on shared hosting today. Modern hosting panels (IONOS, most Plesk-based hosts) let you point the document root at a subdirectory directly; hosts that do not offer that setting still work via the well-established root-`.htaccess` rewrite fallback (`RewriteRule ^(.*)$ public/$1`). This does **not** narrow hosting compatibility.
-- **What**:
-  - **`public/index.php`** becomes the sole front controller — thin: resolve the app root one level up (`dirname(__DIR__)`), delegate to the existing `app/$env/app.php` boot chain unchanged.
-  - **Build outputs land in `public/`**: Vite JS/CSS bundles, vendor asset copies (UIkit, TinyMCE, …), theme CSS — update the Step 2.4 build config's output targets accordingly (coordinate with 2.4 if it has not fully landed yet).
-  - **`storage/` uploads**: expose only the public subset via a symlink (`public/storage → ../storage/...`, mirroring Laravel's `storage:link` convention) — never the whole `storage/` tree.
-  - **`.htaccess` split**: move the front-controller rewrite + security headers (HSTS, X-Frame-Options, Permissions-Policy, COOP/CORP — CSP stays here until Step 3.2.1 moves it to a PHP `ResponseListener`) into `public/.htaccess`. Add a minimal root `.htaccess` with the `RewriteRule ^(.*)$ public/$1 [L,QSA]` fallback for hosts that cannot repoint their document root. Delete the now-structurally-redundant `<FilesMatch>` deny rules for files that simply no longer exist inside `public/`.
-  - **Installer & self-updater**: audit `app/installer/` and any path assumption tied to `__DIR__` being the servable root; update to the new `public/` + app-root split.
-  - **Docs**: `README.md` "Manual Installation" gets a "Shared hosting" subsection documenting both paths (document-root change vs. root-`.htaccess` fallback) — the counterpart to the zip-artefact side of the same story in Step 2.9.
-- **Out of scope**: Changing the webserver/runtime engine — stays Apache here; the Apache-vs-FrankenPHP-vs-nginx+PHP-FPM decision is Step 4.12. This step is layout-only.
-- **Risk**: Medium — touches the front controller and every static-asset path; mitigated by Step 2.4 having just rewritten those paths, and by full PHPUnit/PHPStan/Playwright E2E green as the gate.
+- **Goal**: Only `public/` is served. Application code, `config.php` and `tmp/` are outside the URL space; `public/storage` is the upload symlink.
+- **Docs**: `migration-docs/branches/phase-2/step-2-4-1-webroot-modernization/step-2-4-1-webroot-modernization.md`
+- **Forward**: Publish runtime-installed package assets into `public/` → Step 2.8; release zips recreate the storage symlink and prune stale files → Step 2.9; CSP delivery → Step 3.2.1; webserver engine → Step 4.12
 
 ---
 
-## Step 2.5: Docker Production Image & Deploy
+## ✅ Step 2.5: Docker Production Image & Deploy
 
-- **Depends on**: Step 2.4.1 (`public/` webroot) and Step 2.2 (CI for image build/scan/push).
-- **Goal**: A small, hardened, immutable production image + a dedicated prod compose + image build/scan/push in CI.
-- **What**:
-  - **Multi-stage**: Composer `--no-dev --optimize-autoloader --classmap-authoritative`; Vite asset build (pnpm); minimal runtime stage carrying only built artefacts.
-  - **Hardening**: non-root user; prod `php.ini` (`display_errors=Off`, `opcache.validate_timestamps=0`); `docker-compose.prod.yml` with restart policy and resource limits.
-  - **Webserver**: stays **Apache**, matching the proven Step 2.3 dev baseline — the nginx + PHP-FPM vs. FrankenPHP evaluation is a deliberately separate decision, deferred to **Step 4.12** (informed by CSP moving to PHP middleware in 3.2.1 and by proven container orchestration in 4.11). No spike in this step.
-  - **Webroot**: builds on the `public/`-only webroot already established by Step 2.4.1 — the image must ensure `app/`, `config.php`, `tmp/`, and anything outside `public/` are never served.
-  - **Config & secrets (12-factor)**: read config, DB credentials, and secrets from env vars; `config.php` stays the default and env overrides it — lightweight, no Symfony secrets-vault. Never bake secrets into the image; env / secret-store only.
-  - **First consumer**: move the hardcoded OpenWeatherMap API key in `app/system/modules/dashboard/index.php` onto that env path and rotate the committed key (in-code tag `AUDIT FIX Step 2.5`).
-  - **CI**: Hadolint + Trivy + build & push to GHCR; container `HEALTHCHECK` (HTTP/TCP). Optional Redis for cache/session.
-- **Out of scope**: Kubernetes/Helm, liveness/readiness probes, HPA, Ingress, PVCs, multi-replica → Step 4.11 (needs the 4.6 health endpoints and a shared-state decision for `storage/` / `tmp/`). Webserver/runtime engine modernization → Step 4.12.
-- **Risk**: Medium.
+- **Goal**: A non-root Apache production image on `public/`, configured from the environment, built and scanned in CI.
+- **Docs**: `migration-docs/branches/phase-2/step-2-5-docker-production-image-deploy.md`
+- **Forward**: Release-tagged images → Step 2.9; cache/session backends → Step 4.5; health endpoints and log routing → Step 4.6; orchestration → Step 4.11; webserver engine → Step 4.12
 
 ---
 
-## Step 2.6: Filesystem Write Resilience — Atomic Writes & Error-Handling Hygiene
+## ✅ Step 2.6: Filesystem Write Resilience — Atomic Writes & Error-Handling Hygiene
 
-- **Goal**: One shared atomic-write primitive for boot-critical files; clean two silent/dead error-handling sites.
-- **Why**: Non-atomic writes can corrupt `config.php` / package registry on crash or concurrent read; the routing cache already has the correct temp+rename pattern — extract and reuse it (no new dependency).
-- **What**:
-  - Add `Filesystem::dumpAtomic()` (temp + chmod + rename; **atomic or throw** — no non-atomic `LOCK_EX` degrade); unit-test it
-  - Route `config.php` and package-registry writes through it; refactor `Router::writeCache()` to the same helper
-  - Delete dead commented catch in `SelfupdateCommand`; log (don't swallow) invalid version constraints in Composer helper
-- **Provides**: the atomic-write primitive reused by Extension Safety (2.7) fallback writes and the Automated Update System (2.9) — hence sequenced before both.
-- **Out of scope**: OpenWeatherMap API key → secrets (Step 2.5)
-- **Risk**: Low–Medium
+- **Goal**: `Filesystem::dumpAtomic()` is the one write for boot-critical files; a failed write throws instead of reporting success.
+- **Docs**: `migration-docs/branches/phase-2/step-2-6-filesystem-write-resilience.md`
+- **Forward**: Update artefacts reuse it, and OPcache invalidation stays on `.php` only → Step 2.9; self-update feed → Step 5.6
 
 ---
 
-## Step 2.7: Extension Safety & Fault Isolation
+## ✅ Step 2.7: Extension Safety & Fault Isolation
 
-- **Goal**: Prevent a faulty extension from taking down the whole CMS.
-- **Why**: Today a throwable in extension `index.php` / `main()` whitescreens the kernel; admins must still reach the panel to disable the offender. Also needed before a third-party marketplace.
-- **What**:
-  1. Sandbox module load in `try/catch(\Throwable)` — registration is part of the window: it `include`s every `packages/*/*/index.php` on disk before anything is enabled, so a top-level throwable in a *disabled* extension still kills the boot and auto-disable alone does not protect against it. Harden that window inside the barrier; do **not** replace PHP discovery with a static manifest here (**2.7.3**)
-  2. Log stack traces immediately via Monolog FileHandler (**must work without DB**)
-  3. Auto-disable in DB (own try/catch) with a DB-less fallback file under a dedicated private path (prefer `tmp/system/`, own path key — never `storage/`, never `tmp/temp` / `path.cache`); boot checks both. A routine cache/temp clear must not sweep the record and silently re-enable a broken extension
-  4. Admin notice on the next admin request, derived from the durable disable record — a session flash written at failure time auto-expires and usually lands in an anonymous visitor's session
-  - Lifecycle interface + Blog `scripts.php` → lifecycle class; migrate install rollback on Throwable, including the double-fault case when migration rollback itself throws (log separately, keep the original error reportable, recovery must not throw uncaught)
-  - **Routing dumper**: replace deprecated copied `PhpMatcherDumper` / `UrlGeneratorDumper` with Symfony compiled matcher/generator; keep blog permalink behaviour; prefer content-hash cache freshness over `filemtime`
-  - **`UrlResolver` static bridge → DI**: remove `$cache` / `$module` / `$posts` setters and static `getPermalink()` (+ `RouteListener` callers) once routing factory supports DI
-  - **`theme-one` template-helper statics**: the helpers are plain functions in a required file, so their URL provider is parked in a static property (`ThemeOneHelpers::$url`) — a different blocker than UrlResolver's `new $resolver()`, and it needs an injectable seam for template-level helpers
-  - **`UniqueValidator`**: container-aware `ConstraintValidatorFactory`; delete static `setDb()` + boot wiring
-- **Out of scope until a second caller**: extract `User::evaluateBooleanExpression()` only if another consumer appears
-- **Sequencing**: before Snapshot (**2.7.1**), Atomic MySQL Restore (**2.7.1a**), Dependency Integrity (**2.7.2**), Static Module Registration (**2.7.3**), Extension Packaging (**2.8**) and Marketplace (**5.6**)
-- **Out of scope here**: full Snapshot/Backup UI and Three-Stage Uninstall retention — **Step 2.7.1**; MySQL restore cut-over — **Step 2.7.1a**; module dependency graph fail-closed — **Step 2.7.2**; static discovery so inactive packages never execute PHP — **Step 2.7.3**
+- **Goal**: A throwable in an extension no longer whitescreens the kernel. The failure is stored, the extension is left out of the next boot, and an admin notice stays until someone re-enables it.
+- **Docs**: `migration-docs/branches/phase-2/step-2-7-extension-safety-fault-isolation.md`
+- **Forward**: Inactive packages still execute `index.php` at discovery → Step 2.7.3; lifecycle filename in the package contract → Step 2.8; controller autowiring → Step 2.10.2; process sandbox for enabled PHP → Phase 5 §5.6
 
 ---
 
-## Step 2.7.1: Snapshot & Three-Stage Uninstall
+## ✅ Step 2.7.1: Snapshot & Three-Stage Uninstall
 
-- **Depends on**: Step 2.6 (atomic writes), Step 2.7 (fault isolation / lifecycle seams).
-- **Goal**: Automatic snapshots before destructive package operations, plus a three-stage uninstall path (disable → uninstall → purge after retention) with restore.
-- **Why separate from 2.7**: Fault isolation (sandbox / auto-disable) is already a full step; dump/restore + retention UI would overload it. Updates (**2.9**) reuse the same snapshot primitive for rollback.
-- **What**:
-  - Snapshot store under `tmp/snapshots/` (never DocRoot): metadata, DB dump, config, optional files
-  - Trigger before uninstall / major package ops; retention (e.g. 30 days) + one-click restore
-  - Three-stage uninstall: disable → uninstall (code/data soft-removed) → purge after retention window
-  - Admin UX for list / restore / purge
-  - Admin feedback when a package's `disable` / `uninstall` lifecycle hook throws: the stage must still complete (an administrator must be able to leave a misbehaving package), but the panel must show that the hook failed and point at the log — today that failure is log-only and the action reports plain success
-  - Theme circuit breaker: a failing theme is retried on every request today (never auto-disabled — recovery + per-request fallback). After N consecutive load failures, stop executing that theme and serve `theme-default` (or the existing blank fallback) until an administrator clears the failure / re-selects the theme — otherwise an expensive theme bug (memory exhaustion, hanging query) is a visitor-facing DoS
-  - Harden `ExtensionFailureStore` against concurrent read-modify-write: `dumpAtomic()` prevents torn reads, but two workers that each `all()` → mutate → `write()` can lose one entry; serialize the RMW cycle (e.g. `flock`) so parallel failures and clears do not overwrite each other
-  - This path is the **only** route for a removal that no one explicitly requested: automatic dependency cleanup (**5.0**) may deactivate, but any deletion it triggers goes through disable → uninstall → purge with a snapshot first, so the data stays restorable
-- **Out of scope**: Marketplace signing; background update orchestration (**2.9**); process-level PHP sandboxing for enabled packages (Phase 5 §5.6 future candidate); MySQL restore cut-over that leaves live tables untouched until a single rename, plus the install-time table-prefix invariant that cut-over needs (**2.7.1a**). SQLite restore is already transactional; a failed MySQL apply in this step is recovered by running restore again from the dump still on disk. An empty prefix still means “dump every table” here; **2.7.1a** refuses MySQL restore without a prefix instead of inventing a whole-database swap.
-- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth; theme circuit-breaker threshold must not strand a site that is mid-fix without a clear admin reset path; MySQL apply is not transactional (DDL auto-commits) until **2.7.1a**
+- **Goal**: Uninstall is snapshot-first and three-stage (disable → uninstall → purge). Restore puts the package tree back and replaces the database. A theme that fails three times in a row is no longer executed until an admin enables it again.
+- **Docs**: `migration-docs/branches/phase-2/step-2-7-1-snapshot-three-stage-uninstall.md`
+- **Forward**: Dependency pre-flight before disable/uninstall → Step 2.7.2; republication of restored package assets → Step 2.8; update rollback → Step 2.9; unrequested deletion goes through this pipeline → Step 5.0
 
 ---
 
-## Step 2.7.1a: Atomic MySQL Restore (Shadow Cut-over)
+## ✅ Step 2.7.1a: Atomic MySQL Restore (Shadow Cut-over)
 
-- **Depends on**: Step 2.7.1 (dump + restorer exist; SQLite apply is transactional; MySQL apply drops and recreates in place because DDL auto-commits).
-- **Goal**: A failed MySQL restore leaves the live installation's tables as they were — the same promise SQLite already has through a transaction. New installations always have a table prefix, so cut-over has a namespace that is not the whole database.
-- **Why separate from 2.7.1**: The snapshot store, dump format, three-stage uninstall, and panel are a full step. MySQL cannot wrap DDL in a transaction. Closing that hole is a restorer rewrite (shadow tables, identifier and constraint rewrite, leftover cleanup, one `RENAME TABLE`), not a last pass on the snapshot PR. Shared-host installs have no volume snapshot and no required `mysqldump` on PATH — this is the recovery that works there. The prefix invariant belongs here because empty prefix is the case in which shadow names cannot sit outside “our tables” and a leftover shadow would be dumped as if it were live.
-- **What**:
-  - **Table prefix at install (every entry, same rule).** Web installer already requires a prefix (default `pk_`). Close the holes that still write or overlay an empty one: MySQL module default becomes `pk_` (match SQLite); `Installer` validates on the server, not only in Vue; CLI `--db-prefix=` is refused; `PAGEKIT_DB_PREFIX` blank reads as unset (same as driver/port), never overlays `''`. Shape: starts with a letter, then `[A-Za-z0-9_]*`, ends with `_` (a delimiter — `pk` without `_` matches `pkusers` and `pk_users`). No `.` or `-` (invalid in unquoted MySQL identifiers). Must not be a reserved shadow/backup prefix. Existing installs with an empty prefix keep booting — do not fail boot.
-  - **Empty prefix at restore.** MySQL restore refuses (no whole-database shadow swap). Dump may still run so uninstall is not stranded; the dumper skips reserved shadow/backup names so leftovers never enter a dump. SQLite restore stays transactional, including empty prefix.
-  - MySQL/MariaDB only for cut-over. SQLite stays on the existing transactional apply. One MySQL path: delete the drop-and-recreate-in-place apply; no fallback.
-  - Load the dump into shadow tables first. Live tables are not dropped until cut-over. Cleanup of leftovers and of shadows after a failed fill runs in `finally` so disk-full and timeouts do not leave undeclared names.
-  - **Table shadow/backup names.** Reserved, equal length, outside the install prefix: `_r_` (shadow) and `_b_` (backup). Not English `restore_` / `backup_` / `rst_` / `bak_` (those collide with plausible neighbour tables and are unequal length). `pk_users` → `_r_pk_users` / `_b_pk_users`. Refuse before the first `CREATE` if either rewritten table name exceeds 64 characters, collides with an existing table, or leftover `_r_`/`_b_` names this restorer owns cannot be dropped. Hashing table names is wrong — `RENAME` and `SHOW TABLES` need a readable mapping.
-  - **Constraint names** (FK, CHECK, UNIQUE — schema-unique in MySQL 8, also 64 characters): regenerate short unique names (hash/token). Do not prefix dump constraint names (overflow + collision with live). Index names are per-table; rewrite only if a collision appears.
-  - Shadow DDL is the dump's DDL with table identifiers and `REFERENCES` rewritten as quoted tokens, not substrings. Not `CREATE TABLE … LIKE` on live tables — live schema may have migrated since the snapshot.
-  - **One restore at a time.** Vue `busy` is not a lock. MySQL `GET_LOCK` for the session covering restore, so leftover cleanup cannot drop another restore's in-flight shadows.
-  - On apply failure before cut-over: drop all shadow tables; live tables untouched.
-  - Cut-over is one `RENAME TABLE` listing every dump table (live → backup, shadow → live; missing live tables only rename shadow → live). `FOREIGN_KEY_CHECKS=0` around rename and backup drop. Lock-wait or `max_allowed_packet` on that statement is failure before cut-over (drop shadows).
-  - Only tables the dump names are swapped. Tables created after the snapshot, and anything outside the prefix, stay.
-  - **Inbound FKs.** A table not in the dump that references a dumped table: InnoDB remaps that FK onto the backup name at `RENAME`, then `DROP` backup fails or the neighbour hangs. Refuse before the first `CREATE` when such FKs exist.
-  - After a successful rename, drop backup tables. If that drop fails, the site is already restored; the next restore must clear leftover backup names first or the next rename cannot land.
-  - At the start of every MySQL restore, drop leftover shadow/backup tables this restorer would have created (the reserved prefixes), after the lock is held.
-  - Collision checks follow the server's `lower_case_table_names` folding.
-  - Document peak disk ≈ 2× the dumped tables until backups are dropped. Metadata locks during rename are a brief stall, not zero-downtime.
-  - Connection prefix replacement is `@name` only — shadow SQL uses quoted identifiers, never `@_r_…`.
-  - Tests: the MySQL skip on “failed apply leaves the database as it was” becomes an assertion that live tables are unchanged; empty-prefix MySQL restore is refused; dump omits `_r_`/`_b_` leftovers; inbound-FK refuse; 64-character table and constraint cases; concurrent restore is serialized. **CI gate for this ticket:** a **required** job that runs `tests/Unit/Snapshot/` against MySQL 8.4 (`continue-on-error: false`). Do **not** flip the advisory full-suite `phpunit-mysql` job — that stays Closeout once the suite is DB-portable.
-- **Out of scope**: dump format version bump; checksums; capturing views/triggers/routines (the dumper still does not); Vue/admin copy; updater orchestration (**2.9**); containers or host snapshots; a fallback drop-in-place apply; hashing live table names; putting current `AUTO_INCREMENT` values into dump DDL (pre-existing dump limit); a second CI leg for MariaDB (same family, CI remains MySQL 8.4); changing `PackageSnapshotter` files-then-dump restore order (a failed DB apply can still leave files restored — this step makes the DB half fail-safe); flipping the full `phpunit-mysql` suite job to required (**2.11**); a repo-wide comment-prose sweep of existing Snapshot/Extension Safety essays.
-- **Sequencing**: immediately after 2.7.1, before **2.7.1b** — same restorer, while the snapshot tests still describe the MySQL hole, and before the file is relocated. 2.7.2 does not consume this. 2.9 rollback on MySQL should assume this has landed.
-- **Risk**: Medium — DDL rewrite, schema-unique constraint names, leftover names, 2× disk, inbound FKs from neighbours, concurrent restore without a server lock. A rename that is not a single statement remaps FKs onto backup tables.
+- **Goal**: A failed MySQL restore leaves live tables as they were. New installs always get a table prefix; empty-prefix installs still boot, and MySQL restore refuses them.
+- **Docs**: `migration-docs/branches/phase-2/step-2-7-1a-atomic-mysql-restore.md`
+- **Forward**: Update rollback uses this restore → Step 2.9; the full PHPUnit MySQL leg becomes required → Step 2.11.2
 
 ---
 
-## Step 2.7.1b: Package Module Boundary
+## ✅ Step 2.7.1b: Package Module Boundary
 
-- **Depends on**: Step 2.7.1a (it rewrites `DatabaseRestorer`; this step relocates that file, so the rewrite lands first and is not moved mid-flight).
-- **Goal**: The package registry, the lifecycle contract, `PackageManager`, the snapshot engine and the Composer helper live in a module of their own, under a namespace that names them. `installer` shrinks to the setup wizard plus the marketplace / self-update clients. The module graph runs one way.
-- **Why**: `system` declares `installer` as a `require`, so the module loads on every boot; only the wizard sits behind its `enabled` flag, while `package`, `manager` and `snapshotter` are registered unconditionally. Roughly 88% of `app/installer/src` is not setup code — it is the package registry and lifecycle, the snapshot store with its dump/restore engine, and the marketplace/self-update client. Two consequences are load-bearing:
-  - **The extension contract carries the wrong name.** A shipped extension implements `Pagekit\Installer\Package\Lifecycle\PackageLifecycle`. Extension packaging (**2.8**) and the marketplace (**5.6**) would publish that name; correcting it afterwards is a breaking change for extension authors.
-  - **The declared graph contradicts the code graph.** `PackageManager` imports `Pagekit\System\Extension\ExtensionFailureStore`, so `installer` uses `system` code but cannot declare `system` as a `require` — `system` already requires it. An optional container lookup (`has('extension.failures')`) masks this today; a graph that fails closed on unsatisfied requirements (**2.7.2**) will not.
-- **What**:
-  1. New module holding `Package` / `PackageInterface` / `PackageFactory`, `Package\Lifecycle\*`, `PackageManager`, `Package\Snapshot\*` and `Helper\Composer`. The Composer helper moves too: `PackageManager` and the console build/update commands are its only callers and the wizard is not one of them, so leaving it behind would merely reverse the cycle. Its two internals go with it — `Helper\Factory` (the Composer factory it bootstraps) and `Helper\InstallerIO` (the console IO it constructs) — because nothing but the helper uses them, and a helper in the new module reaching back for them would be the cycle again. It is deleted in **2.7.1c**; moving it first keeps a behaviour change out of a relocation step and puts the deletion in the final module.
-  2. The package and snapshot admin surface moves undivided — both controllers, their views and JS, plus routes, menu entries and permissions. Splitting one manifest across two modules costs more than it buys, and the Vue half is deleted by the admin rebuild in any case, so the module reaches PHP-plus-API shape by attrition rather than by an extra move now.
-  3. `ExtensionFailureStore` moves down into the new module and its service is registered there. It depends on nothing but a path and the filesystem service, so this is a relocation, not a redesign. `ExtensionLoader` stays in `system`, where `SystemModule` constructs it and hands it `extensions` and `site.theme`; it imports the record from the new module, and that is the one-way direction.
-  4. `installer` keeps the wizard (`Installer`, `InstallerController`, `TablePrefix`, requirements, install scripts, `StorageLink`) and the marketplace / self-update clients, which are on the removal path and are not touched here. The wizard itself runs the package machinery (`PackageManager`, `LifecycleRunner`, the `package` service) to enable the shipped packages, so `installer` declares the new module as a `require`; `system` declares it too, beside `installer`, because its own code imports the lifecycle runner, the package interface and the failure record directly. `TablePrefix` is the install-time half of the reserved-namespace invariant the snapshot engine relies on (an installable prefix leads with a letter, the restore's `_r_`/`_b_` markers lead with an underscore); after the move the two halves live in two modules, and the Snapshot suite's assertion that the markers fail `TablePrefix::refusal()` is the one place they meet — it crosses the boundary as a test and stays.
-  5. Every call site follows the move, and so do the PSR-4 map, the PHPStan baseline (24 entries name `app/installer`; the ones naming a moved file are re-pathed, none added), the three boot files, the bundle and publish scripts and the tests that read the moved files by path. Tooling that names only what stays — the CS-Fixer config, `.gitignore`, the wizard's LESS build — is left alone. More than 70 PHP files name the namespace. No `class_alias`, no second namespace, no dual service registration.
-- **Out of scope**: dividing `PackageManager` itself — its size is a separate problem and a relocation does not split a file; deleting or rewriting the marketplace / self-update clients; any behaviour change whatsoever, since this step relocates code; the runtime Composer path and the marketplace package surface (**2.7.1c**); the static manifest discovery will need (**2.7.3**); `vendor/` at the repo root (**2.7.4**).
-- **Sequencing**: after **2.7.1a**, before **2.7.2** and **2.7.3**. The graph cannot be made fail-closed while `system` and the package code need each other in code and may not say so in the manifest, and **2.7.3** would otherwise write static manifests for a module whose boundary is about to move. Its own step rather than a rider on **2.7.4**: that step is verified by grepping one path, this one changes the graph — bundled, a red CI run names neither.
-- **Risk**: Medium — wide mechanical blast radius across imports and tooling config, but no logic change. The only design decision is where the failure record lands; everything else is a move that the test suite, static analysis and a fresh install boot either confirm or refuse.
+- **Goal**: Registry, lifecycle, `PackageManager`, the snapshot engine and the Composer helper live in `Pagekit\Package`. `installer` keeps the wizard and the marketplace / self-update clients.
+- **Docs**: `migration-docs/branches/phase-2/step-2-7-1b-package-module-boundary.md`
+- **Forward**: declared `require` edges must match imports → Step 2.7.2; static manifests → Step 2.7.3; `vendor/` at the repo root → Step 2.7.4; comment-prose sweep → Step 2.11.2
 
 ---
 

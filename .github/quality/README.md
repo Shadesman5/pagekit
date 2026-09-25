@@ -113,7 +113,7 @@ Three surfaces, three jobs — no duplication:
 | Surface | Role |
 |---------|------|
 | GitHub Checks | The merge gate. PASS / FAIL, nothing else |
-| Sticky PR comment | PR impact. This PR's numbers and their delta vs the develop snapshot; no PASS/FAIL column |
+| Sticky PR comment | PR impact. Each "vs develop" cell is a delta against the develop snapshot. PHPStan also prints both baseline totals, blocks/suppressed (negative means debt removed). No PASS/FAIL column |
 | Pages dashboard | Project health for `develop`. Current numbers with verdicts, plus the trend |
 
 ## Status

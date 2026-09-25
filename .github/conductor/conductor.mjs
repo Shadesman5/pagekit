@@ -518,25 +518,18 @@ async function poll(agentId, launchRunId) {
 }
 
 // ---------------------------------------------------------------- prompts
-// The snapshot gate lives in the phase rule (orchestrator-v2-*.mdc). The launch
-// prompt only names the phase, ticket, and branch — repeating the gate here makes
-// the agent treat the prompt as a second procedure.
+// Procedure lives in the phase rule (orchestrator-v2-*.mdc). The launch prompt
+// only names the phase and the values that rule reads. Restating the procedure
+// makes the agent treat the prompt as a second procedure.
 function planPrompt(audit) {
   return [
     'You are the Orchestrator for the PLAN phase. Follow the rule .cursor/rules/orchestrator-v2-plan.mdc exactly.',
     `Task prompt: ${TASK_PROMPT}`,
-    `Branch: ${BRANCH} (verify you are on it first; checkout/create if needed).`,
+    `Branch: ${BRANCH} (verify you are on it first).`,
     `Base branch: ${BASE}`,
     ISSUE ? `GitHub issue: #${ISSUE}` : '',
-    audit
-      ? `This is an AUDIT/REPORT task (report deliverable, no executable ticket): follow the rule's "Audit / report tasks" section. After the plan-reviewer PASSes, push and open a PR against ${BASE} — docs only: NO version bump, NO CHANGELOG, NO ROADMAP edits; do not merge.`
-      : `Output ticket: ${TICKET}`,
-    audit
-      ? ''
-      : 'Copy Output ticket verbatim into every Architect / plan-reviewer / doc-writer spawn. It is the task-prompt basename including any PROMPT_ prefix. Do not strip PROMPT_, do not substitute a ROADMAP id or the feature-branch slug.',
-    audit
-      ? 'Report exactly one line as that rule specifies.'
-      : `Report exactly one line: Plan ready: ${TICKET}`
+    audit ? 'This is an AUDIT/REPORT task.' : `Output ticket: ${TICKET}`,
+    'Report exactly one line as that rule specifies.'
   ]
     .filter(Boolean)
     .join('\n');

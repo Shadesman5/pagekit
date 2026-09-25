@@ -89,10 +89,10 @@ Edit models in `.cursor/agents/<name>.md`; keep this table in sync.
 
 | Agent | Model (frontmatter) |
 |---|---|
-| `architect` | `claude-fable-5-1[thinking=true,context=1m,effort=max]` |
-| `refactorer` | `claude-opus-5[thinking=true,context=1m,effort=max,fast=false]` |
+| `architect` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
+| `refactorer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
 | `doc-writer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
-| `plan-reviewer` | `claude-fable-5-1[thinking=true,context=1m,effort=max]` |
+| `plan-reviewer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
 | `verifier` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
 | `tester` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
 | `test-writer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
