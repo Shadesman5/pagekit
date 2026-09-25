@@ -28,7 +28,7 @@
 - [x] Step 4 (L) — Break sibling imports
 - [x] Step 5 (M) — Import edges match manifest require
 - [x] Step 6 (M) — Archive require refused before write
-- [ ] Step 7 (M) — Prefix fold and empty-dump refusal
+- [x] Step 7 (M) — Prefix fold and empty-dump refusal
 - [ ] Step 8 (L) — Disable and uninstall pre-flight
 - [ ] Step 9 (M) — Panel and console activation
 - [ ] Step 10 (L) — Restore pre-flight before files return
@@ -91,7 +91,8 @@ none
 - `PackageManager::assertArchiveRequirements` — The first unregistered name throws `ArchiveRefusedException` (`Module "%depender%" requires "%required%", which is not registered.`, archive text through `printable`, depender is `PackageArchive::module()`). The activation walk runs only when `install()` is about to `enable()`, on `PackageArchive::module()`. Rejected walking on upload and on a fresh install: a registered-but-disabled requirement is allowed until activation. Rejected overlaying the previous package's `module` value: the archive's `require` belongs to the module `index.php` names. Invariant: upload of an unregistered name is a 400 before `move()`; `install()` throws before `replaceTree`, so nothing is created under `packages/`; a fresh install whose requirement is registered but disabled still unpacks; an update of a loaded package whose archive requires a registered-but-disabled module throws before `replaceTree`.
 - `PackageManager::moduleManager` — A `module` service that is not a `ModuleManager` cannot show a name as registered, so a non-empty `require` is refused as not registered. An empty `require` with nothing to activate does not read the service. Rejected skipping the check: a name nobody can look up would be installed. Invariant: with no `ModuleManager`, `require()` of `['missing']` throws `ArchiveRefusedException` naming `missing` before a file is written; `require()` of `[]` does not read the service.
 ### Step 7
-_none yet_
+- `TableNameFold::prefixed` — A byte prefix matches without asking the server. The server is asked only when the names differ by case, and only `lower_case_table_names` of `1` or `2` (string or int) then counts the table; a folded mismatch does not ask. Rejected folding on every comparison: `name()` runs while the dump is read, before the lock, and a neighbour table would ask on every dump. Invariant: `pk_items` against `pk_` issues no `SHOW`; `other_items` against `pk_` issues none; `pk_items` against `PK_` matches only when the answer is `1` or `2`; SQLite never runs that statement; any other value, or no row, keeps the byte comparison. A same-case MySQL refusal still asks `lower_case_table_names` after `GET_LOCK` and before `REFERENTIAL_CONSTRAINTS`. `RestoreTableNames::isReserved` stays a byte match.
+- `DatabaseDumper::read` — Throws `The dump selected no table.` before `stage()` only when the database lists at least one table and the prefix selects none. A database that lists no table is written (header and the closing line, zero tables). Rejected throwing then: uninstall snapshots first, and the uninstall suites open SQLite that has never had a table, so the removal would stop with no dump file. Rejected putting the sentence on the outer exception: `dump()` already wraps every failure as `Failed to dump the database to "%s".` Invariant: a connection with no tables returns `['tables' => 0, 'rows' => 0]` and the finished path exists; a database whose only table lies outside the prefix throws, `getPrevious()` is exactly `The dump selected no table.`, and the finished path and the `.part` file are both absent. `DatabaseRestorer::end()` still throws `The database dump holds no tables, so there is nothing in it to restore.`
 ### Step 8
 _none yet_
 ### Step 9

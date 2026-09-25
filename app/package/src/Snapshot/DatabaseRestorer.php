@@ -71,13 +71,6 @@ final class DatabaseRestorer
     private const LOCK_TIMEOUT = 0;
 
     /**
-     * Whether the server matches table names without regard to case, once it has
-     * been asked. Fixed when the server starts, so it cannot change under a
-     * restore that is already running.
-     */
-    private ?bool $folds = null;
-
-    /**
      * The lock this restore is holding, or nothing where it holds none - which is
      * every restore on SQLite, and any refused before it got that far.
      */
@@ -88,9 +81,12 @@ final class DatabaseRestorer
      */
     private readonly LoggerInterface $log;
 
+    private readonly TableNameFold $fold;
+
     public function __construct(private readonly Connection $connection, ?LoggerInterface $log = null)
     {
         $this->log = $log ?? new NullLogger();
+        $this->fold = new TableNameFold($connection);
     }
 
     /**
@@ -321,22 +317,22 @@ final class DatabaseRestorer
 
         foreach ($dumped as $name) {
             foreach ([RestoreTableNames::shadow($name), RestoreTableNames::backup($name)] as $copy) {
-                $needed[$this->comparable($copy)] = [$name, $copy];
+                $needed[$this->fold->comparable($copy)] = [$name, $copy];
             }
         }
 
-        $prefix = $this->comparable($this->prefix());
+        $prefix = $this->prefix();
         $leftovers = [];
 
         foreach ($this->connection->createSchemaManager()->listTableNames() as $held) {
-            $comparable = $this->comparable($held);
+            $comparable = $this->fold->comparable($held);
             $live = RestoreTableNames::live($comparable);
 
             if ($live === null) {
                 continue;
             }
 
-            if (str_starts_with($live, $prefix)) {
+            if ($this->fold->prefixed($live, $prefix)) {
                 $leftovers[] = $held;
 
                 continue;
@@ -382,21 +378,21 @@ final class DatabaseRestorer
         $carried = [];
 
         foreach ($dumped as $name) {
-            $carried[$this->comparable($name)] = true;
+            $carried[$this->fold->comparable($name)] = true;
         }
 
         $going = [];
 
         foreach ($leftovers as $name) {
-            $going[$this->comparable($name)] = true;
+            $going[$this->fold->comparable($name)] = true;
         }
 
         $inbound = [];
 
         foreach ($this->references() as $reference) {
-            $child = $this->comparable($reference['child']);
+            $child = $this->fold->comparable($reference['child']);
 
-            if (!isset($carried[$this->comparable($reference['parent'])]) || isset($carried[$child]) || isset($going[$child])) {
+            if (!isset($carried[$this->fold->comparable($reference['parent'])]) || isset($carried[$child]) || isset($going[$child])) {
                 continue;
             }
 
@@ -591,7 +587,7 @@ final class DatabaseRestorer
         $held = [];
 
         foreach ($this->connection->createSchemaManager()->listTableNames() as $name) {
-            $held[$this->comparable($name)] = true;
+            $held[$this->fold->comparable($name)] = true;
         }
 
         $platform = $this->connection->getDatabasePlatform();
@@ -605,7 +601,7 @@ final class DatabaseRestorer
             // A dump can carry a table the installation no longer has - the
             // snapshot was taken before something dropped it - and then there is
             // nothing to set aside, only a name standing free for the copy.
-            if (isset($held[$this->comparable($live)])) {
+            if (isset($held[$this->fold->comparable($live)])) {
                 $aside = RestoreTableNames::backup($live);
 
                 // Before the copy that takes the name, so that the name it is going
@@ -1028,7 +1024,7 @@ final class DatabaseRestorer
 
         // A restore drops every table the dump names, so the dump does not get
         // to name one outside what the installation owns.
-        if (!str_starts_with($name, $prefix)) {
+        if (!$this->fold->prefixed($name, $prefix)) {
             throw new \RuntimeException(sprintf('The database dump names a table ("%s") that is not part of this installation.', $name));
         }
 
@@ -1166,39 +1162,5 @@ final class DatabaseRestorer
     private function prefix(): string
     {
         return $this->connection->getPrefix() ?? '';
-    }
-
-    /**
-     * A table name as a comparison against another one has to read it.
-     *
-     * Whether two names are the same table is the server's rule and not PHP's:
-     * asked to fold them, MySQL matches names without regard to case, and a
-     * comparison that did not fold would look straight past the table it was
-     * checking for - and then create, or drop, the wrong one.
-     */
-    private function comparable(string $name): string
-    {
-        return $this->foldsNames() ? mb_strtolower($name, 'UTF-8') : $name;
-    }
-
-    /**
-     * Whether the server matches table names without regard to case.
-     */
-    private function foldsNames(): bool
-    {
-        if ($this->folds === null) {
-            // Globally, because the variable has no session value, and through
-            // SHOW rather than as @@lower_case_table_names: the connection
-            // substitutes its table prefix for an @-led name outside quotes.
-            $row = $this->connection->fetchAssociative("SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'");
-            $value = $row === false ? null : ($row['Value'] ?? null);
-
-            // 1 stores names folded and 2 stores them as given but matches them
-            // folded. 0 - and a server that does not say - is a name matched as
-            // it is written.
-            $this->folds = in_array($value, ['1', '2', 1, 2], true);
-        }
-
-        return $this->folds;
     }
 }

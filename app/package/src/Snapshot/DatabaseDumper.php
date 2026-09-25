@@ -65,8 +65,11 @@ final class DatabaseDumper
      */
     private const FILE_MODE = 0600;
 
+    private readonly TableNameFold $fold;
+
     public function __construct(private readonly Connection $connection)
     {
+        $this->fold = new TableNameFold($connection);
     }
 
     /**
@@ -86,10 +89,11 @@ final class DatabaseDumper
      *
      * @param  string                        $file where the finished dump belongs
      * @return array{tables: int, rows: int} what was written
-     * @throws \RuntimeException             where the database could not be read or the
-     *                                      file could not be written; there is then no
-     *                                      dump, and the caller has no snapshot to
-     *                                      remove a package against
+     * @throws \RuntimeException             where the database lists tables and none
+     *                                       are selected, the database could not be
+     *                                       read, or the file could not be written;
+     *                                       there is then no dump, and the caller has
+     *                                       no snapshot to remove a package against
      */
     public function dump(string $file): array
     {
@@ -131,9 +135,15 @@ final class DatabaseDumper
             // opened: the shape a row is written against has to be the shape it
             // was read under, and a schema that cannot be read at all leaves no
             // file behind to clean up.
-            $tables = $this->schema($description['prefix']);
+            $selected = $this->schema($description['prefix']);
 
-            return $this->stage($file, $description, $tables);
+            // stage() closes a file a snapshot can mark whole. A database that
+            // lists tables and yields none is not a dump; one that lists nothing is.
+            if ($selected['tables'] === [] && $selected['listed']) {
+                throw new \RuntimeException('The dump selected no table.');
+            }
+
+            return $this->stage($file, $description, $selected['tables']);
         } finally {
             $this->closeReadView();
         }
@@ -250,9 +260,9 @@ final class DatabaseDumper
      * what goes into the dump is the schema that database engine writes rather
      * than SQL assembled here.
      *
-     * @param  string            $prefix what the installation's own tables are named
-     *                                  with; empty where it owns the whole database
-     * @return list<DumpedTable> in name order, so that two dumps of one database read the same
+     * @param  string                                         $prefix what the installation's own tables are named
+     *                                                                with; empty where it owns the whole database
+     * @return array{tables: list<DumpedTable>, listed: bool} selected tables in name order, and whether any name was listed
      */
     private function schema(string $prefix): array
     {
@@ -260,8 +270,11 @@ final class DatabaseDumper
         $platform = $this->connection->getDatabasePlatform();
 
         $names = [];
+        $listed = false;
 
         foreach ($manager->listTableNames() as $name) {
+            $listed = true;
+
             // A restore left unfinished leaves tables under names of its own,
             // and they are not part of the installation whatever the prefix
             // says: without one, every name in the database reads as this
@@ -272,7 +285,7 @@ final class DatabaseDumper
                 continue;
             }
 
-            if (str_starts_with($name, $prefix)) {
+            if ($this->fold->prefixed($name, $prefix)) {
                 $names[] = $name;
             }
         }
@@ -297,7 +310,7 @@ final class DatabaseDumper
             ];
         }
 
-        return $tables;
+        return ['tables' => $tables, 'listed' => $listed];
     }
 
     /**
