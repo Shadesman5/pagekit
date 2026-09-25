@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Controller;
+namespace Pagekit\Settings\Controller;
 
 use function Pagekit\__;
 

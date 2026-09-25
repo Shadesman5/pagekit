@@ -12,7 +12,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\System\\' => 'src',
+        'Pagekit\\Settings\\' => 'src',
 
     ],
 
@@ -20,7 +20,7 @@ return [
 
         '/system/settings' => [
             'name' => '@system/settings',
-            'controller' => 'Pagekit\\System\\Controller\\SettingsController',
+            'controller' => 'Pagekit\\Settings\\Controller\\SettingsController',
         ],
 
     ],

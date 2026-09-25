@@ -24,7 +24,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (L) — Fail-closed requirements and requiredBy
 - [x] Step 2 (L) — Routing owns URL helpers
-- [ ] Step 3 (L) — Kernel owns the foundation
+- [x] Step 3 (L) — Kernel owns the foundation
 - [ ] Step 4 (L) — Break sibling imports
 - [ ] Step 5 (M) — Import edges match manifest require
 - [ ] Step 6 (M) — Archive require refused before write
@@ -70,7 +70,8 @@
 ### Step 2
 none
 ### Step 3
-_none yet_
+- `kernel/index.php` autoload — `Pagekit\` and `Pagekit\Kernel\` both map to `src`. Rejected a prefix per sub-namespace (`Pagekit\Application\` → `src`): that would resolve `Pagekit\Application\Exception` to `src/Exception.php` and would not load the `Pagekit\Application` class. Invariant: `Pagekit\Application`, `Pagekit\Container`, `Pagekit\Event\Event`, `Pagekit\Module\ModuleManager` and `Pagekit\Util\Arr` load from `app/modules/kernel/src`, and `Pagekit\Kernel\HttpKernel` still loads from `app/modules/kernel/src/HttpKernel.php`.
+- `composer.json` `Pagekit\Twig\` — mapped to `app/modules/view/src/Twig`, the same directory as the view manifest. Rejected leaving it off Composer: an optimized dump scans `Pagekit\View\`'s `src` and skips a `Pagekit\Twig` class sitting in that tree. Invariant: `Pagekit\Twig\TwigLoader` is `app/modules/view/src/Twig/TwigLoader.php` and there is no `view/twig` module.
 ### Step 4
 _none yet_
 ### Step 5

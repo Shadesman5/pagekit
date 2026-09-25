@@ -28,6 +28,7 @@ return [
 
     'require' => [
 
+        'kernel',
         'debug',
         'routing',
         'auth',

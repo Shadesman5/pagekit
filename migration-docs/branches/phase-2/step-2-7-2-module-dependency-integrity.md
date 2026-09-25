@@ -17,7 +17,9 @@
 
 A module `require` that is missing or switched off is refused, and that module is not loaded. The enabled set is the extensions list plus the active theme, copied when `SystemModule::main` starts. Core modules stay loadable because they sit in the always-loaded closure of `system`, not because they appear in `extensions`.
 
-Remaining work keeps that contract and adds a downward graph (foundation into the existing `kernel` module; composition root stays `application`), archive/disable/uninstall/restore pre-flights, prefix-folded dump selection, and panel plus console activation on the same `PackageManager` seam.
+The foundation (`Pagekit\Application`, `Event`, `Module`, `Container`, `Util`) lives in the existing `kernel` module, beside `Pagekit\Kernel\`. `application` is still the composition root. `view` owns Twig; there is no `view/twig` module.
+
+Remaining work keeps that contract: sibling imports, the import-edge test, archive/disable/uninstall/restore pre-flights, prefix-folded dump selection, and panel plus console activation on the same `PackageManager` seam.
 
 ---
 
@@ -33,12 +35,12 @@ Remaining work keeps that contract and adds a downward graph (foundation into th
 
 | File | Change |
 |---|---|
-| `app/modules/application/src/Module/UnsatisfiedRequirementException.php` (new) | English sentence names the depender and the requirement and says either "not registered" or "registered but disabled". `messageId()` is that sentence, for the panel to translate. |
-| `app/modules/application/src/Module/ModuleManager.php` | `resolveModules` throws `UnsatisfiedRequirementException` or the existing circular-requirement message. `setActivityPolicy` / `isActive` / `requiredBy` / `assertRequirements`. `load()` of an unknown name still throws `Undefined module`. `assertRequirements` returns when the name is not registered. |
+| `app/modules/application/src/Module/UnsatisfiedRequirementException.php` (new) | English sentence names the depender and the requirement and says either "not registered" or "registered but disabled". `messageId()` is that sentence, for the panel to translate. Now `app/modules/kernel/src/Module/UnsatisfiedRequirementException.php`. |
+| `app/modules/application/src/Module/ModuleManager.php` | `resolveModules` throws `UnsatisfiedRequirementException` or the existing circular-requirement message. `setActivityPolicy` / `isActive` / `requiredBy` / `assertRequirements`. `load()` of an unknown name still throws `Undefined module`. `assertRequirements` returns when the name is not registered. Now `app/modules/kernel/src/Module/ModuleManager.php`. |
 | `app/system/src/SystemModule.php` | `main()` calls `setActivityPolicy` with `extensions` plus a non-empty `site.theme` before `ExtensionLoader::load`. The list is the copy taken at the start of `main`. |
 | `app/package/src/PackageManager.php` | `enable()` calls `assertRequirements` before any config write, lifecycle hook, or `package.enable`, and only when `Package::get('module')` is a string. |
 | `app/package/src/Controller/PackageController.php` | `enableAction` translates `messageId()` into `error` even when debug is off. Any other failure, including a circular requirement, stays the generic enable error when debug is off. The cleanup closure calls `restore_error_handler()` and `restore_exception_handler()`. |
-| `app/modules/application/src/Util/Arr.php` | `pull` assigns `array_values` through the by-ref parameter after `unset`. |
+| `app/modules/application/src/Util/Arr.php` | `pull` assigns `array_values` through the by-ref parameter after `unset`. Now `app/modules/kernel/src/Util/Arr.php`. |
 
 #### Tests (Checklist Step 1)
 
@@ -64,7 +66,7 @@ Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-
 | `app/modules/application/src/Application/Response.php` (deleted) | |
 | `app/modules/application/index.php` | `url` and `response` are `new UrlProvider` / `new Response` from `Pagekit\Routing`. |
 | `app/modules/view/src/Helper/UrlHelper.php` | The provider property is `Pagekit\Routing\UrlProvider`. |
-| `app/installer/src/Controller/UpdateController.php`, `app/package/src/Controller/PackageController.php`, `app/package/src/PackageFactory.php`, `app/system/src/SystemMenu.php`, `app/system/src/Controller/AdminController.php`, `app/system/src/Controller/ExceptionController.php`, `app/system/src/Controller/MigrationController.php`, `app/system/modules/finder/src/Controller/FinderController.php`, `app/system/modules/intl/src/Controller/IntlController.php`, `app/system/modules/site/src/Controller/NodeController.php`, `app/system/modules/site/src/MenuHelper.php`, `app/system/modules/site/src/NodePresenter.php`, `app/system/modules/user/src/Controller/AuthController.php`, `app/system/modules/user/src/Controller/ProfileController.php`, `app/system/modules/user/src/Controller/RegistrationController.php`, `app/system/modules/user/src/Controller/ResetPasswordController.php`, `app/system/modules/user/src/Event/AccessListener.php`, `app/system/modules/view/src/Event/ResponseListener.php`, `packages/pagekit/blog/src/Controller/SiteController.php`, `packages/pagekit/blog/src/PostPresenter.php` | Import `Pagekit\Routing\UrlProvider`, `Pagekit\Routing\Response`, or both. |
+| `app/installer/src/Controller/UpdateController.php`, `app/package/src/Controller/PackageController.php`, `app/package/src/PackageFactory.php`, `app/system/src/SystemMenu.php`, `app/system/src/Controller/AdminController.php`, `app/system/src/Controller/ExceptionController.php`, `app/system/src/Controller/MigrationController.php`, `app/system/modules/finder/src/Controller/FinderController.php`, `app/system/modules/intl/src/Controller/IntlController.php`, `app/system/modules/site/src/Controller/NodeController.php`, `app/system/modules/site/src/MenuHelper.php`, `app/system/modules/site/src/NodePresenter.php`, `app/system/modules/user/src/Controller/AuthController.php`, `app/system/modules/user/src/Controller/ProfileController.php`, `app/system/modules/user/src/Controller/RegistrationController.php`, `app/system/modules/user/src/Controller/ResetPasswordController.php`, `app/system/modules/user/src/Event/AccessListener.php`, `app/modules/view/src/Event/ResponseListener.php`, `packages/pagekit/blog/src/Controller/SiteController.php`, `packages/pagekit/blog/src/PostPresenter.php` | Import `Pagekit\Routing\UrlProvider`, `Pagekit\Routing\Response`, or both. |
 
 #### Tests (Checklist Step 2)
 
@@ -78,11 +80,45 @@ Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-
 
 Gates: production verifier PASS; production tester PASS; test-writer verifier FAIL once (`RoutingUrlOwnershipTest` class docblock), retry PASS; test verifier PASS; tester PASS.
 
-### Graph boundary (Checklist Steps 3–5) — plan
+### Kernel owns the foundation (Checklist Step 3)
 
-Plan refine kept Checklist Step 1 verbatim and tightened Steps 2–11. The foundation joins the **existing** `kernel` module (HttpKernel home today): `Pagekit\Application`, `Event`, `Module` (including Step 1's manager and exception), `Container`, and `Util` move under `app/modules/kernel/src` with namespaces unchanged; Composer `"Pagekit\\"` retargets there. No new module, no alias, no HttpKernel rename. Composition root stays `application` (`application/index.php` requires `kernel` and keeps its stack `require`).
+`Pagekit\Application`, `Pagekit\Event`, `Pagekit\Module` (including `ModuleManager` and `UnsatisfiedRequirementException`), `Pagekit\Container`, and `Pagekit\Util` live under `app/modules/kernel/src`. Namespaces are unchanged. HttpKernel types stay `Pagekit\Kernel\`. `application` requires `kernel` and still requires the stack. `kernel` requires none of that stack. Step 1's activity policy is unchanged; only the file home moved.
 
-`UrlProvider` and `Response` now live in `routing`. Still before the edge test: `#[Access]` moves into `routing`; `kernel` takes the foundation; sibling imports move (`UserInterface::isAuthenticated()`, `CacheKeyUtil` → `Pagekit\Util`, filesystem URL constants, debug middleware registered by the debug module). `view` absorbs `view/twig`. The edge test accepts a transitive `require` that reaches the module directory of the class; it fails cycles and has no parent-import exception.
+`kernel`'s autoload maps both `Pagekit\` and `Pagekit\Kernel\` to `src`, so the `Application` class and the HttpKernel types load from the same directory. A prefix per sub-namespace (`Pagekit\Application\` → `src`) would resolve `Pagekit\Application\Exception` to `src/Exception.php` and would not load the `Pagekit\Application` class.
+
+`view` registers the Twig environment and autoloads `Pagekit\Twig\` from `src/Twig`. Composer maps that prefix to the same tree: an optimized dump scans `Pagekit\View\`'s `src` and skips a `Pagekit\Twig` class sitting in that tree. `system/view` requires `view` and no longer autoloads `Pagekit\View\`. `SettingsController` is `Pagekit\Settings\Controller\SettingsController`. Composer `Pagekit\System\` stays on `app/system/src`.
+
+| File | Change |
+|---|---|
+| `composer.json` | `"Pagekit\\"` points at `app/modules/kernel/src`. `"Pagekit\\Twig\\"` points at `app/modules/view/src/Twig`. `"Pagekit\\Kernel\\"` and `"Pagekit\\System\\"` stay where they were. |
+| `phpstan-baseline.neon` | Paths for `Event`, `Arr`, and the db/ftp test cases follow the move to `kernel/src`. |
+| `app/modules/application/index.php` | Requires `kernel` and keeps the stack `require`. No `Pagekit\` autoload. |
+| `app/modules/application/src/` (deleted) | |
+| `app/modules/kernel/index.php` | Autoload maps `Pagekit\` and `Pagekit\Kernel\` to `src`. No `require`. |
+| `app/modules/kernel/src/Application.php`, `Application/`, `Container.php`, `Container/`, `Event/`, `Module/`, `Util/` | Moved from `application/src`. Namespaces unchanged. |
+| `app/modules/kernel/src/Tests/` (moved) | Container, env-config, trusted-proxies, and the db/ftp helpers moved with the classes. |
+| `app/modules/view/index.php` | Registers `twig`. Autoloads `Pagekit\View\` from `src` and `Pagekit\Twig\` from `src/Twig`. The `modules/*/index.php` include and the `view/twig` require are gone. |
+| `app/modules/view/modules/twig/` (deleted) | |
+| `app/modules/view/src/Twig/` | `TwigCache` and `TwigLoader` (`Pagekit\Twig`). |
+| `app/modules/view/src/Asset/FileLocatorAsset.php`, `app/modules/view/src/Event/ResponseListener.php` | Moved from `system/view`. Still `Pagekit\View`. |
+| `app/system/modules/view/index.php` | Requires `view`. The `Pagekit\View\` autoload is gone. |
+| `app/system/modules/view/src/` (deleted) | |
+| `app/system/modules/settings/index.php` | Autoload is `Pagekit\Settings\` → `src`. The settings route names `Pagekit\Settings\Controller\SettingsController`. |
+| `app/system/modules/settings/src/Controller/SettingsController.php` | Namespace `Pagekit\Settings\Controller`. |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | Bootstrap and `AutoLoader` paths point at `kernel/src`. |
+| `tests/Unit/Settings/SettingsControllerTest.php` | Imports `Pagekit\Settings\Controller\SettingsController`. Still loads the file with `require_once`, because Composer does not map `Pagekit\Settings\`. |
+
+#### Tests (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `app/modules/kernel/src/Tests/KernelFoundationOwnershipTest.php` (new) | Both prefixes resolve `Application`, `Application\Exception`, `Container`, `Event`, `ModuleManager`, `Arr`, and `HttpKernel` from `kernel/src`. `kernel` does not require the stack; `application` requires `kernel` and still requires the stack. `view` owns Twig and `Pagekit\View\`; the `view/twig` module is absent and `view`'s `main` builds the Twig environment. `SettingsController` is `Pagekit\Settings\`; Composer still maps `Pagekit\System\` to `app/system/src` and does not map `Pagekit\Settings\`. |
+
+Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; PHPUnit + PHPStan PASS. No deviations.
+
+### Sibling imports and the edge test (Checklist Steps 4–5) — plan
+
+`#[Access]` moves into `routing`. Sibling imports move (`UserInterface::isAuthenticated()`, `CacheKeyUtil` → `Pagekit\Util`, filesystem URL constants, debug middleware registered by the debug module). The edge test accepts a transitive `require` that reaches the module directory of the class; it fails cycles and has no parent-import exception.
 
 ### Activation and pre-flights (Checklist Steps 6–10) — plan
 
@@ -101,7 +137,8 @@ Archive `require` is read like `autoload` (literals only) and refused before any
 - **The walk takes a module name.** `assertPackageRequirements(string)` skips a non-string `Package::get('module')`. The parameter stays `string` because `Package::get` is the generic container.
 - **`Arr::pull` packs through the reference.** `$array = array_values($array)` after `unset`. `$array = &$packed` rebinds the parameter, so `Config::pull` would write the gapped array back. `Config::pull('extensions', $name)` on `['needs-off', 'pages']` leaves `['pages']` at index 0.
 - **Handler cleanup pops the frame it pushed.** `restore_error_handler()` and `restore_exception_handler()`. Reinstalling the previous callable pushes another frame, and skipping that call when the previous handler is null leaves the new frame in place. After `enableAction()` returns, both stacks match the ones that were active when the action was entered.
-- **Foundation lands in the existing `kernel` module.** Plan refine rejected inventing a second home or an alias: `kernel` already owns `Pagekit\Kernel\`; the composition types join that directory; `application` stays the boot composition root.
+- **Both prefixes share `kernel/src`.** `Pagekit\` and `Pagekit\Kernel\` map to the same directory, so `Pagekit\Application` and `Pagekit\Kernel\HttpKernel` load from there. A prefix per sub-namespace (`Pagekit\Application\` → `src`) would resolve `Pagekit\Application\Exception` to `src/Exception.php` and would not load the `Pagekit\Application` class. `application` stays the composition root and requires `kernel`. `kernel` does not require the stack.
+- **`Pagekit\Twig\` is a Composer prefix of `view`.** It maps to `app/modules/view/src/Twig`, the same tree as the view manifest. Leaving it off Composer lets an optimized dump scan `Pagekit\View\`'s `src` and skip a `Pagekit\Twig` class in that tree. There is no `view/twig` module.
 - **Console activation shares the panel seam.** `enable` / `disable` commands call `PackageManager` like the panel and uninstall already do. Rejected a panel-only gate or a `--force` path.
 
 ---
@@ -113,6 +150,8 @@ Enabling a package whose registered module requires something unregistered or re
 `Config::pull` on a list (through `Arr::pull`) now returns a packed list. Pulling `needs-off` from `['needs-off', 'pages']` leaves `['pages']` at index 0.
 
 `Pagekit\Application\UrlProvider` and `Pagekit\Application\Response` are `Pagekit\Routing\UrlProvider` and `Pagekit\Routing\Response`. The old names are gone.
+
+`Pagekit\System\Controller\SettingsController` is `Pagekit\Settings\Controller\SettingsController`. The `view/twig` module is gone; `view` registers the Twig environment.
 
 ---
 
@@ -136,6 +175,8 @@ A registered-but-disabled requirement is not loaded. The resolver does not recur
 
 The URL classes live under `routing`. The old files are deleted, and call sites name `Pagekit\Routing\UrlProvider` and `Pagekit\Routing\Response`.
 
+The foundation sits in `kernel` beside HttpKernel. `app/modules/application/src`, the `view/twig` module, and `system/view`'s `Pagekit\View\` autoload are deleted. No alias.
+
 ---
 
 ## ✅ Verification (links only)
@@ -144,7 +185,7 @@ The URL classes live under `routing`. The old files are deleted, and call sites 
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none.
 
 ---
 

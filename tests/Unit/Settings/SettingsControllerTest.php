@@ -7,7 +7,7 @@ namespace Pagekit\Tests\Unit\Settings;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\System\Controller\SettingsController;
+use Pagekit\Settings\Controller\SettingsController;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -52,8 +52,8 @@ final class SettingsControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        // Composer maps Pagekit\System\ to app/system/src, so the controller -
-        // which lives in the settings module - is not on the autoload map.
+        // Composer maps Pagekit\System\ to app/system/src. The settings prefix
+        // is the module's own, so this controller is not on that map.
         require_once dirname(__DIR__, 3).'/app/system/modules/settings/src/Controller/SettingsController.php';
 
         $this->workspace = strtr(sys_get_temp_dir(), '\\', '/').'/pk_settings_'.getmypid().'_'.uniqid();

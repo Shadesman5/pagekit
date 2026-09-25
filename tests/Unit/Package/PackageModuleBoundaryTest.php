@@ -910,7 +910,7 @@ final class PackageModuleBoundaryTest extends TestCase
 
     public function testTheApplicationBootstrapDoesNotMapTheOldPackageDirectory(): void
     {
-        $bootstrap = file_get_contents($this->root().'/app/modules/application/src/Tests/bootstrap.php');
+        $bootstrap = file_get_contents($this->root().'/app/modules/kernel/src/Tests/bootstrap.php');
         self::assertIsString($bootstrap);
         self::assertStringNotContainsString('/app/modules/package/src', $bootstrap);
     }
@@ -931,7 +931,7 @@ final class PackageModuleBoundaryTest extends TestCase
         $hits = $this->patternHits($roots, self::COMPOSER_NAMESPACE);
 
         self::assertSame([], $this->besidesTheAutoloader($hits));
-        self::assertNotEmpty($this->under($hits, 'app/modules/application/src/Module/Loader/AutoLoader.php'));
+        self::assertNotEmpty($this->under($hits, 'app/modules/kernel/src/Module/Loader/AutoLoader.php'));
         self::assertNotEmpty($this->under($hits, 'app/system/modules/cache/src/Tests/bootstrap.php'));
 
         // This file spells a forbidden name. The walk has to leave it unread.

@@ -412,7 +412,7 @@ final class EnvConfigLoaderTest extends TestCase
      */
     private static function applicationDefaults(): array
     {
-        return self::defaultsOf(dirname(__DIR__, 2).'/index.php');
+        return self::defaultsOf(dirname(__DIR__, 3).'/application/index.php');
     }
 
     /**
