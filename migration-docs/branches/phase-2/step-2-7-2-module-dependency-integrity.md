@@ -17,6 +17,8 @@
 
 A module `require` that is missing or switched off is refused, and that module is not loaded. The enabled set is the extensions list plus the active theme, copied when `SystemModule::main` starts. Core modules stay loadable because they sit in the always-loaded closure of `system`, not because they appear in `extensions`.
 
+Remaining work keeps that contract and adds a downward graph (foundation into the existing `kernel` module; composition root stays `application`), archive/disable/uninstall/restore pre-flights, prefix-folded dump selection, and panel plus console activation on the same `PackageManager` seam.
+
 ---
 
 ## ✅ What Changed
@@ -50,15 +52,15 @@ A module `require` that is missing or switched off is refused, and that module i
 
 Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; coverage PHPUnit + PHPStan PASS.
 
-### Import edges stopped (Checklist Step 2)
+### Graph boundary (Checklist Steps 2–5) — plan
 
-Production verifier FAIL. The step stopped. Where `CacheKeyUtil` and `OutboundMailer` live, and which module owns the captcha auth check, is a plan decision.
+Plan refine kept Checklist Step 1 verbatim and tightened Steps 2–11. The foundation joins the **existing** `kernel` module (HttpKernel home today): `Pagekit\Application`, `Event`, `Module` (including Step 1's manager and exception), `Container`, and `Util` move under `app/modules/kernel/src` with namespaces unchanged; Composer `"Pagekit\\"` retargets there. No new module, no alias, no HttpKernel rename. Composition root stays `application` (`application/index.php` requires `kernel` and keeps its stack `require`).
 
-- **AP-04.** `CacheKeyUtil` was moved to `Pagekit\Database`, and `OutboundMailer` is a new `Pagekit\User\Mail` type. Where those concerns live is a module-boundary decision. Declaring the old imports cycles: `system/cache` requires `system/user`, which requires `database`; `system/mail` requires `system/user`.
-- **AP-03.** `CaptchaListener::isAuthenticated` calls `isAuthenticated()` via `is_callable` and does not import `Pagekit\User`. The dependency is real. `system/captcha` requiring `system/user` cycles because `system/user` requires `system/captcha`. The class, or the `#[Captcha]` edge, is in the wrong module.
-- **AP-01.** `OutboundMailer` is a shim so registration and reset do not typehint `Pagekit\Mail\Mailer`. No shim keeps the old calling pattern; every call site takes the new signature.
-- **AP-02.** `CaptchaListener::isAuthenticated(mixed $user)` does not say why `mixed`. `Auth::getUser()` returns `?UserInterface`. Narrow the parameter.
-- Docblocks on `CacheKeyUtil`, `OutboundMailer`, and `CaptchaListener::isAuthenticated` explain the module cycle instead of the symbol contract.
+Order before the edge test: `routing` owns `UrlProvider`, `Response`, and `#[Access]`; `kernel` takes the foundation; sibling imports move (`UserInterface::isAuthenticated()`, `CacheKeyUtil` → `Pagekit\Util`, filesystem URL constants, debug middleware registered by the debug module). `view` absorbs `view/twig`. The edge test accepts a transitive `require` that reaches the module directory of the class; it fails cycles and has no parent-import exception.
+
+### Activation and pre-flights (Checklist Steps 6–10) — plan
+
+Archive `require` is read like `autoload` (literals only) and refused before any write under `packages/`. Disable/uninstall share one pre-flight query (blockers / orphans / data-risk); the panel and new console `enable` / `disable` commands call `PackageManager` on that seam — panel-only activation is rejected; no `--force`. Restore refuses on recorded application version and dumped `packages.*` before `reinstate()`. Prefix fold for dump selection sits beside `RestoreTableNames`. PHASE deferrals (2.7.3 / 2.8 / 5.0) already name the follow-ons — no PHASE amendment from this plan pass.
 
 ---
 
@@ -73,6 +75,8 @@ Production verifier FAIL. The step stopped. Where `CacheKeyUtil` and `OutboundMa
 - **The walk takes a module name.** `assertPackageRequirements(string)` skips a non-string `Package::get('module')`. The parameter stays `string` because `Package::get` is the generic container.
 - **`Arr::pull` packs through the reference.** `$array = array_values($array)` after `unset`. `$array = &$packed` rebinds the parameter, so `Config::pull` would write the gapped array back. `Config::pull('extensions', $name)` on `['needs-off', 'pages']` leaves `['pages']` at index 0.
 - **Handler cleanup pops the frame it pushed.** `restore_error_handler()` and `restore_exception_handler()`. Reinstalling the previous callable pushes another frame, and skipping that call when the previous handler is null leaves the new frame in place. After `enableAction()` returns, both stacks match the ones that were active when the action was entered.
+- **Foundation lands in the existing `kernel` module.** Plan refine rejected inventing a second home or an alias: `kernel` already owns `Pagekit\Kernel\`; the composition types join that directory; `application` stays the boot composition root.
+- **Console activation shares the panel seam.** `enable` / `disable` commands call `PackageManager` like the panel and uninstall already do. Rejected a panel-only gate or a `--force` path.
 
 ---
 
@@ -110,7 +114,7 @@ A registered-but-disabled requirement is not loaded. The resolver does not recur
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Checklist Step 2 production verifier FAIL — ESCALATE (AP-04, AP-03); same FAIL also names AP-01, AP-02, and cycle docblocks. See What Changed.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment.
 
 ---
 
@@ -131,16 +135,19 @@ _TBD / None_
 
 ## 📚 Deferred / Out-of-Scope
 
-<!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
-     Manual Work here — that belongs under Maintainer action above. -->
-
-_TBD / None_
+- **Step 2.7.3** — static discovery must carry `require` and retarget the archive parser that reads it (PHASE §2.7.3).
+- **Step 2.8** — author contract states the unregistered-`require` refusal (PHASE §2.8).
+- **Step 5.0** — automatic orphan removal and install-reason bookkeeping; a package-scoped restore; a purge that drops the tables the pre-flight names (PHASE §5.0).
+- **Non-goals:** which characters an install prefix may contain; marketplace (5.6).
+- **Bridges:** none planned for the remaining checklist.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- 2.7.3 — Static Module Registration
+- 2.8 — Package Author Contract
+- 5.0 — Package lifecycle data ownership (orphans / purge / scoped restore)
 
 ---
 
