@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Validator;
 
 use Pagekit\Intl\Loader\PhpFileLoader;
-use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\Routing\ValidatesRequestTrait;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Translation\Translator;

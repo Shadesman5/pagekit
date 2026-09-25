@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Model;
+namespace Pagekit\Database\ORM;
 
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Util\Arr;

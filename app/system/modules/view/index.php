@@ -14,6 +14,7 @@ return [
     'require' => [
 
         'view',
+        'kernel',
 
     ],
 

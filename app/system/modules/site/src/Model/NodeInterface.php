@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Model;
+namespace Pagekit\Site\Model;
 
 /**
  * @extends \IteratorAggregate<string, NodeInterface>

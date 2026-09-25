@@ -26,7 +26,7 @@
 - [x] Step 2 (L) — Routing owns URL helpers
 - [x] Step 3 (L) — Kernel owns the foundation
 - [x] Step 4 (L) — Break sibling imports
-- [ ] Step 5 (M) — Import edges match manifest require
+- [x] Step 5 (M) — Import edges match manifest require
 - [ ] Step 6 (M) — Archive require refused before write
 - [ ] Step 7 (M) — Prefix fold and empty-dump refusal
 - [ ] Step 8 (L) — Disable and uninstall pre-flight
@@ -78,7 +78,13 @@ none
 - `AdministratorWhoUpdates::isAuthenticated` — Returns true. The double is the signed-in administrator the login check runs for. Invariant: the class implements `UserInterface`; `CaptchaListener` calls `UserInterface::isAuthenticated()` and does not import `Pagekit\User`.
 - `Filesystem::getUrl` — `UrlGeneratorInterface::ABSOLUTE_PATH` is `1` and `NETWORK_PATH` is `3`, the integers the Pagekit generator inherited. Invariant: `getUrl($file)` is the path form, `getUrl($file, 3)` the network path, and `getUrl($file, true)` the absolute URL.
 ### Step 5
-_none yet_
+- `ValidatesRequestTrait` — `Pagekit\Routing\ValidatesRequestTrait`. Rejected leaving it on `system`: site, user, and widget import it and `system` already requires them. Rejected `system/site` as the home: user and widget use it too, and site already imports user. Invariant: those modules require `routing` and do not import `Pagekit\System`.
+- `DataModelTrait` — `Pagekit\Database\ORM\DataModelTrait`. Rejected site, user, or widget (site imports user; widget imports both) and rejected `kernel` (the trait imports `Pagekit\Database`). Invariant: site, user, and widget require `database` and do not import `Pagekit\System\Model`.
+- `NodeInterface` / `NodeTrait` — `Pagekit\Site\Model`, beside `Node`, the only implementor. Invariant: no core module outside `system/site` imports them.
+- `Unique` / `UniqueValidator` — `Pagekit\Database\Validator\Constraints`, because the validator takes `Connection`. Rejected `system/user`: `system` registers the validator for every model. Invariant: `User` imports `Unique` from database; `ValidatorServiceProvider` imports `UniqueValidator`, and `system` reaches database through `application` with no direct `database` require.
+- `use function` / `use const` — Not an edge. `__()` has no class file. Rejected requiring `system/intl` from every controller that imports the function. Invariant: `use function Pagekit\__` adds no require.
+- `use Pagekit\Database\ORM\Attribute` — A namespace import, not a class (the interface is `Attribute\Attribute`). The attribute classes under that prefix are the edges. Invariant: comment, site, user, and widget require `database`; that same use inside database is not an edge.
+- Edge scan — Production PHP only. Rejected scanning `Tests/`: a database test that imports `Application` would cycle, because `application` requires `database`, and `Application` cannot move. Invariant: the import test ignores `Tests/` and `tests/` and allows no parent-import exception in production code.
 ### Step 6
 _none yet_
 ### Step 7

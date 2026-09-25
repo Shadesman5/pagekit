@@ -8,6 +8,12 @@ return [
 
     'name' => 'system/info',
 
+    'require' => [
+
+        'routing',
+
+    ],
+
     'main' => function ($app) {
 
         $app->set('info', fn () => new InfoHelper(

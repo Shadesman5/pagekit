@@ -32,6 +32,16 @@ return [
 
     'name' => 'view',
 
+    'require' => [
+
+        'filesystem',
+        'kernel',
+        'markdown',
+        'routing',
+        'session',
+
+    ],
+
     'main' => function ($app) {
 
         $app->set('twig', function ($app) {

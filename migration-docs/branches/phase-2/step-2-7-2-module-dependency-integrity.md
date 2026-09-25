@@ -19,7 +19,7 @@ A module `require` that is missing or switched off is refused, and that module i
 
 The foundation (`Pagekit\Application`, `Event`, `Module`, `Container`, `Util`) lives in the existing `kernel` module, beside `Pagekit\Kernel\`. `application` is still the composition root. `view` owns Twig; there is no `view/twig` module.
 
-Remaining work keeps that contract: the import-edge test, archive/disable/uninstall/restore pre-flights, prefix-folded dump selection, and panel plus console activation on the same `PackageManager` seam.
+Remaining work keeps that contract: archive/disable/uninstall/restore pre-flights, prefix-folded dump selection, and panel plus console activation on the same `PackageManager` seam.
 
 ---
 
@@ -159,9 +159,62 @@ Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-
 
 Gates: production verifier FAIL (docblocks) then PASS; production tester PASS; test verifier FAIL (login double never ran login; ownership docblock) then PASS; tester PASS.
 
-### Import edges (Checklist Step 5) — plan
+### Import edges (Checklist Step 5)
 
-The edge test accepts a transitive `require` that reaches the module directory of the class. It fails cycles and has no parent-import exception.
+A production `use` or attribute of a `Pagekit\…` class must reach, through transitive `require`, the module directory that contains the class file. The owner is the longest module path. A class in the importer's own directory is not an edge. An import whose owner already requires the importer fails. `use function` and `use const` are not edges. A namespace `use` is an edge only through an attribute class under that prefix. The scan reads core module PHP (`app/modules`, `app/system`, `app/system/modules`, `app/package`, `app/installer`, `app/console`) and skips `Tests/`, `tests/`, and `packages/pagekit/*`. The existing `Pagekit\Database\`, `Pagekit\Routing\`, and `Pagekit\Site\` autoloads cover the moved files.
+
+`ValidatesRequestTrait` is `Pagekit\Routing\ValidatesRequestTrait`. `DataModelTrait` is `Pagekit\Database\ORM\DataModelTrait`. `NodeInterface` and `NodeTrait` are `Pagekit\Site\Model`, beside `Node`. `Unique` and `UniqueValidator` are `Pagekit\Database\Validator\Constraints`. The old `Pagekit\System` names are deleted.
+
+`system` does not require `database`. `ValidatorServiceProvider` still imports `UniqueValidator`; `application` requires `database`, so the edge is transitive. `User` imports `Unique` from database directly, and `system/user` requires `database`.
+
+| File | Change |
+|---|---|
+| `app/modules/routing/src/ValidatesRequestTrait.php` (new) | `Pagekit\Routing\ValidatesRequestTrait`. |
+| `app/system/src/Controller/ValidatesRequestTrait.php` (deleted) | |
+| `app/modules/database/src/ORM/DataModelTrait.php` (new) | `Pagekit\Database\ORM\DataModelTrait`. |
+| `app/system/src/Model/DataModelTrait.php` (deleted) | |
+| `app/system/modules/site/src/Model/NodeInterface.php` (new), `app/system/modules/site/src/Model/NodeTrait.php` (new) | `Pagekit\Site\Model`. |
+| `app/system/src/Model/NodeInterface.php` (deleted), `app/system/src/Model/NodeTrait.php` (deleted) | |
+| `app/modules/database/src/Validator/Constraints/Unique.php` (new), `app/modules/database/src/Validator/Constraints/UniqueValidator.php` (new) | `Pagekit\Database\Validator\Constraints`. The validator takes `Connection`. |
+| `app/system/src/Validator/Constraints/Unique.php` (deleted), `app/system/src/Validator/Constraints/UniqueValidator.php` (deleted) | |
+| `app/system/modules/site/src/Controller/MenuApiController.php`, `app/system/modules/site/src/Controller/NodeApiController.php`, `app/system/modules/user/src/Controller/ProfileController.php`, `app/system/modules/user/src/Controller/RegistrationController.php`, `app/system/modules/user/src/Controller/RoleApiController.php`, `app/system/modules/user/src/Controller/UserApiController.php`, `app/system/modules/widget/src/Controller/WidgetApiController.php`, `packages/pagekit/blog/src/Controller/CommentApiController.php`, `packages/pagekit/blog/src/Controller/PostApiController.php` | Import `Pagekit\Routing\ValidatesRequestTrait`. |
+| `app/system/modules/site/src/Model/Menu.php` | The validator `@see` names `Pagekit\Routing\ValidatesRequestTrait`. |
+| `app/system/modules/site/src/Model/Node.php` | `DataModelTrait` comes from database. Node types are the same namespace. |
+| `app/system/modules/site/src/Model/Page.php`, `app/system/modules/widget/src/Model/Widget.php`, `packages/pagekit/blog/src/Model/Post.php` | Import `Pagekit\Database\ORM\DataModelTrait`. |
+| `app/system/modules/user/src/Model/User.php` | Imports `DataModelTrait` and `Unique` from database. The username and email attributes are `#[Unique]`. |
+| `app/system/src/ValidatorServiceProvider.php` | Imports `Pagekit\Database\Validator\Constraints\UniqueValidator`. |
+| `app/console/index.php` | Require adds `installer`, `package`. |
+| `app/modules/auth/index.php` | Require adds `cookie`, `database`, `kernel`. |
+| `app/modules/config/index.php` | Require adds `kernel`. |
+| `app/modules/database/index.php` | Require adds `filesystem`, `kernel`. |
+| `app/modules/debug/index.php` | Require adds `auth`, `database`, `system/info`, `system/user`. |
+| `app/modules/routing/index.php` | Require adds `filesystem`. |
+| `app/modules/session/index.php` | Require adds `database`, `kernel`. |
+| `app/modules/view/index.php` | Require adds `filesystem`, `kernel`, `markdown`, `routing`, `session`. |
+| `app/system/modules/cache/index.php` | Require adds `kernel`, `routing`. |
+| `app/system/modules/captcha/index.php` | Require adds `auth`, `kernel`, `routing`, `view`. |
+| `app/system/modules/comment/index.php` | Require adds `database`, `kernel`, `system/content`. |
+| `app/system/modules/content/index.php` | Require adds `kernel`, `markdown`. |
+| `app/system/modules/dashboard/index.php` | Require adds `kernel`, `routing`. |
+| `app/system/modules/finder/index.php` | Require adds `filesystem`, `kernel`, `routing`. |
+| `app/system/modules/info/index.php` | Require adds `routing`. |
+| `app/system/modules/intl/index.php` | Require adds `kernel`, `routing`. |
+| `app/system/modules/mail/index.php` | Require adds `kernel`, `routing`. |
+| `app/system/modules/settings/index.php` | Require adds `config`, `filesystem`, `routing`. |
+| `app/system/modules/site/index.php` | Require adds `config`, `database`, `filter`, `kernel`, `package`, `routing`, `system/content`, `system/user`, `view`. |
+| `app/system/modules/user/index.php` | Require adds `auth`, `config`, `database`, `kernel`, `routing`, `session`, `system/captcha`, `system/mail`, `view`. |
+| `app/system/modules/view/index.php` | Require adds `kernel`. |
+| `app/system/modules/widget/index.php` | Require adds `config`, `database`, `kernel`, `routing`, `system/site`, `system/user`, `view`. |
+
+#### Tests (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Module/ModuleImportEdgeTest.php` (new) | Every production import reaches its owner through `require`, including a transitive one. A parent import stays a violation after the reverse `require` is added. `Tests/` and `tests/` are ignored. `use function` / `use const` and a bare namespace import are not edges; attribute classes under that prefix are. A same-module class is not an edge. The owner is the longest path. Site, user, and widget require `routing` and `database` and do not import `Pagekit\System` or `Pagekit\System\Model`. Node types are imported only by site. `system` does not require `database`. Comment, site, user, and widget require `database`. `use function Pagekit\__` adds no `system/intl` require. |
+| `tests/Unit/Validator/UniqueValidatorContainerTest.php` | Imports `Unique` and `UniqueValidator` from database. |
+| `tests/Unit/Validator/ValidatorTranslatorIntegrationTest.php` | Imports `Pagekit\Routing\ValidatesRequestTrait`. |
+
+Gates: production verifier PASS; production tester PASS; test verifier PASS; tester PASS. No deviations.
 
 ### Activation and pre-flights (Checklist Steps 6–10) — plan
 
@@ -187,6 +240,13 @@ Archive `require` is read like `autoload` (literals only) and refused before any
 - **Filesystem uses Symfony's reference-type integers.** `ABSOLUTE_PATH` is `1` and `NETWORK_PATH` is `3`, the integers the Pagekit generator inherited. `getUrl($file)` is the path form, `getUrl($file, 3)` the network path, and `getUrl($file, true)` the absolute URL.
 - **Debug owns the SQL middleware.** One `DebugMiddleware` and its logger, registered at the start of `main` (the bar may be off), shared by every connection. A new interface, or constructing the middleware in `database/index.php`, would make that file name `Pagekit\Debug`. A new logger per connection would leave the bar with only the last one. When `db.middlewares` is absent, `dbs` adds no wrapper. When debug has loaded, every connection uses that middleware and `db.debug_logger` is the logger the bar reads.
 - **Held middlewares are appended.** Entries that implement `Doctrine\DBAL\Driver\Middleware` are added after any the connection config already listed. Other entries are skipped. Replacing the key would drop the connection's own list. An absent `db.middlewares` leaves that list unchanged.
+- **`ValidatesRequestTrait` is routing's.** Site, user, and widget import it, and `system` already requires those three. Leaving the trait on `system` would cycle. `system/site` is the wrong home: user and widget use it, and site already imports user. Those three require `routing` and do not import `Pagekit\System`.
+- **`DataModelTrait` is database's.** The trait imports `Pagekit\Database`. A home on site, user, or widget would cycle (site imports user; widget imports both). `kernel` would cycle the other way: the trait imports database. Site, user, and widget require `database` and do not import `Pagekit\System\Model`.
+- **Node types sit beside `Node`.** `NodeInterface` and `NodeTrait` are `Pagekit\Site\Model`. No core module outside `system/site` imports them.
+- **`Unique` sits with the connection.** The validator takes `Connection`, so the constraint and the validator are `Pagekit\Database\Validator\Constraints`. `system/user` is the wrong home: `system` registers the validator for every model. `User` imports `Unique` from database. `ValidatorServiceProvider` imports `UniqueValidator`. `system` reaches database through `application` and does not require `database`.
+- **A function or const import is not an edge.** `__()` has no class file. `use function Pagekit\__` adds no `system/intl` require.
+- **A namespace import is not a class.** `use Pagekit\Database\ORM\Attribute` names a prefix; the interface is `Attribute\Attribute`. Attribute classes under that prefix are the edges. The same use inside `database` is not an edge. Comment, site, user, and widget require `database`.
+- **The scan is production PHP.** `Tests/` and `tests/` are ignored. A database test that imports `Application` would cycle, because `application` requires `database`, and `Application` stays in `kernel`. Production code has no parent-import exception.
 
 ---
 
@@ -202,6 +262,8 @@ Enabling a package whose registered module requires something unregistered or re
 
 `Pagekit\User\Attribute\Access` is `Pagekit\Routing\Attribute\Access`. `Pagekit\Cache\CacheKeyUtil` is `Pagekit\Util\CacheKeyUtil`. The old names are gone. `UserInterface` requires `isAuthenticated(): bool`.
 
+`Pagekit\System\Controller\ValidatesRequestTrait` is `Pagekit\Routing\ValidatesRequestTrait`. `Pagekit\System\Model\DataModelTrait` is `Pagekit\Database\ORM\DataModelTrait`. `Pagekit\System\Model\NodeInterface` and `NodeTrait` are `Pagekit\Site\Model\NodeInterface` and `NodeTrait`. `Pagekit\System\Validator\Constraints\Unique` and `UniqueValidator` are `Pagekit\Database\Validator\Constraints\Unique` and `UniqueValidator`. The old names are gone.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -211,6 +273,8 @@ Enabling a package whose registered module requires something unregistered or re
 An update calls `enable()` without going through `load()` again. The requirement walk in `enable()` is the one that refuses before config is written.
 
 SQL logging is attached only after `debug`'s `main` has run. A boot that never loads that module leaves connections unwrapped.
+
+Core modules that listed no `require` now name one. After the activity policy is set, a registered-but-disabled name in that list is not loaded.
 
 ---
 
@@ -232,6 +296,8 @@ The foundation sits in `kernel` beside HttpKernel. `app/modules/application/src`
 
 `#[Access]` and `CacheKeyUtil` live under `routing` and `kernel`. The old files are deleted. `database` does not name `Pagekit\Debug`. `Filesystem` and `CaptchaListener` do not import the modules they used to. No alias.
 
+Imports that would cycle were moved. The old `Pagekit\System` trait, node types, and unique constraint are deleted. The edge test has no parent-import exception. No alias.
+
 ---
 
 ## ✅ Verification (links only)
@@ -240,7 +306,7 @@ The foundation sits in `kernel` beside HttpKernel. `app/modules/application/src`
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none.
 
 ---
 

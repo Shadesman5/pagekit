@@ -6,6 +6,14 @@ return [
 
     'name' => 'system/settings',
 
+    'require' => [
+
+        'config',
+        'filesystem',
+        'routing',
+
+    ],
+
     'main' => function ($app) {
         $app->set('configFile', fn ($app) => $app->get('config.file'));
     },

@@ -6,6 +6,14 @@ return [
 
     'name' => 'system/finder',
 
+    'require' => [
+
+        'filesystem',
+        'kernel',
+        'routing',
+
+    ],
+
     'autoload' => [
 
         'Pagekit\\Finder\\' => 'src',

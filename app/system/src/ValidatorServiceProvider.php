@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\System;
 
-use Pagekit\System\Validator\Constraints\UniqueValidator;
+use Pagekit\Database\Validator\Constraints\UniqueValidator;
 use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;

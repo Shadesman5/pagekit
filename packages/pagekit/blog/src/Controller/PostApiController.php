@@ -15,7 +15,7 @@ use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
-use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\Routing\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;

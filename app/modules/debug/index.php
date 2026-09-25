@@ -136,6 +136,10 @@ return [
 
         'view',
         'routing',
+        'auth',
+        'database',
+        'system/info',
+        'system/user',
 
     ],
 

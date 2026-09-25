@@ -12,7 +12,7 @@ use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\UrlProvider;
-use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\Routing\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;

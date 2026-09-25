@@ -12,10 +12,10 @@ use Pagekit\Filter\FilterManager;
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\ValidatesRequestTrait;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Menu;
 use Pagekit\Site\Model\NodeRepository;
-use Pagekit\System\Controller\ValidatesRequestTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 

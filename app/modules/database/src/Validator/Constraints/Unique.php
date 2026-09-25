@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Validator\Constraints;
+namespace Pagekit\Database\Validator\Constraints;
 
 use Symfony\Component\Validator\Constraint;
 

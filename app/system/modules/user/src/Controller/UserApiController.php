@@ -11,7 +11,7 @@ use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
-use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\Routing\ValidatesRequestTrait;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\DataModelTrait;
 use Pagekit\Database\ORM\ModelTrait;
 use Pagekit\Database\ORM\SerializableModelInterface;
-use Pagekit\System\Model\DataModelTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**

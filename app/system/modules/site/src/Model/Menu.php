@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Menus are persisted in the `system/site` config store rather than the ORM,
  * so this is intentionally a plain value object (NOT a Doctrine entity). It
  * exists solely to carry the request data through Symfony Validator via
- * {@see \Pagekit\System\Controller\ValidatesRequestTrait}, matching the
+ * {@see \Pagekit\Routing\ValidatesRequestTrait}, matching the
  * attribute-based validation pattern used by the module's entity controllers.
  *
  * The `Delete` group validates the identifier alone (deletes have no label).

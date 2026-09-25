@@ -6,6 +6,13 @@ return [
 
     'name' => 'system/cache',
 
+    'require' => [
+
+        'kernel',
+        'routing',
+
+    ],
+
     'main' => 'Pagekit\\Cache\\CacheModule',
 
     'autoload' => [

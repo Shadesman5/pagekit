@@ -37,6 +37,13 @@ $config = [
 
     'name' => 'database',
 
+    'require' => [
+
+        'filesystem',
+        'kernel',
+
+    ],
+
     'main' => function ($app) use ($canonicalizeFilesystemPath) {
 
         $default = [

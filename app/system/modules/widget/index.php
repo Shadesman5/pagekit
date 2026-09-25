@@ -11,6 +11,18 @@ return [
 
     'name' => 'system/widget',
 
+    'require' => [
+
+        'config',
+        'database',
+        'kernel',
+        'routing',
+        'system/site',
+        'system/user',
+        'view',
+
+    ],
+
     'main' => function ($app) {
 
         $app->set('widget', fn ($app) => new WidgetManager($app));

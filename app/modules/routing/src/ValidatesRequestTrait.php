@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Controller;
+namespace Pagekit\Routing;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
