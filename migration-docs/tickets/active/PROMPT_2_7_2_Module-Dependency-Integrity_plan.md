@@ -32,7 +32,7 @@
 - [x] Step 8 (L) — Disable and uninstall pre-flight
 - [x] Step 9 (M) — Panel and console activation
 - [x] Step 10 (L) — Restore pre-flight before files return
-- [ ] Step 11 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 11 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written

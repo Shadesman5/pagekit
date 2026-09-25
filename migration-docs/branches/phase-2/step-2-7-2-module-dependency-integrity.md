@@ -27,7 +27,7 @@ The extensions status toggle and the uninstall confirm ask that query before the
 
 Restore asks before any package file is put back. A missing or different application version refuses by the snapshot id. A `packages.*` name that differs, or that sits on only one side, is named. The module the archived manifest names may be gone from the live map: that is the package the uninstall removed. A MySQL restore that would refuse does so with that sentence, and the lock is released before files change. The panel shows that message. Any other throwable stays the fixed line. The dump format is unchanged.
 
-Remaining work is the review and the E2E run.
+The installer boot does not create `pagekit.db`. `view.scripts` asks `hasAccess` only after `config.file` exists.
 
 ---
 
@@ -351,6 +351,18 @@ The version on a new snapshot is the `version` service when it is a string, othe
 
 Gates: production verifier PASS; production tester FAIL then PASS after one retry; test-writer done; test verifier PASS; coverage tester PASS.
 
+### Installer boot skips the role query (Checklist Step 11)
+
+`debug` requires `system/user`, so the user module's `view.scripts` runs during an installer boot. `hasAccess('user: manage users')` reads `pk_system_role`. On a directory with no `config.php` that opens the default SQLite file and creates `pagekit.db`. The dashboard script is registered only when `config.file` exists and the current user has that permission. `link-user` and the authenticated interceptor are unchanged.
+
+| File | Change |
+|---|---|
+| `app/system/modules/user/index.php` | `view.scripts` skips `hasAccess` until `config.file` exists. `widget-user` is still registered only for a user who may manage users. |
+
+No test files.
+
+Gates: Bugbot clean; Security clean; E2E FAIL (installer boot created `pagekit.db`); review fix; PHPUnit + PHPStan PASS; Bugbot clean; Security clean; E2E PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -399,6 +411,7 @@ Gates: production verifier PASS; production tester FAIL then PASS after one retr
 - **A missing version is not a blank one.** `application()` is null when metadata has no string `application`. Putting the key on the array `get()` returns was rejected: that array is the listing, and a missing version must not be stored as `''` or copied from the running installation. A snapshot written without the key yields null and `restore()` refuses by the snapshot id before `reinstate()`. `""` is a recorded version and matches a snapshotter built with `""`.
 - **The recorded version defaults to `''`.** That includes a `version` service that is absent or not a string. A required constructor argument was rejected: existing construction passes six arguments, and `''` is the application module's own default. A snapshotter not given a version records `""` and restores a snapshot it just took when packages agree. A recorded `"1.2.43"` refuses against `""` before `reinstate()`.
 - **An unreadable dump is not an operator refusal.** A `RuntimeException` from reading the dump is left to `restore()` after the files are back. Refusing in the pre-flight was rejected: an incomplete dump is still that later path. A truncated dump leaves the package files restored, the database unchanged, and the message containing `incomplete`. A version or `packages.*` mismatch throws `RestoreRefusedException` and leaves `packages/` unchanged. `refusals()` returns the first MySQL sentence `restore()` would throw, releases the lock, and does not drop leftover copies.
+- **`hasAccess` waits for `config.php`.** `view.scripts` skips `hasAccess('user: manage users')` unless `config.file` exists. Removing `system/user` from `debug`'s require was rejected: `AuthDataCollector` imports `User`, `Role`, and `UserRepository`. Catching the missing table was rejected: SQLite creates `pagekit.db` when the connection opens, before the exception. Booting the installer with no `config.php` does not create `pagekit.db`. Once that file exists, `widget-user` is still registered only when the current user has `user: manage users`.
 
 ---
 
@@ -452,6 +465,8 @@ A snapshot written with no application version is refused by name. `''` matches 
 
 An incomplete dump is not this refusal. The package files are put back, the database is left as it was, and the message says the dump is incomplete.
 
+A later `hasAccess` on an installer boot that still has no `config.php` would open the default SQLite file again. This hook does not.
+
 ---
 
 ## 🔐 Security & Data Impact
@@ -469,6 +484,8 @@ A blocker is refused before the package is switched off and before a snapshot is
 Disable and Remove stay out unless the impact answer has an empty blockers list. The enable notify still shows the named requirement refusal.
 
 A refused restore writes nothing under `packages/`. The panel shows the operator sentence. An unrelated failure stays the fixed line; the exception is in the log. The query releases the lock and does not replace a table.
+
+Before `config.php` exists, `view.scripts` does not query roles, and `widget-user` stays unregistered. After that file exists, registration still requires `user: manage users`.
 
 ---
 
@@ -494,6 +511,8 @@ The panel and the console call `PackageManager`. There is no `--force`. `php pag
 
 Restore has one refusal type. There is no flag that skips the version or the `packages.*` check. `refusals()` does not clear leftovers and does not replace tables. The dump format is unchanged. The comment that the real reason is only in the log is gone.
 
+`debug` still requires `system/user`. The missing role table is not caught. The query is skipped until `config.file` exists.
+
 ---
 
 ## ✅ Verification (links only)
@@ -502,7 +521,7 @@ Restore has one refusal type. There is no flag that skips the version or the `pa
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry. Step 10: production tester FAIL then PASS after one retry.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry. Step 10: production tester FAIL then PASS after one retry. Step 11: Bugbot clean; Security clean; E2E FAIL (installer boot created `pagekit.db`: `debug` requires `system/user`, `hasAccess` queried `pk_system_role`); review fix skipped `hasAccess` until `config.file` exists; PHPUnit + PHPStan PASS; Bugbot clean; Security clean; E2E PASS.
 
 ---
 
