@@ -10,7 +10,7 @@
   "model": "grok-4.7",
   "status": "failed",
   "startedAt": "2026-09-25T00:36:54.463Z",
-  "completedAt": "2026-09-25T14:01:41.967Z",
+  "completedAt": "2026-09-25T17:26:35.690Z",
   "phases": [
     {
       "phaseKey": "36078326145-1-PLAN",
@@ -227,13 +227,30 @@
         4,
         5
       ],
-      "startedAt": "2026-09-25T14:02:27.582Z",
-      "durationMs": 5802203,
+      "startedAt": "2026-09-25T14:02:33.068Z",
+      "durationMs": 5786135,
       "agent": {
         "id": "bc-51a8cf31-637d-43c4-b9fd-aa0db6cf8bfb",
         "runId": "run-fb6f5bcf-42dc-480b-a075-bc57087ae9ed",
         "url": "https://cursor.com/agents/bc-51a8cf31-637d-43c4-b9fd-aa0db6cf8bfb",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-fb6f5bcf-42dc-480b-a075-bc57087ae9ed",
+            "index": 1,
+            "startedAt": "2026-09-25T14:02:33.068Z",
+            "completedAt": "2026-09-25T15:38:59.911Z",
+            "durationMs": 5786135,
+            "tokens": {
+              "input": 185783,
+              "output": 15611,
+              "cacheRead": 1416448,
+              "cacheWrite": 0,
+              "total": 1617842
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36144791743,
@@ -251,7 +268,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Step 4 — UpdateCheckOnLoginTest asserts the fixture's isAuthenticated() instead of the login call path (AP-07), same verifier FAIL 3×.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-25T15:38:59.911Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "36144791743-1-EXECUTE 4,5 (retry 1)",
@@ -261,13 +280,30 @@
         4,
         5
       ],
-      "startedAt": "2026-09-25T15:39:15.709Z",
-      "durationMs": 6455869,
+      "startedAt": "2026-09-25T15:39:18.138Z",
+      "durationMs": 6437041,
       "agent": {
         "id": "bc-142122ab-990c-44a6-9307-784a186429cb",
         "runId": "run-e1782288-309e-4ed8-be2a-0da5ba52aa53",
         "url": "https://cursor.com/agents/bc-142122ab-990c-44a6-9307-784a186429cb",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-e1782288-309e-4ed8-be2a-0da5ba52aa53",
+            "index": 1,
+            "startedAt": "2026-09-25T15:39:18.138Z",
+            "completedAt": "2026-09-25T17:26:35.690Z",
+            "durationMs": 6437041,
+            "tokens": {
+              "input": 168299,
+              "output": 16356,
+              "cacheRead": 1840128,
+              "cacheWrite": 0,
+              "total": 2024783
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36144791743,
@@ -285,7 +321,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Batch done. Steps: [4, 5]. Last commit: 049dffc395ecfbadefb0e409a6d210334e177ca6.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-25T17:26:35.690Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -296,7 +334,7 @@
       "cacheWrite": 0,
       "total": 7867098
     },
-    "durationMs": 25429677,
+    "durationMs": 25394781,
     "phaseCount": 6,
     "escalations": 2,
     "ghaJobs": 4,
