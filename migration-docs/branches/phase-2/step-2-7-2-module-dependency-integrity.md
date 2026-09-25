@@ -19,7 +19,7 @@ A module `require` that is missing or switched off is refused, and that module i
 
 The foundation (`Pagekit\Application`, `Event`, `Module`, `Container`, `Util`) lives in the existing `kernel` module, beside `Pagekit\Kernel\`. `application` is still the composition root. `view` owns Twig; there is no `view/twig` module.
 
-Remaining work keeps that contract: archive/disable/uninstall/restore pre-flights, prefix-folded dump selection, and panel plus console activation on the same `PackageManager` seam.
+Remaining work keeps that contract: prefix-folded dump selection, disable/uninstall/restore pre-flights, and panel plus console activation on the same `PackageManager` seam.
 
 ---
 
@@ -216,9 +216,29 @@ A production `use` or attribute of a `Pagekit\…` class must reach, through tra
 
 Gates: production verifier PASS; production tester PASS; test verifier PASS; tester PASS. No deviations.
 
-### Activation and pre-flights (Checklist Steps 6–10) — plan
+### Archive `require` before any write (Checklist Step 6)
 
-Archive `require` is read like `autoload` (literals only) and refused before any write under `packages/`. Disable/uninstall share one pre-flight query (blockers / orphans / data-risk); the panel and new console `enable` / `disable` commands call `PackageManager` on that seam — panel-only activation is rejected; no `--force`. Restore refuses on recorded application version and dumped `packages.*` before `reinstate()`. Prefix fold for dump selection sits beside `RestoreTableNames`. PHASE deferrals (2.7.3 / 2.8 / 5.0) already name the follow-ons — no PHASE amendment from this plan pass.
+`PackageArchive::require()` is the list a PHP array would yield from the literal `return` in `index.php`. The file is not executed. A missing `require` is `[]`, including when a spread precedes the literal keys and `require` is not written again. A spread, a non-string, or a non-literal key inside `require` is refused like a non-literal `autoload`. An omitted key is appended. `"-0"` stays a string key, so the next omitted name is integer 0 and does not replace it. From PHP 8.3 a negative integer continues at n+1, so the name after `"-4"` is `-3` and a later `"0"` does not replace it. An omitted key once the next index cannot be allocated is refused, because that literal throws.
+
+`install()` and `uploadAction` refuse the first unregistered name before anything is written under `packages/` (`ArchiveRefusedException`; the upload is a 400 before `move()`). The message names the archive's module and the missing name. The activation walk runs only when `install()` is about to `enable()`, on `PackageArchive::module()`, not the previously installed module. Upload and a fresh install allow a requirement that is registered but disabled. `assertRequirementsUsing` overlays that list and restores the manifest and the `requiredBy` cache whether the walk returns or throws, so a later failure to replace the tree does not leave the archive list registered. A `module` service that is not a `ModuleManager` cannot show a name as registered, so a non-empty `require` is refused. An empty `require` with nothing to activate does not read the service.
+
+| File | Change |
+|---|---|
+| `app/package/src/Archive/PackageArchive.php` | `require()` is that literal list. A missing key is `[]`. A spread, a non-string, a non-literal key, or an omitted key past `PHP_INT_MAX` throws `ArchiveRefusedException` and writes nothing. `unknownRequirement()` names the archive module and the missing name. |
+| `app/package/src/PackageManager.php` | `install()` calls `assertArchiveRequirements` before `replaceTree`. The activation walk runs only when the installed module is already loaded, on the archive's module. A non-`ModuleManager` `module` service refuses a non-empty `require`. An empty `require` with nothing to activate does not read the service. |
+| `app/package/src/Controller/PackageController.php` | `uploadAction` calls `assertArchiveRequirements` before `move()`. `ArchiveRefusedException` is a 400. |
+| `app/modules/kernel/src/Module/ModuleManager.php` | `assertRequirementsUsing` overlays `$require` (inserting a manifest when the name is not registered), walks, and restores the manifest and the `requiredBy` cache. |
+
+#### Tests (Checklist Step 6)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageArchiveRequirementTest.php` (new) | Install and upload refuse the first unregistered name before a file is written, quoting it without control characters. A fresh install and an upload allow a registered-but-disabled requirement. An update refuses a disabled requirement or a cycle before `replaceTree`, walks the archive module, and allows an active requirement. A service that is not a `ModuleManager` refuses a non-empty `require`; an empty one does not read the service and still installs. |
+| `tests/Unit/Package/PackageArchiveTest.php` | `require()` is the list the literal yields, including `"-0"` and `"-4"` keys. A missing `require`, and a spread that does not rewrite it, are `[]`. A non-literal `require` and an omitted key past the last index are refused. The file is not run. |
+| `tests/Unit/Module/ModuleRequirementTest.php` | An overlaid require is restored, including when the walk throws a disabled requirement or a cycle, and when the name was not registered. |
+| `tests/Unit/Package/PackageEnableRequirementTest.php` | After an empty overlay and after a refused overlay, `enable()` still walks the require that was registered before the overlay. |
+
+Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test verifier PASS; PHPUnit + PHPStan PASS. No deviations.
 
 ---
 
@@ -247,6 +267,10 @@ Archive `require` is read like `autoload` (literals only) and refused before any
 - **A function or const import is not an edge.** `__()` has no class file. `use function Pagekit\__` adds no `system/intl` require.
 - **A namespace import is not a class.** `use Pagekit\Database\ORM\Attribute` names a prefix; the interface is `Attribute\Attribute`. Attribute classes under that prefix are the edges. The same use inside `database` is not an edge. Comment, site, user, and widget require `database`.
 - **The scan is production PHP.** `Tests/` and `tests/` are ignored. A database test that imports `Application` would cycle, because `application` requires `database`, and `Application` stays in `kernel`. Production code has no parent-import exception.
+- **`require()` is the list the PHP array yields.** An omitted key is appended. `"-0"` stays a string key, so the next omitted name is integer 0 and does not replace it. From PHP 8.3 a negative integer continues at n+1, so the name after `"-4"` is `-3` and a later `"0"` does not replace it. A counter that starts at 0 and treats `(int)"-0"` as 0 would store the name after `"-4"` at 0, where a later `"0"` overwrites it. That name was never overwritten in the PHP array, so it stays in `require()`. An omitted key once the next index cannot be allocated is refused, because that literal throws. A missing `require` is `[]`, including when a spread precedes the literal keys and `require` is not written again. A spread, a non-string, or a non-literal key inside `require` is refused like a non-literal `autoload`. The file is not executed. `['-0' => 'unregistered', 'system']` is `['unregistered', 'system']`. `['-4' => 'kept', 'unregistered', '0' => 'system']` is `['kept', 'unregistered', 'system']`. `open()` throws `ArchiveRefusedException` mentioning `'require'` when the value is not an array of string literals or the next index is past `PHP_INT_MAX`, and writes nothing.
+- **The overlay does not stay.** `assertRequirementsUsing` sets the archive list on the named manifest, inserting one when the name is not registered, and restores that manifest and the `requiredBy` cache whether the walk returns or throws. Leaving the list in place would stick if replacing the tree then failed. After the call, `isRegistered` and `requiredBy` match what they were. A cycle still throws `Circular requirement "%s > %s" detected.` A registered-but-disabled requirement still throws `Module "%depender%" requires "%required%", which is registered but disabled.` `enable()` afterwards still walks the require from before the call.
+- **Activation is only the enable path.** The first unregistered name throws `ArchiveRefusedException` (`Module "%depender%" requires "%required%", which is not registered.`, the missing name through `printable`, the depender `PackageArchive::module()`). The activation walk runs only when `install()` is about to `enable()`, on the module `index.php` names. Walking it on upload or on a fresh install would refuse a registered-but-disabled requirement that activation is allowed to meet later. Overlaying the previously installed module would attach this archive's `require` to a different name. Upload of an unregistered name is a 400 before `move()`. `install()` throws before `replaceTree`, so nothing is created under `packages/`. A fresh install whose requirement is registered but disabled still unpacks. An update of a loaded package whose archive requires a registered-but-disabled module throws before `replaceTree`.
+- **No registry means not registered.** A `module` service that is not a `ModuleManager` cannot show a name as registered, so a non-empty `require` is refused. Skipping that check would install a name nobody can look up. An empty `require` with nothing to activate does not read the service. With no `ModuleManager`, `require()` of `['missing']` throws `ArchiveRefusedException` naming `missing` before a file is written. `require()` of `[]` does not read the service.
 
 ---
 
@@ -264,6 +288,8 @@ Enabling a package whose registered module requires something unregistered or re
 
 `Pagekit\System\Controller\ValidatesRequestTrait` is `Pagekit\Routing\ValidatesRequestTrait`. `Pagekit\System\Model\DataModelTrait` is `Pagekit\Database\ORM\DataModelTrait`. `Pagekit\System\Model\NodeInterface` and `NodeTrait` are `Pagekit\Site\Model\NodeInterface` and `NodeTrait`. `Pagekit\System\Validator\Constraints\Unique` and `UniqueValidator` are `Pagekit\Database\Validator\Constraints\Unique` and `UniqueValidator`. The old names are gone.
 
+Uploading or installing an archive whose `require` names a module that is not registered fails before anything is written under `packages/`. The panel upload is a 400. The message names the archive's module and the missing name. A non-literal `require` is refused the same way. An update of an already-loaded package whose archive requires a registered-but-disabled module, or whose requirements cycle, fails before the installed tree is replaced. A fresh install may still unpack a requirement that is registered but disabled.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -276,6 +302,8 @@ SQL logging is attached only after `debug`'s `main` has run. A boot that never l
 
 Core modules that listed no `require` now name one. After the activity policy is set, a registered-but-disabled name in that list is not loaded.
 
+A fresh install does not walk activation. A package can land while a requirement it names is registered but disabled. Enabling it later is what refuses.
+
 ---
 
 ## 🔐 Security & Data Impact
@@ -283,6 +311,8 @@ Core modules that listed no `require` now name one. After the activity policy is
 A registered-but-disabled requirement is not loaded. The resolver does not recurse into it.
 
 Captcha treats any `UserInterface` whose `isAuthenticated()` is true as signed in.
+
+An unregistered or non-literal `require` never lands under `packages/`. The upload is refused before the file is staged. The archive file is not executed.
 
 ---
 
@@ -298,6 +328,8 @@ The foundation sits in `kernel` beside HttpKernel. `app/modules/application/src`
 
 Imports that would cycle were moved. The old `Pagekit\System` trait, node types, and unique constraint are deleted. The edge test has no parent-import exception. No alias.
 
+The archive `require` is the literal list. The file is not executed. A refusal writes nothing under `packages/`. The overlay is restored before the tree moves. No flag asks the check to continue.
+
 ---
 
 ## ✅ Verification (links only)
@@ -306,7 +338,7 @@ Imports that would cycle were moved. The old `Pagekit\System` trait, node types,
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none.
 
 ---
 

@@ -210,8 +210,7 @@ class PackageController
         try {
             $archive = PackageArchive::open($file->getPathname());
         } catch (ArchiveRefusedException $e) {
-            // The page reads the reason out of a 400 body; a RuntimeException would reach it as a 500 without one.
-            throw new BadRequestHttpException($e->getMessage(), $e);
+            $this->rejectedArchive($e);
         }
 
         if ($archive->type() !== 'pagekit-' . $type) {
@@ -229,6 +228,13 @@ class PackageController
         if (is_array($extra) && (isset($extra['icon']) || isset($extra['image']))) {
             unset($extra['icon'], $extra['image']);
             $package->set('extra', $extra);
+        }
+
+        try {
+            // Before move(): a refusal must not leave the staged archive behind.
+            $this->manager->assertArchiveRequirements($archive);
+        } catch (ArchiveRefusedException $e) {
+            $this->rejectedArchive($e);
         }
 
         $file->move($this->packageStaging, self::stagedName($archive->name(), $archive->version()));
@@ -404,6 +410,14 @@ class PackageController
         } catch (\Throwable $e) {
             $this->logError('Failed to clear the cache after installing or removing a package', $e);
         }
+    }
+
+    /**
+     * The page reads the reason out of a 400 body; a RuntimeException would reach it as a 500 without one.
+     */
+    private function rejectedArchive(ArchiveRefusedException $e): never
+    {
+        throw new BadRequestHttpException($e->getMessage(), $e);
     }
 
     /**

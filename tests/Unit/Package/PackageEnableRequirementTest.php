@@ -199,6 +199,68 @@ final class PackageEnableRequirementTest extends TestCase
         self::assertNull($modules->get('ghost'));
     }
 
+    public function testEnableStillRefusesTheRegisteredRequireAfterAnEmptyOverlay(): void
+    {
+        [$app, $system, $events, $modules] = $this->openPackage();
+        $modules->register([
+            $this->declareModule('alpha', ['beta']),
+            $this->declareModule('beta'),
+        ]);
+        $modules->setActivityPolicy(['alpha'], 'system');
+
+        $modules->assertRequirementsUsing('alpha', []);
+
+        $thrown = $this->enable($app);
+
+        self::assertInstanceOf(UnsatisfiedRequirementException::class, $thrown);
+        self::assertTrue($thrown->registered);
+        self::assertSame('alpha', $thrown->depender);
+        self::assertSame('beta', $thrown->requirement);
+        self::assertSame(
+            'Module "alpha" requires "beta", which is registered but disabled.',
+            $thrown->getMessage(),
+        );
+        $this->assertUntouched($system, $events, 'alpha');
+        self::assertTrue($modules->isRegistered('alpha'));
+        self::assertTrue($modules->isRegistered('beta'));
+        self::assertSame(['alpha'], $modules->requiredBy('beta'));
+        self::assertNull($modules->get('beta'));
+    }
+
+    public function testEnableUsesTheRegisteredRequireAfterARefusedOverlay(): void
+    {
+        [$app, $system, $events, $modules] = $this->openPackage();
+        $modules->register([
+            $this->declareModule('alpha'),
+            $this->declareModule('comments'),
+        ]);
+        $modules->setActivityPolicy(['alpha'], 'system');
+
+        try {
+            $modules->assertRequirementsUsing('alpha', ['comments']);
+            self::fail('A disabled requirement has to be refused.');
+        } catch (UnsatisfiedRequirementException $e) {
+            self::assertTrue($e->registered);
+            self::assertSame('comments', $e->requirement);
+            self::assertSame(
+                'Module "alpha" requires "comments", which is registered but disabled.',
+                $e->getMessage(),
+            );
+        }
+
+        (new PackageManager($app, new NullOutput()))->enable($this->package('alpha'));
+
+        self::assertSame(['kept', 'alpha'], $system->get('extensions'));
+        self::assertSame('1.0.0', $system->get('packages.alpha'));
+        self::assertSame('other', $system->get('site.theme'));
+        self::assertSame(['package.enable'], $events->fired);
+        self::assertStringContainsString('enable', (string) file_get_contents($this->marker));
+        self::assertTrue($modules->isRegistered('alpha'));
+        self::assertTrue($modules->isRegistered('comments'));
+        self::assertSame([], $modules->requiredBy('comments'));
+        self::assertNull($modules->get('comments'));
+    }
+
     /**
      * @return array{Application, Config, PackageEnableEvents, ModuleManager}
      */

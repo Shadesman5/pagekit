@@ -253,6 +253,14 @@ class ModuleManager implements \IteratorAggregate
     }
 
     /**
+     * Whether registration included a module of this name.
+     */
+    public function isRegistered(string $name): bool
+    {
+        return isset($this->registered[$name]);
+    }
+
+    /**
      * Refuses a registered module whose requirements are not satisfied.
      *
      * @throws UnsatisfiedRequirementException a requirement is missing or disabled
@@ -267,6 +275,47 @@ class ModuleManager implements \IteratorAggregate
         /** @var array<string, array<string, mixed>> $resolved */
         $resolved = [];
         $this->resolveModules($this->registered[$name], $resolved);
+    }
+
+    /**
+     * Refuses $name when its requirements are $require instead of the registered list.
+     *
+     * The registered manifests are unchanged when this returns.
+     *
+     * @param list<string> $require
+     *
+     * @throws UnsatisfiedRequirementException a requirement is missing or disabled
+     * @throws \RuntimeException               the requirements cycle
+     */
+    public function assertRequirementsUsing(string $name, array $require): void
+    {
+        $existed = isset($this->registered[$name]);
+        $previous = $existed ? $this->registered[$name] : null;
+        $index = $this->requiredBy;
+
+        if ($existed) {
+            $this->registered[$name]['require'] = $require;
+        } else {
+            $this->registered[$name] = [
+                'name' => $name,
+                'require' => $require,
+            ];
+        }
+
+        // A lookup during the walk must see this list, not the index built from the previous one.
+        $this->requiredBy = null;
+
+        try {
+            $this->assertRequirements($name);
+        } finally {
+            if ($existed && is_array($previous)) {
+                $this->registered[$name] = $previous;
+            } else {
+                unset($this->registered[$name]);
+            }
+
+            $this->requiredBy = $index;
+        }
     }
 
     /**

@@ -60,7 +60,9 @@ class PackageManager
     /**
      * Puts an archive's package in place and installs it, or updates the package already there.
      *
-     * @throws \RuntimeException where the package cannot take the place its name gives it, or a step of the install fails
+     * @throws \Pagekit\Package\Archive\ArchiveRefusedException         the archive requires a module that is not registered
+     * @throws \Pagekit\Module\UnsatisfiedRequirementException       an update would enable a module whose requirement is disabled
+     * @throws \RuntimeException                                     the package cannot take the place its name gives it, a step of the install fails, or the requirements cycle
      */
     public function install(PackageArchive $archive): void
     {
@@ -91,6 +93,9 @@ class PackageManager
         $module = $previous?->get('module');
         $moduleLoaded = is_string($module) && $this->app->get('module')->get($module) !== null;
 
+        // Registration still holds the previous manifest. The archive's list is what this install would enable.
+        $this->assertArchiveRequirements($archive, $moduleLoaded ? $archive->module() : null);
+
         $this->replaceTree($archive, $target);
 
         $package = $packageFactory->get($name, true);
@@ -103,6 +108,32 @@ class PackageManager
             $this->enable($package, $previous);
         } else {
             $this->doInstall($package);
+        }
+    }
+
+    /**
+     * Refuses an archive whose requirements this installation will not accept.
+     *
+     * Every name has to be registered. When $activating is set, the archive's list is also
+     * walked the way an enable of that module would walk it, including a cycle.
+     *
+     * @throws \Pagekit\Package\Archive\ArchiveRefusedException   a requirement is not registered
+     * @throws \Pagekit\Module\UnsatisfiedRequirementException $activating names a module whose requirement is disabled
+     * @throws \RuntimeException                               $activating names a module whose requirements cycle
+     */
+    public function assertArchiveRequirements(PackageArchive $archive, ?string $activating = null): void
+    {
+        $require = $archive->require();
+        $modules = ($require === [] && $activating === null) ? null : $this->moduleManager();
+
+        foreach ($require as $name) {
+            if (!$modules instanceof ModuleManager || !$modules->isRegistered($name)) {
+                throw $archive->unknownRequirement($name);
+            }
+        }
+
+        if ($activating !== null && $modules instanceof ModuleManager) {
+            $modules->assertRequirementsUsing($activating, $require);
         }
     }
 
@@ -407,17 +438,25 @@ class PackageManager
      */
     private function assertPackageRequirements(string $moduleName): void
     {
-        if ($moduleName === '' || !$this->app->has('module')) {
+        if ($moduleName === '') {
             return;
+        }
+
+        $this->moduleManager()?->assertRequirements($moduleName);
+    }
+
+    /**
+     * The module registry, when this installation has one.
+     */
+    private function moduleManager(): ?ModuleManager
+    {
+        if (!$this->app->has('module')) {
+            return null;
         }
 
         $modules = $this->app->get('module');
 
-        if (!$modules instanceof ModuleManager) {
-            return;
-        }
-
-        $modules->assertRequirements($moduleName);
+        return $modules instanceof ModuleManager ? $modules : null;
     }
 
     /**

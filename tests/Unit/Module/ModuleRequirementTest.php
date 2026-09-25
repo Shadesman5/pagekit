@@ -310,6 +310,176 @@ final class ModuleRequirementTest extends TestCase
         self::assertNull($manager->get('counted'));
     }
 
+    public function testAnOverlaidRequireIsRestoredAndTheRegisteredListIsWhatLoads(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('alpha', ['beta']),
+            $this->declareModule('beta'),
+            $this->declareModule('gamma'),
+        ]);
+        // gamma is active, so the overlay can succeed. The registered list still names beta.
+        $manager->setActivityPolicy(['alpha', 'beta', 'gamma'], 'system');
+
+        self::assertSame(['alpha'], $manager->requiredBy('beta'));
+        self::assertSame([], $manager->requiredBy('gamma'));
+        self::assertFalse($manager->isRegistered('ghost'));
+
+        $manager->assertRequirementsUsing('alpha', ['gamma']);
+
+        self::assertTrue($manager->isRegistered('alpha'));
+        self::assertTrue($manager->isRegistered('beta'));
+        self::assertTrue($manager->isRegistered('gamma'));
+        self::assertFalse($manager->isRegistered('ghost'));
+        self::assertSame(['alpha'], $manager->requiredBy('beta'));
+        self::assertSame([], $manager->requiredBy('gamma'));
+
+        $manager->load('alpha');
+
+        self::assertInstanceOf(Module::class, $manager->get('alpha'));
+        self::assertInstanceOf(Module::class, $manager->get('beta'));
+        self::assertNull($manager->get('gamma'));
+    }
+
+    public function testADisabledOverlayIsRestoredAfterItThrows(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('alpha'),
+            $this->declareModule('comments'),
+        ]);
+        $manager->setActivityPolicy(['alpha'], 'system');
+
+        self::assertSame([], $manager->requiredBy('comments'));
+
+        try {
+            $manager->assertRequirementsUsing('alpha', ['comments']);
+            self::fail('A disabled requirement has to be refused.');
+        } catch (UnsatisfiedRequirementException $e) {
+            self::assertTrue($e->registered);
+            self::assertSame('alpha', $e->depender);
+            self::assertSame('comments', $e->requirement);
+            self::assertSame(
+                'Module "alpha" requires "comments", which is registered but disabled.',
+                $e->getMessage(),
+            );
+        }
+
+        self::assertTrue($manager->isRegistered('alpha'));
+        self::assertTrue($manager->isRegistered('comments'));
+        self::assertSame([], $manager->requiredBy('comments'));
+
+        $manager->assertRequirements('alpha');
+        $manager->load('alpha');
+
+        self::assertInstanceOf(Module::class, $manager->get('alpha'));
+        self::assertNull($manager->get('comments'));
+    }
+
+    public function testAnOverlaidCycleIsRestoredAfterItThrows(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('alpha'),
+            $this->declareModule('beta', ['alpha']),
+        ]);
+        $manager->setActivityPolicy(['alpha', 'beta'], 'system');
+
+        self::assertSame(['beta'], $manager->requiredBy('alpha'));
+        self::assertSame([], $manager->requiredBy('beta'));
+
+        try {
+            $manager->assertRequirementsUsing('alpha', ['beta']);
+            self::fail('A cycle has to be refused.');
+        } catch (\RuntimeException $e) {
+            self::assertSame(\RuntimeException::class, $e::class);
+            self::assertSame('Circular requirement "beta > alpha" detected.', $e->getMessage());
+        }
+
+        self::assertTrue($manager->isRegistered('alpha'));
+        self::assertTrue($manager->isRegistered('beta'));
+        self::assertSame(['beta'], $manager->requiredBy('alpha'));
+        self::assertSame([], $manager->requiredBy('beta'));
+
+        $manager->assertRequirements('alpha');
+        $manager->load('alpha');
+
+        self::assertInstanceOf(Module::class, $manager->get('alpha'));
+        self::assertNull($manager->get('beta'));
+    }
+
+    public function testARequireCheckedForAnUnknownNameDoesNotRegisterIt(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('system'),
+        ]);
+        $manager->setActivityPolicy([], 'system');
+
+        self::assertFalse($manager->isRegistered('ghost'));
+        self::assertSame([], $manager->requiredBy('system'));
+
+        $manager->assertRequirementsUsing('ghost', ['system']);
+
+        self::assertFalse($manager->isRegistered('ghost'));
+        self::assertTrue($manager->isRegistered('system'));
+        self::assertSame([], $manager->requiredBy('system'));
+        self::assertSame([], $manager->requiredBy('ghost'));
+    }
+
+    public function testAMissingRequireForAnUnknownNameDoesNotRegisterIt(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('system'),
+        ]);
+        $manager->setActivityPolicy([], 'system');
+
+        try {
+            $manager->assertRequirementsUsing('ghost', ['missing']);
+            self::fail('A requirement that is not registered has to be refused.');
+        } catch (UnsatisfiedRequirementException $e) {
+            self::assertFalse($e->registered);
+            self::assertSame('ghost', $e->depender);
+            self::assertSame('missing', $e->requirement);
+            self::assertSame(
+                'Module "ghost" requires "missing", which is not registered.',
+                $e->getMessage(),
+            );
+        }
+
+        self::assertFalse($manager->isRegistered('ghost'));
+        self::assertTrue($manager->isRegistered('system'));
+        self::assertSame([], $manager->requiredBy('missing'));
+        self::assertSame([], $manager->requiredBy('system'));
+    }
+
+    public function testAnOverlaidCycleForAnUnknownNameDoesNotRegisterIt(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('beta', ['ghost']),
+        ]);
+
+        // A policy would mark the temporary name disabled, so the cycle would not be reached.
+        self::assertFalse($manager->isRegistered('ghost'));
+        self::assertSame(['beta'], $manager->requiredBy('ghost'));
+        self::assertSame([], $manager->requiredBy('beta'));
+
+        try {
+            $manager->assertRequirementsUsing('ghost', ['beta']);
+            self::fail('A cycle has to be refused.');
+        } catch (\RuntimeException $e) {
+            self::assertSame(\RuntimeException::class, $e::class);
+            self::assertSame('Circular requirement "beta > ghost" detected.', $e->getMessage());
+        }
+
+        self::assertFalse($manager->isRegistered('ghost'));
+        self::assertTrue($manager->isRegistered('beta'));
+        self::assertSame(['beta'], $manager->requiredBy('ghost'));
+        self::assertSame([], $manager->requiredBy('beta'));
+    }
+
     private function manager(): ModuleManager
     {
         return new ModuleManager(new Application());

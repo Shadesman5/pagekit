@@ -67,6 +67,7 @@ final class PackageArchiveTest extends TestCase
         self::assertSame('pagekit-extension', $archive->type());
         self::assertSame('Demo', $archive->title());
         self::assertSame(['Pagekit\\Demo\\' => 'src'], $archive->autoload());
+        self::assertSame([], $archive->require());
         self::assertSame('A demo package.', $archive->composer()['description']);
         self::assertSame('scripts.php', $archive->composer()['extra']['scripts']);
         self::assertSame($this->workspace.'/package.zip', $archive->path());
@@ -97,6 +98,7 @@ final class PackageArchiveTest extends TestCase
         self::assertSame('pagekit-theme', $archive->type());
         self::assertSame('One', $archive->title());
         self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
     }
 
     public function testATitleKeepsSurroundingSpace(): void
@@ -130,6 +132,7 @@ final class PackageArchiveTest extends TestCase
         self::assertSame('pagekit-extension', $archive->type());
         self::assertSame('Blog', $archive->title());
         self::assertSame(['Pagekit\\Blog\\' => 'src'], $archive->autoload());
+        self::assertSame([], $archive->require());
         self::assertSame('scripts.php', $archive->composer()['extra']['scripts']);
         self::assertSame($path, $archive->path());
         $this->assertWorkspaceHoldsOnly($path);
@@ -148,6 +151,7 @@ final class PackageArchiveTest extends TestCase
         self::assertSame('pagekit-theme', $archive->type());
         self::assertSame('One', $archive->title());
         self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
         self::assertSame('image.jpg', $archive->composer()['extra']['image']);
         self::assertSame($path, $archive->path());
         $this->assertWorkspaceHoldsOnly($path);
@@ -1243,6 +1247,145 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused([], 'not a folder', $source, ['src/A.php' => "<?php\n"]);
     }
 
+    public function testAMissingRequireIsAnEmptyList(): void
+    {
+        $archive = $this->openPackage([], self::BARE_INDEX);
+
+        self::assertSame([], $archive->require());
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('requirementLists')]
+    public function testRequireIsTheListTheLiteralYields(string $require, array $expected): void
+    {
+        $archive = $this->openPackage([], self::indexWithRequire($require));
+
+        self::assertSame($expected, $archive->require());
+    }
+
+    /**
+     * @return iterable<string, array{string, list<string>}>
+     */
+    public static function requirementLists(): iterable
+    {
+        yield 'an empty list' => ['[]', []];
+
+        yield 'names in literal order' => ["[\n    'system',\n    'view',\n]", ['system', 'view']];
+
+        yield 'a repeated name' => ["[\n    'system',\n    'system',\n]", ['system', 'system']];
+
+        // "-0" stays a string key, so the name appended after it is not written over it.
+        yield 'minus zero then an omitted name' => [
+            "[\n    '-0' => 'unregistered',\n    'system',\n]",
+            ['unregistered', 'system'],
+        ];
+
+        // A negative index continues at n+1, so the appended name is not the later "0".
+        yield 'a negative key then zero' => [
+            "[\n    '-4' => 'kept',\n    'unregistered',\n    '0' => 'system',\n]",
+            ['kept', 'unregistered', 'system'],
+        ];
+
+        yield 'a later zero replaces the omitted name' => [
+            "[\n    'first',\n    0 => 'system',\n]",
+            ['system'],
+        ];
+    }
+
+    public function testASpreadBeforeTheLiteralManifestLeavesRequireEmpty(): void
+    {
+        $source = <<<'PHP'
+            <?php
+
+            $extra = [];
+
+            return [
+                ...$extra,
+                'name' => 'demo',
+                'autoload' => [],
+            ];
+
+            PHP;
+
+        $archive = $this->openPackage([], $source);
+
+        self::assertSame([], $archive->require());
+        self::assertSame([], $archive->autoload());
+    }
+
+    public function testARequireWrittenAfterASpreadIsTheLiteralList(): void
+    {
+        $source = <<<'PHP'
+            <?php
+
+            $extra = [];
+
+            return [
+                ...$extra,
+                'name' => 'demo',
+                'autoload' => [],
+                'require' => [
+                    'system',
+                ],
+            ];
+
+            PHP;
+
+        $archive = $this->openPackage([], $source);
+
+        self::assertSame(['system'], $archive->require());
+    }
+
+    public function testRequireIsReadWithoutRunningTheFile(): void
+    {
+        $source = <<<'PHP'
+            <?php
+
+            throw new \RuntimeException('executed');
+
+            return [
+                'name' => 'demo',
+                'autoload' => [],
+                'require' => [
+                    'system',
+                ],
+            ];
+
+            PHP;
+
+        $archive = $this->openPackage([], $source);
+
+        self::assertSame(['system'], $archive->require());
+    }
+
+    #[DataProvider('requireValuesThatAreNotStringLiterals')]
+    public function testARequireThatIsNotStringLiteralsIsRefused(string $require): void
+    {
+        $this->assertPackageRefused([], "'require'", self::indexWithRequire($require));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function requireValuesThatAreNotStringLiterals(): iterable
+    {
+        yield 'a string' => ["'system'"];
+        yield 'a variable' => ['$names'];
+        yield 'a spread' => ["[\n    'system',\n    ...\$more,\n]"];
+        yield 'an integer' => ["[\n    'system',\n    1,\n]"];
+        yield 'a computed value' => ["[\n    \$module,\n]"];
+        yield 'a computed key' => ["[\n    \$name => 'system',\n]"];
+    }
+
+    public function testAnOmittedRequirePastTheLastIndexIsRefused(): void
+    {
+        $max = var_export((string) PHP_INT_MAX, true);
+
+        $this->assertPackageRefused([], "'require'", self::indexWithRequire("[\n    {$max} => 'kept',\n    'overflow',\n]"));
+    }
+
     public function testAControlCharacterInAQuotedVersionIsReplaced(): void
     {
         $version = $this->assertPackageRefused(
@@ -1878,6 +2021,11 @@ final class PackageArchiveTest extends TestCase
         sort($entries);
 
         return $entries;
+    }
+
+    private static function indexWithRequire(string $require): string
+    {
+        return "<?php\n\nreturn [\n    'name' => 'demo',\n    'autoload' => [],\n    'require' => ".$require.",\n];\n";
     }
 
     private function assertWorkspaceHoldsOnly(string $fixture): void
