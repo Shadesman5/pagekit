@@ -181,7 +181,9 @@ return [
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {
-            if ($app->get('user')->hasAccess('user: manage users')) {
+            // hasAccess reads pk_system_role. Before config.php exists that opens the
+            // default SQLite file, so a clean installer directory is no longer clean.
+            if ($app->get('config.file') && file_exists($app->get('config.file')) && $app->get('user')->hasAccess('user: manage users')) {
                 $scripts->register('widget-user', 'system/user:app/bundle/widget-user.js', ['~dashboard']);
             }
             $scripts->register('link-user', 'system/user:app/bundle/link-user.js', ['~panel-link']);
