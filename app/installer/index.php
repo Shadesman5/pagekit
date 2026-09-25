@@ -59,10 +59,6 @@ return [
 
     'routes' => [
 
-        '/system/marketplace' => [
-            'name' => '@system/marketplace',
-            'controller' => 'Pagekit\Installer\Controller\MarketplaceController',
-        ],
         '/system/update' => [
             'name' => '@system/update',
             'controller' => 'Pagekit\Installer\Controller\UpdateController',
@@ -88,26 +84,6 @@ return [
     ],
 
     'menu' => [
-
-        'system: marketplace' => [
-            'label' => 'Marketplace',
-            'icon' => 'installer:assets/images/icon-marketplace.svg',
-            'url' => '@system/marketplace/extensions',
-            'access' => 'system: manage packages',
-            'priority' => 125,
-        ],
-
-        'system: marketplace extensions' => [
-            'label' => 'Extensions',
-            'parent' => 'system: marketplace',
-            'url' => '@system/marketplace/extensions',
-        ],
-
-        'system: marketplace themes' => [
-            'label' => 'Themes',
-            'parent' => 'system: marketplace',
-            'url' => '@system/marketplace/themes',
-        ],
 
         'system: update' => [
             'label' => 'Update',

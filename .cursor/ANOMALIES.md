@@ -100,8 +100,7 @@ public function filter(string $value): string { ... }
 ```neon
 # phpstan-baseline.neon — kept so the level target passes
 - message: '#implicitly nullable#'
-  count: 3
-  path: app/installer/src/Helper/InstallerIO.php
+  path: app/module/src/Cause.php
 ```
 
 **Found in review:** An advisory no rebuild can close is a reason to drop the dependency, not to waive the finding.

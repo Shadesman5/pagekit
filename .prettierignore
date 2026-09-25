@@ -21,7 +21,6 @@
 **/bundle/
 **/vendor/
 node_modules/
-packages/composer/
 storage/
 tmp/
 *.min.js

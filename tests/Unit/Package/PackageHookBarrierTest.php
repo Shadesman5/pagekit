@@ -257,8 +257,7 @@ final class PackageHookBarrierTest extends TestCase
     /**
      * The container the manager is built against.
      *
-     * @param bool $paths whether the container names the package directories itself,
-     *                    which the removal path reads to find what is installed
+     * @param bool $paths whether the container names the package directories itself
      */
     private function container(Config $system, bool $paths = false): Application
     {
@@ -276,7 +275,6 @@ final class PackageHookBarrierTest extends TestCase
             $app->set('path.temp', $root . '/temp');
             $app->set('path.cache', $root . '/cache');
             $app->set('path.vendor', $root . '/vendor');
-            $app->set('path.artifact', $root . '/artifact');
             $app->set('path.packages', $root . '/packages');
             $app->set('system.api', 'https://example.test');
         }

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
+use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\PackageManager;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class InstallCommand extends Command
@@ -21,15 +21,14 @@ class InstallCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected string $description = 'Installs a Pagekit package';
+    protected string $description = 'Installs a Pagekit package from its ZIP archive';
 
     /**
      * {@inheritdoc}
      */
     protected function configure(): void
     {
-        $this->addArgument('packages', InputArgument::IS_ARRAY | InputArgument::REQUIRED, '[Package name]:[Version constraint]');
-        $this->addOption('prefer-source', null, InputOption::VALUE_NONE, 'Forces installation from package sources when possible, including VCS information.');
+        $this->addArgument('archive', InputArgument::REQUIRED, 'Path to the package archive');
     }
 
     /**
@@ -37,21 +36,24 @@ class InstallCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // TODO: Step 5.6 (Marketplace & Extensions) — `pagekit install <pkg>` installs an
-        // extension/theme from the marketplace. Disabled in 2020 when the pagekit.com backend
-        // (system.api) was shut down; re-enable once a self-hostable package-distribution API exists.
-        $this->error("The 'install' command is disabled: the pagekit.com marketplace backend was discontinued.");
+        $file = $this->argument('archive');
 
-        return Command::FAILURE;
+        if (!is_string($file)) {
+            throw new \LogicException('Argument "archive" must be a string.');
+        }
 
-        // $packages = [];
+        try {
+            $archive = PackageArchive::open($file);
 
-        // foreach ((array) $this->argument('packages') as $argument) {
-        //     $argument = explode(':', $argument);
-        //     $packages[$argument[0]] = isset($argument[1]) && $argument[1] ? $argument[1] : '*';
-        // }
+            (new PackageManager($this->container, $output))->install($archive);
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
 
-        // $installer = new PackageManager($output);
-        // $installer->install($packages, true, $this->option('prefer-source'));
+            return Command::FAILURE;
+        }
+
+        $this->info(sprintf('Installed %s %s.', $archive->name(), $archive->version()));
+
+        return Command::SUCCESS;
     }
 }

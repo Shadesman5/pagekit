@@ -47,8 +47,8 @@ use Pagekit\Filesystem\Filesystem;
  * the directory is there long before the snapshot is finished.
  *
  * @phpstan-type SnapshotDatabase array{driver: string, platform: string, prefix: string}
- * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, composer: bool, reason: string, format: int, database: SnapshotDatabase}
- * @phpstan-type Snapshot array{id: string, created: int, expires: int|null, size: int, complete: bool, package: string, module: string, title: string, type: string, version: string, composer: bool, reason: string, format: int, database: SnapshotDatabase}
+ * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase}
+ * @phpstan-type Snapshot array{id: string, created: int, expires: int|null, size: int, complete: bool, package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase}
  */
 final class SnapshotStore
 {
@@ -75,15 +75,6 @@ final class SnapshotStore
      * shape it has in packages/, so a restore is a copy back.
      */
     public const FILES_DIR = 'files';
-
-    /**
-     * Composer's record of what it had installed, captured for a package
-     * Composer manages. It sits beside the archived tree rather than in it,
-     * because it describes the whole installation and not the one package: a
-     * restore puts the package's own files back, and what to do with this is a
-     * decision somebody makes about Composer's bookkeeping.
-     */
-    public const INSTALLED_FILE = 'installed.json';
 
     /**
      * The mark that says everything a restore needs is in the directory.
@@ -385,17 +376,6 @@ final class SnapshotStore
     }
 
     /**
-     * The captured Composer bookkeeping of a snapshot, whether or not the
-     * package it was taken of was one Composer installed.
-     *
-     * @throws \InvalidArgumentException where the id is not one, or names no snapshot in this store
-     */
-    public function installedFile(string $id): string
-    {
-        return $this->directory($id).'/'.self::INSTALLED_FILE;
-    }
-
-    /**
      * Whether a string is an id at all.
      *
      * Everything that takes an id from outside asks this first: an id is the one
@@ -575,7 +555,6 @@ final class SnapshotStore
             'title' => $this->text($data['title'] ?? null),
             'type' => $this->text($data['type'] ?? null),
             'version' => $this->text($data['version'] ?? null),
-            'composer' => ($data['composer'] ?? null) === true,
             'reason' => $this->text($data['reason'] ?? null),
             'format' => $this->number($data['format'] ?? null),
             'database' => [

@@ -1,5 +1,32 @@
 # Changelog
 
+## Pagekit 1.2.43 - Runtime Composer Removal (September 24, 2026)
+
+### 💥 Breaking Changes
+
+- **A package installs from a zip archive** — the panel upload and `php pagekit install <archive>` check the archive and replace `packages/<vendor>/<name>`. The panel enables it; the console command prints `Installed <name> <version>.` and does not. That command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. Reinstalling the same package replaces its folder, and an enabled package stays enabled. (Closes #297)
+- **`composer/composer` is not a runtime dependency** — `autoload.php` loads only `app/vendor/autoload.php`. Uninstall deletes the package folder through the file service. `path.artifact` is not registered. `getVersion()` reads the package `composer.json` and returns `0.0.0` when that file names no version. The PHP zip extension is required, including where it was previously only a development requirement.
+- **`php pagekit update` is gone.** The web self-update log is plain text: the default formatter strips the console tags.
+- **The marketplace is gone** — the `/system/marketplace` route, its three menu entries, and the client that asked pagekit.com whether an extension or theme had an update. Those pages receive no API URL and show no Update button. The installer manifest no longer names `system: manage packages` as access; only the core update page stays on `installer`. The dashboard still registers `systemApi`, and the core update page still reads `system.api`. Extensions and themes no longer call pagekit.com for an update; the dashboard update check and the core update page still do.
+- **A snapshot listing no longer includes whether Composer installed the package** — `read()` omits a `composer` key an earlier release stored and leaves that file as it is. Restore does not write `installed.json` back.
+
+### ♻️ Changed
+
+- **`php pagekit archive` writes the zip without Composer** — Finder and `ZipArchive`, named `<vendor>-<name>.zip`. The package `.gitignore` applies first, then each `archive.exclude` string, one rule at a time; the last match decides. Package scripts are not run. The new file replaces the previous zip only after it is complete. A link whose target lies outside the package is omitted.
+- **The shipped One theme declares `'autoload' => []`** so the archive check accepts it.
+- **An upload is staged under `path.temp/packages`** — the image, the entrypoint, the install script, and CI no longer create `tmp/packages`.
+
+### ❌ Removed
+
+- **The Composer install helper and the tracked package-composer tree** — `Pagekit\Package\Helper\Composer`, its factory, and its console IO adapter; `packages/autoload.php`, `packages/composer/`, `packages/packages.php`, and `packages/packages.lock`.
+
+### 🔒 Security
+
+- **An untrusted zip is refused before a byte is written** — a path that leaves the package, a backslash, a NUL, an absolute or drive path, a symlink entry, an uncompressed total above 512 MiB, two names that collide once case and a trailing slash are folded, and a file that is also a folder. The PHP manifest is parsed, not executed, and must be one static top-level return. Extraction will not overwrite an existing path and checks size and CRC itself.
+- **The staged archive is opened again at install** and accepted only when its own name and version match the request. A value that fails those patterns is not echoed. `php pagekit archive` runs nothing the package supplies.
+
+---
+
 ## Pagekit 1.2.42 - Package Module Boundary (September 22, 2026)
 
 ### 💥 Breaking Changes

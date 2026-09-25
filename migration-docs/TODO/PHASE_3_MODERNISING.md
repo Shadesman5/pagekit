@@ -361,6 +361,7 @@
   - Make the `@ci` specs viewport-robust (tablet/mobile Playwright projects), so the nightly viewport legs and the weekly cross-browser sweep can drop their non-blocking `continue-on-error` status. Why: desktop-only specs leave responsive admin/frontend regressions invisible.
   - Activate the PR smoke gate once the reworked `@ci` set is worth blocking on: set repo variable `E2E_SMOKE_PR_ENABLED=true` (the `e2e-smoke` job in `e2e.yml` is dormant without it) and add `e2e-smoke` to the develop ruleset as a required context — variable and ruleset entry must be flipped together, or the required context waits on a job that never runs.
   - Expand the Orchestrator/Tester end-of-ticket E2E set beyond the current 3 once the reworked specs are stable.
+  - Add a spec for the package pages: upload a ZIP built by `php pagekit archive`, install it, enable it, uninstall it and restore it from the snapshot — the only install path an administrator has, and one no spec walks today; the suite's PHP tests exercise the pieces, not the page. `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` and `tests/e2e/COMPLETE_TEST_PLAN.md` still describe a marketplace and an extension install "by hand only"; both now say what the pages do, or they go.
   - Integrate `@axe-core/playwright` (MPL-2.0) into critical-flow specs (login, dashboard, node editor); report-only until Step 4.0
   - All specs green locally; document the convention in `tests/e2e/README.md`.
 - **Risk**: Medium — broad E2E surface; orthogonal to the PHP test-coverage work in 2.1.9 / 2.10.

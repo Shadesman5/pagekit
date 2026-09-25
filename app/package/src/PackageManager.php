@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\Package;
 
-use Pagekit\Filesystem\Filesystem;
+use Pagekit\Filesystem\Path;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\Extension\ExtensionFailureStore;
-use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Package\Lifecycle\MigrationSet;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -22,8 +21,6 @@ use Symfony\Component\Console\Output\StreamOutput;
 class PackageManager
 {
     protected OutputInterface $output;
-
-    protected Composer $composer;
 
     /**
      * Where a package that failed to load is on record, or null in an
@@ -52,77 +49,137 @@ class PackageManager
         }
         $this->output = $output;
 
-        $path = realpath(__DIR__ . '/../..');
-        $config = [];
-
-        try {
-            if ($this->app->has('path.temp')) {
-                $config['path.temp'] = $this->app->get('path.temp');
-                $config['path.cache'] = $this->app->get('path.cache');
-                $config['path.vendor'] = $this->app->get('path.vendor');
-                $config['path.artifact'] = $this->app->get('path.artifact');
-                $config['path.packages'] = $this->app->get('path.packages');
-                $config['system.api'] = $this->app->has('system.api') ? $this->app->get('system.api') : 'https://pagekit.com';
-            } else {
-                $config['path.temp'] = $path . '/tmp/temp';
-                $config['path.cache'] = $path . '/tmp/cache';
-                $config['path.vendor'] = $path . '/app/vendor';
-                $config['path.artifact'] = $path . '/tmp/packages';
-                $config['path.packages'] = $path . '/packages';
-                $config['system.api'] = 'https://pagekit.com';
-            }
-        } catch (\Exception $e) {
-            $config['path.temp'] = $path . '/tmp/temp';
-            $config['path.cache'] = $path . '/tmp/cache';
-            $config['path.vendor'] = $path . '/app/vendor';
-            $config['path.artifact'] = $path . '/tmp/packages';
-            $config['path.packages'] = $path . '/packages';
-            $config['system.api'] = 'https://pagekit.com';
-        }
-
-        // ContainerInterface guarantees neither that these ids are registered nor
-        // what they resolve to — has() answers presence, get() returns mixed. Both
-        // collaborators therefore stay optional, and anything that is not the
-        // expected type leaves the helper on its own defaults.
-        $files = $this->app->has('file') ? $this->app->get('file') : null;
-        $logger = $this->app->has('log') ? $this->app->get('log') : null;
-
         // The record is only kept where the container names a directory for it.
         // Without one there is nothing to read and nothing to clear; every other
         // operation is unaffected.
         $failures = $this->app->has('extension.failures') ? $this->app->get('extension.failures') : null;
         $this->failures = $failures instanceof ExtensionFailureStore ? $failures : null;
-
-        $this->composer = new Composer(
-            $config,
-            $output,
-            $files instanceof Filesystem ? $files : null,
-            $logger instanceof LoggerInterface ? $logger : null
-        );
     }
 
     /**
-     * @param array<string, string> $install
+     * Puts an archive's package in place and installs it, or updates the package already there.
+     *
+     * @throws \RuntimeException where the package cannot take the place its name gives it, or a step of the install fails
      */
-    public function install(array $install = [], bool $packagist = false, bool $preferSource = false): void
+    public function install(PackageArchive $archive): void
     {
         $packageFactory = $this->app->get('package');
+        $name = $archive->name();
+        $target = $this->app->get('path.packages') . '/' . $name;
 
-        $previousPackageConfigs = $packageFactory->all(null, true);
+        $previous = $packageFactory->get($name, true);
 
-        $this->composer->install($install, $packagist, $preferSource);
+        if ($previous !== null) {
+            $path = $previous->get('path');
 
-        $packages = $packageFactory->all(null, true);
-        foreach (array_keys($install) as $name) {
-            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && $this->app->get('module')->get($previousPackageConfigs[$name]->get('module'));
+            if (!is_string($path) || Path::directory($path) !== Path::directory($target)) {
+                throw new \RuntimeException(__('"%name%" is already installed in another folder.', ['%name%' => $name]));
+            }
 
-            if ($moduleAlreadyExisted == true) {
-                $previousPackageConfig = isset($previousPackageConfigs[$name]) ? $previousPackageConfigs[$name] : null;
-                $this->enable($packages[$name], $previousPackageConfig);
-            } elseif (isset($packages[$name])) {
-                $this->doInstall($packages[$name]);
+            if ($previous->getType() !== $archive->type()) {
+                throw new \RuntimeException(__('"%name%" is already installed as another type of package.', ['%name%' => $name]));
             }
         }
+
+        if (is_link($target)) {
+            throw new \RuntimeException(__('The folder of "%name%" is a symbolic link, which an archive does not replace.', ['%name%' => $name]));
+        }
+
+        // Read before the tree moves: whether the installed version was running is what
+        // decides between updating it and installing afresh.
+        $module = $previous?->get('module');
+        $moduleLoaded = is_string($module) && $this->app->get('module')->get($module) !== null;
+
+        $this->replaceTree($archive, $target);
+
+        $package = $packageFactory->get($name, true);
+
+        if ($package === null) {
+            throw new \RuntimeException(__('"%name%" was unpacked, but the installation does not find it.', ['%name%' => $name]));
+        }
+
+        if ($moduleLoaded) {
+            $this->enable($package, $previous);
+        } else {
+            $this->doInstall($package);
+        }
+    }
+
+    /**
+     * Unpacks the archive beside $target and swaps it in with one rename, deleting what stood there.
+     *
+     * @throws \RuntimeException where the tree could not be unpacked or moved into place
+     */
+    private function replaceTree(PackageArchive $archive, string $target): void
+    {
+        $files = $this->app->get('file');
+        $name = $archive->name();
+
+        if (!$files->makeDir(dirname($target))) {
+            throw new \RuntimeException(__('The folder for "%name%" could not be created.', ['%name%' => $name]));
+        }
+
+        // A sibling, because rename() is atomic only within one filesystem, and a dot-name, because
+        // the package and module globs skip those: no request sees a half-written or a retired tree.
+        $staged = $this->hiddenSibling($target);
+        $retired = null;
+
+        try {
+            $archive->extractTo($staged);
+
+            if (file_exists($target)) {
+                $retired = $this->hiddenSibling($target);
+
+                if (!@rename($target, $retired)) {
+                    throw new \RuntimeException(__('The installed files of "%name%" could not be moved aside.', ['%name%' => $name]));
+                }
+            }
+
+            if (!@rename($staged, $target)) {
+                if ($retired !== null && !@rename($retired, $target)) {
+                    $this->reportLeftover(sprintf('The installed files of package "%s" could not be put back from "%s".', $name, $retired));
+
+                    throw new \RuntimeException(__('The files of "%name%" could not be moved into place, nor the installed ones put back. See error log for details.', ['%name%' => $name]));
+                }
+
+                throw new \RuntimeException(__('The files of "%name%" could not be moved into place.', ['%name%' => $name]));
+            }
+        } catch (\Throwable $e) {
+            if (file_exists($staged) && $files->delete($staged) !== true) {
+                $this->reportLeftover(sprintf('The unpacked files of package "%s" could not be deleted from "%s".', $name, $staged));
+            }
+
+            // The vendor folder goes again where this install was the first thing in it.
+            @rmdir(dirname($target));
+
+            throw $e;
+        }
+
+        // Out of every glob already, so files that will not go cost disk space and not the install.
+        if ($retired !== null && $files->delete($retired) !== true) {
+            $this->output->writeln(__('The replaced files of "%name%" could not all be deleted. See error log for details.', ['%name%' => $name]));
+            $this->reportLeftover(sprintf('The replaced files of package "%s" could not be deleted from "%s".', $name, $retired));
+        }
+
+        // The lifecycle runs in this request, sooner than opcache re-checks a file it compiled,
+        // so the replaced files would run from their old compiled code.
+        if (function_exists('opcache_invalidate')) {
+            $tree = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS));
+
+            foreach ($tree as $file) {
+                if ($file instanceof \SplFileInfo && $file->isFile() && $file->getExtension() === 'php') {
+                    opcache_invalidate($file->getPathname(), true);
+                }
+            }
+        }
+    }
+
+    /**
+     * A path beside $target that no other operation will pick, hidden from the globs by its leading dot.
+     */
+    private function hiddenSibling(string $target): string
+    {
+        return dirname($target) . '/.' . basename($target) . '-' . bin2hex(random_bytes(4));
     }
 
     /**
@@ -509,9 +566,6 @@ class PackageManager
      * assumed: files that will not go are a removal an administrator has to hear
      * about, not one that can be reported as done.
      *
-     * Composer is told last, for a package it installed, so that what it takes
-     * off the disk is the tree the snapshot was already archived from.
-     *
      * @param bool $snapshotted whether there is a copy of the package to point
      *                          whoever has to finish the job at
      *
@@ -526,23 +580,14 @@ class PackageManager
             throw new \RuntimeException(__('Package path is missing.'));
         }
 
-        if ($this->composer->isInstalled($package->getName())) {
-            $this->composer->uninstall($package->getName());
+        $this->output->writeln(__('Removing package folder.'));
 
-            // Composer takes the tree off the disk itself and reports nothing
-            // about it that can be read back, so the disk is all there is to
-            // go on for a package it installed.
-            $removed = !is_dir($path);
-        } else {
-            $this->output->writeln(__('Removing package folder.'));
-
-            // The file service both removes the tree and answers whether it
-            // could: it stops at the first entry that will not go. Stat'ing the
-            // path instead would take it for a plain local one, which the
-            // service does not promise - a path it maps through an adapter is
-            // wherever that adapter puts it.
-            $removed = $this->app->get('file')->delete($path) === true;
-        }
+        // The file service both removes the tree and answers whether it
+        // could: it stops at the first entry that will not go. Stat'ing the
+        // path instead would take it for a plain local one, which the
+        // service does not promise - a path it maps through an adapter is
+        // wherever that adapter puts it.
+        $removed = $this->app->get('file')->delete($path) === true;
 
         // The vendor directory goes too where this package was the last thing in
         // it, and stays where it holds another.
@@ -828,6 +873,20 @@ class PackageManager
     }
 
     /**
+     * Logs files an install left under a hidden name, where no panel will ever show them.
+     */
+    private function reportLeftover(string $message): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error($message);
+            }
+        } catch (\Throwable) {
+            // The install's own outcome still has to reach the caller.
+        }
+    }
+
+    /**
      * Reports a lifecycle hook that threw on the package's way out.
      *
      * Disabling and uninstalling are how an administrator gets out from under a
@@ -1025,7 +1084,7 @@ class PackageManager
     }
 
     /**
-     * Tries to obtain package version from 'composer.json' or installation log.
+     * The version the package's 'composer.json' names, '0.0.0' where it names none.
      */
     protected function getVersion(PackageInterface $package): string
     {
@@ -1045,26 +1104,6 @@ class PackageManager
         $composerData = json_decode($contents, true);
         if (is_array($composerData) && isset($composerData['version']) && is_string($composerData['version'])) {
             return $composerData['version'];
-        }
-
-        $packagesPath = $this->app->has('path.packages')
-            ? $this->app->get('path.packages')
-            : realpath(__DIR__ . '/../..') . '/packages';
-        $installedFile = $packagesPath . '/composer/installed.json';
-        if (file_exists($installedFile)) {
-            $installedContents = file_get_contents($installedFile);
-            if ($installedContents !== false) {
-                $installed = json_decode($installedContents, true);
-                $packageName = $package->getName();
-
-                if (is_array($installed)) {
-                    foreach ($installed as $entry) {
-                        if (is_array($entry) && ($entry['name'] ?? null) === $packageName && isset($entry['version']) && is_string($entry['version'])) {
-                            return $entry['version'];
-                        }
-                    }
-                }
-            }
         }
 
         return '0.0.0';

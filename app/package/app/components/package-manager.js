@@ -10,9 +10,7 @@ export default {
       {
         package: {},
         view: false,
-        updates: null,
         search: this.$session.get(`${this.$options.name}.search`, ''),
-        status: '',
         // Whether a removal from this page can be undone. The server answers it
         // per page; a page rendered without an answer is one whose removals are
         // final, which is the reading that promises nothing.
@@ -43,10 +41,6 @@ export default {
     }
   },
 
-  mounted() {
-    this.load();
-  },
-
   watch: {
     search(search) {
       this.$session.set(`${this.$options.name}.search`, search);
@@ -54,33 +48,6 @@ export default {
   },
 
   methods: {
-    load() {
-      this.$set(this, 'status', 'loading');
-
-      if (this.packages) {
-        this.queryUpdates(this.packages).then(
-          res => {
-            // Handle response safely (API might be unavailable)
-            if (res && res.data && res.data.packages) {
-              this.$set(
-                this,
-                'updates',
-                res.data.packages.length ? _.keyBy(res.data.packages, 'name') : null
-              );
-            } else {
-              this.$set(this, 'updates', null);
-            }
-            this.$set(this, 'status', '');
-          },
-          () => {
-            // API unavailable or blocked by CSP - this is expected
-            this.$set(this, 'updates', null);
-            this.$set(this, 'status', '');
-          }
-        );
-      }
-    },
-
     icon(pkg) {
       if (pkg.extra && pkg.extra.icon) {
         return `${pkg.url}/${pkg.extra.icon}`;

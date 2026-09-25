@@ -27,9 +27,7 @@ use Psr\Log\LogLevel;
  * version and type. The database it was removed from - every table the
  * installation owns, not only the ones the package created, because a package's
  * rows are spread across the site's content, configuration and permissions. And
- * the package's own files, in the shape they have under packages/. Where
- * Composer installed the package, Composer's record of what it had installed is
- * captured beside them.
+ * the package's own files, in the shape they have under packages/.
  *
  * The dump being of the whole installation is what makes a restore a
  * point-in-time recovery rather than a package-shaped undo: putting one back
@@ -55,14 +53,7 @@ final class PackageSnapshotter
     public const REASON_UNINSTALL = 'uninstall';
 
     /**
-     * Composer's record of what it installed, relative to the directory it
-     * installs into.
-     */
-    private const BOOKKEEPING = 'composer/installed.json';
-
-    /**
-     * @param string $packages where runtime-installed packages live, which is
-     *                         also where Composer keeps its record of them
+     * @param string $packages where runtime-installed packages live
      */
     public function __construct(
         private readonly SnapshotStore $store,
@@ -92,12 +83,9 @@ final class PackageSnapshotter
      */
     public function create(PackageInterface $package, string $reason): string
     {
-        // Both of these run before the snapshot directory exists: an
-        // installation on a database no dump can be taken of costs nothing but
-        // the answer, and what Composer has on record is read while its record
-        // is still the live one.
-        $composer = $this->composerInstalled($package->getName());
-        $details = $this->details($package, $reason, $composer);
+        // This runs before the snapshot directory exists: an installation on a
+        // database no dump can be taken of costs nothing but the answer.
+        $details = $this->details($package, $reason);
 
         // There is a snapshot to write, so whatever the retention window has
         // run out on goes before it does: snapshots nobody has reclaimed are
@@ -110,10 +98,6 @@ final class PackageSnapshotter
         try {
             $this->dumper->dump($this->store->dumpFile($id));
             $this->archive($package, $id);
-
-            if ($composer) {
-                $this->bookkeeping($id);
-            }
 
             // Last, because this is the step that turns a directory of files
             // into something a package can be brought back out of. Everything
@@ -154,12 +138,6 @@ final class PackageSnapshotter
      * not there is a boot that fails. So a restore that puts the files back and
      * then cannot apply the dump reports the failure and leaves the snapshot
      * exactly where it is - running it again is what finishes the job.
-     *
-     * Composer's record of what it had installed is not written back. The
-     * captured copy describes the installation as it was and the live one
-     * describes it as it is, so overwriting the second with the first would take
-     * every package installed since off Composer's books. It stays in the
-     * snapshot for whoever reconciles the two.
      *
      * A restored snapshot is still a snapshot: nothing here destroys it, so the
      * same one can be replayed again until it is purged.
@@ -452,11 +430,10 @@ final class PackageSnapshotter
     /**
      * What the snapshot says about itself.
      *
-     * @param  bool              $composer whether Composer is what installed the package
      * @return SnapshotDetails
      * @throws \RuntimeException where the installation is on a database no dump can be taken of
      */
-    private function details(PackageInterface $package, string $reason, bool $composer): array
+    private function details(PackageInterface $package, string $reason): array
     {
         return [
             'package' => $package->getName(),
@@ -464,7 +441,6 @@ final class PackageSnapshotter
             'title' => $this->text($package->get('title')),
             'type' => $package->getType(),
             'version' => $this->text($package->get('version')),
-            'composer' => $composer,
             'reason' => $reason,
             'format' => DumpFormat::VERSION,
             'database' => $this->dumper->describe(),
@@ -503,71 +479,6 @@ final class PackageSnapshotter
         if (!$this->files->copyDir($path, $target)) {
             throw new \RuntimeException(sprintf('Failed to archive the files of package "%s".', $package->getName()));
         }
-    }
-
-    /**
-     * Captures Composer's record of what it had installed.
-     *
-     * Copied rather than written out of what was read for the metadata, so that
-     * what lands in the snapshot is the file itself and not this class's
-     * understanding of it. Only ever asked for a package the record names, so a
-     * record that has since gone is a snapshot that would be missing half of
-     * what Composer needs to be put back - and that fails the snapshot.
-     *
-     * @throws \RuntimeException where the record could not be copied
-     */
-    private function bookkeeping(string $id): void
-    {
-        if (!$this->files->copy($this->bookkeepingFile(), $this->store->installedFile($id))) {
-            throw new \RuntimeException('Failed to capture Composer\'s record of the installed packages.');
-        }
-    }
-
-    /**
-     * Whether Composer is what put the package under packages/.
-     *
-     * Read out of Composer's own record rather than asked of Composer itself:
-     * the question is whether there is bookkeeping to capture, and that record
-     * is the bookkeeping. A record that is missing or cannot be read answers no
-     * - the same answer the removal path gets when it asks whether Composer has
-     * to be told, so the two cannot disagree about one package.
-     */
-    private function composerInstalled(string $name): bool
-    {
-        $file = $this->bookkeepingFile();
-
-        if (!is_file($file)) {
-            return false;
-        }
-
-        $content = @file_get_contents($file);
-
-        if ($content === false) {
-            return false;
-        }
-
-        try {
-            $installed = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            return false;
-        }
-
-        if (!is_array($installed)) {
-            return false;
-        }
-
-        foreach ($installed as $entry) {
-            if (is_array($entry) && ($entry['name'] ?? null) === $name) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function bookkeepingFile(): string
-    {
-        return $this->livePath(self::BOOKKEEPING);
     }
 
     /**

@@ -8,7 +8,6 @@ use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
@@ -19,11 +18,9 @@ use Pagekit\Package\Snapshot\SnapshotStore;
 use Pagekit\Tests\Unit\Snapshot\SnapshotDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
 use Psr\Log\AbstractLogger;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Taking a package's files out of the live installation, which is the last half
@@ -36,27 +33,15 @@ use Symfony\Component\Console\Output\OutputInterface;
  * that is merely not installed, while its hooks have already run and its content
  * is in the trash. Half-removed like that, it is worse than either state.
  *
- * So the outcome is read rather than assumed. The filesystem service says whether
- * it could take the tree away and Composer says nothing at all, which is why a
- * package Composer installed is judged by what is left on the disk. Either way a
- * tree that stayed is reported to the administrator instead of being reported as
- * done - with the path in the log, where whoever finishes the job by hand will
- * look, and out of the message, which is streamed to a browser.
- *
- * Composer is told last, after the archive is written, because it takes the tree
- * away itself: told first, it would delete the very files the snapshot is the copy
- * of.
+ * So the outcome is read rather than assumed: the filesystem service says whether
+ * it could take the tree away, and a tree that stayed is reported to the
+ * administrator instead of being reported as done - with the path in the log,
+ * where whoever finishes the job by hand will look, and out of the message, which
+ * is streamed to a browser.
  */
 final class PackageTreeRemovalTest extends TestCase
 {
     use SnapshotDatabase;
-
-    /**
-     * Composer's record as it lies under packages/, naming the package that is
-     * about to be removed. Its presence is what makes a package one Composer
-     * installed, for the removal and for the snapshot alike.
-     */
-    private const BOOKKEEPING = '[{"name":"pagekit/test-ext","version":"1.0.0","type":"pagekit-extension"}]';
 
     private string $workspace;
 
@@ -107,32 +92,6 @@ final class PackageTreeRemovalTest extends TestCase
     // ------------------------------------------------------------------
     // The tree goes, and the copy in the snapshot stays
     // ------------------------------------------------------------------
-
-    public function testAPackageComposerInstalledIsArchivedBeforeComposerIsToldToTakeItAway(): void
-    {
-        // Composer removes the tree itself, so the order is the whole of what
-        // keeps the snapshot from being a snapshot of nothing.
-        $this->writeBookkeeping();
-
-        $app = $this->container($this->snapshotter());
-        $composer = new ComposerThatTakesTheTreeAway($this->composerPaths(), $this->output);
-        $composer->tree = $this->tree;
-
-        $archived = [];
-        $composer->observe = function () use (&$archived): void {
-            $archived = $this->archivedTrees();
-        };
-
-        $this->manager($app, $composer)->uninstall('pagekit/test-ext');
-
-        self::assertCount(1, $archived, 'The files were in the snapshot before Composer was told about them');
-        self::assertSame(['pagekit/test-ext'], $composer->uninstalled);
-
-        // And afterwards: gone from the live tree, still in the snapshot.
-        self::assertDirectoryDoesNotExist($this->tree);
-        self::assertCount(1, $this->archivedTrees());
-        self::assertNull($this->system->get('packages.test-ext'));
-    }
 
     public function testTheVendorDirectoryGoesWithTheLastPackageInIt(): void
     {
@@ -199,25 +158,6 @@ final class PackageTreeRemovalTest extends TestCase
         self::assertStringContainsString('pagekit/test-ext', $this->log->records[0]['message']);
         self::assertStringContainsString($this->tree, $this->log->records[0]['message']);
         self::assertSame('test-ext', $this->log->records[0]['context']['package'] ?? null);
-    }
-
-    public function testATreeComposerCouldNotTakeAwayIsReportedTheSameWay(): void
-    {
-        // Composer reports nothing about what it removed that can be read back,
-        // so a run that failed halfway through - or a plugin that left the files
-        // where they were - is only visible on the disk.
-        $this->writeBookkeeping();
-
-        $app = $this->container($this->snapshotter());
-
-        $composer = new ComposerThatLeavesTheTreeBehind($this->composerPaths(), $this->output);
-
-        $failure = $this->refusal(fn () => $this->manager($app, $composer)->uninstall('pagekit/test-ext'));
-
-        self::assertStringContainsString('could not be taken off the disk', $failure->getMessage());
-        self::assertFileExists($this->tree . '/composer.json');
-        self::assertCount(1, $this->log->records);
-        self::assertStringContainsString($this->tree, $this->log->records[0]['message']);
     }
 
     public function testAPackageThatGaveItselfNoTitleIsNamedByItsPackageName(): void
@@ -321,7 +261,6 @@ final class PackageTreeRemovalTest extends TestCase
         $app->set('path.temp', $this->workspace . '/tmp/temp');
         $app->set('path.cache', $this->workspace . '/tmp/cache');
         $app->set('path.vendor', $this->workspace . '/app/vendor');
-        $app->set('path.artifact', $this->workspace . '/tmp/packages');
         $app->set('path.packages', $this->packages);
         $app->set('system.api', 'https://example.test');
 
@@ -334,33 +273,10 @@ final class PackageTreeRemovalTest extends TestCase
 
     /**
      * The manager as the panel and the console build it.
-     *
-     * @param Composer|null $composer the helper for a package Composer installed,
-     *                                whose real one resolves packages against a
-     *                                marketplace
      */
-    private function manager(Application $app, ?Composer $composer = null): PackageManager
+    private function manager(Application $app): PackageManager
     {
-        if ($composer === null) {
-            return new PackageManager($app, $this->output);
-        }
-
-        return new ManagerWithComposer($app, $this->output, $composer);
-    }
-
-    /**
-     * The paths the Composer helper works in, as the manager reads them off the
-     * container to build its own.
-     *
-     * @return array<string, string>
-     */
-    private function composerPaths(): array
-    {
-        return [
-            'path.packages' => $this->packages,
-            'path.artifact' => $this->workspace . '/tmp/packages',
-            'system.api' => 'https://example.test',
-        ];
+        return new PackageManager($app, $this->output);
     }
 
     /**
@@ -383,7 +299,7 @@ final class PackageTreeRemovalTest extends TestCase
     }
 
     /**
-     * Puts a package on disk, the way the marketplace leaves one behind.
+     * Puts a package on disk, the way an install leaves one behind.
      */
     private function plant(string $module): void
     {
@@ -455,13 +371,6 @@ final class PackageTreeRemovalTest extends TestCase
         );
     }
 
-    private function writeBookkeeping(): void
-    {
-        mkdir($this->packages . '/composer', 0755, true);
-
-        file_put_contents($this->packages . '/composer/installed.json', self::BOOKKEEPING);
-    }
-
     // ------------------------------------------------------------------
     // Reading back what a removal left behind
     // ------------------------------------------------------------------
@@ -518,86 +427,6 @@ final class PackageTreeRemovalTest extends TestCase
         }
 
         rmdir($path);
-    }
-}
-
-/**
- * The manager with the Composer helper a test hands it.
- *
- * The helper is built in the constructor out of the container, and the real one
- * resolves and downloads packages off a marketplace, so standing in for it is the
- * only way a removal through Composer can be asserted at all.
- */
-final class ManagerWithComposer extends PackageManager
-{
-    public function __construct(ContainerInterface $app, OutputInterface $output, Composer $composer)
-    {
-        parent::__construct($app, $output);
-
-        $this->composer = $composer;
-    }
-}
-
-/**
- * Composer as the removal path has it: told about a package it installed, it
- * takes the tree off the disk itself and reports nothing back about having done
- * so. What is left out here is the run that resolves and downloads packages; the
- * registry write around it is the helper's own.
- */
-final class ComposerThatTakesTheTreeAway extends Composer
-{
-    /**
-     * The packages it was told to remove.
-     *
-     * @var array<int, string>
-     */
-    public array $uninstalled = [];
-
-    /**
-     * The tree it takes off the disk, as Composer does for what it installed.
-     */
-    public string $tree = '';
-
-    /**
-     * What to note down at the moment Composer is told. It is the only point from
-     * which the order can be seen, and the order is what keeps the snapshot from
-     * being taken of files that are already gone.
-     *
-     * @var (\Closure(): void)|null
-     */
-    public ?\Closure $observe = null;
-
-    /**
-     * @param array<int, string>|bool $updates
-     * @param array<int, mixed>       $refresh
-     */
-    protected function composerUpdate(array|bool $updates = false, array $refresh = [], bool $packagist = false, bool $preferSource = false): void
-    {
-        $this->uninstalled = is_array($updates) ? array_values($updates) : [];
-
-        if ($this->observe !== null) {
-            ($this->observe)();
-        }
-
-        if ($this->tree !== '') {
-            (new Filesystem())->delete($this->tree);
-        }
-    }
-}
-
-/**
- * Composer that was told and left the tree where it was: a file it could not
- * unlink, a permission it does not have, a run that failed halfway through. It
- * says nothing about that either, which is why the disk is what the removal reads.
- */
-final class ComposerThatLeavesTheTreeBehind extends Composer
-{
-    /**
-     * @param array<int, string>|bool $updates
-     * @param array<int, mixed>       $refresh
-     */
-    protected function composerUpdate(array|bool $updates = false, array $refresh = [], bool $packagist = false, bool $preferSource = false): void
-    {
     }
 }
 
