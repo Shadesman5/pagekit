@@ -95,6 +95,7 @@ Canonical: [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc) § DX. Thin DI-backe
 | 2.7.1b | ↳ Package Module Boundary             | ✅     | 🛡️    | #287  | #296    |
 | 2.7.1c | ↳ Runtime Composer Removal            | ✅     | 🛡️    | #297  | #301    |
 | 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | #268  | -       |
+| 2.7.2b | ↳ Boot Module Name                    | ⏳     | ⏳    | -     | -       |
 | 2.7.3  | ↳ Static Module Registration          | ⏳     | ⏳    | #266  | -       |
 | 2.7.4  | ↳ Standard Composer Layout (vendor/)  | ⏳     | ⏳    | #271  | -       |
 | 2.7.5  | ↳ Data Directory (data/)              | ⏳     | ⏳    | #299  | -       |
