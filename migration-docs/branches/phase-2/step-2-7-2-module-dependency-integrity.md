@@ -50,6 +50,16 @@ A module `require` that is missing or switched off is refused, and that module i
 
 Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; coverage PHPUnit + PHPStan PASS.
 
+### Import edges stopped (Checklist Step 2)
+
+Production verifier FAIL. The step stopped. Where `CacheKeyUtil` and `OutboundMailer` live, and which module owns the captcha auth check, is a plan decision.
+
+- **AP-04.** `CacheKeyUtil` was moved to `Pagekit\Database`, and `OutboundMailer` is a new `Pagekit\User\Mail` type. Where those concerns live is a module-boundary decision. Declaring the old imports cycles: `system/cache` requires `system/user`, which requires `database`; `system/mail` requires `system/user`.
+- **AP-03.** `CaptchaListener::isAuthenticated` calls `isAuthenticated()` via `is_callable` and does not import `Pagekit\User`. The dependency is real. `system/captcha` requiring `system/user` cycles because `system/user` requires `system/captcha`. The class, or the `#[Captcha]` edge, is in the wrong module.
+- **AP-01.** `OutboundMailer` is a shim so registration and reset do not typehint `Pagekit\Mail\Mailer`. No shim keeps the old calling pattern; every call site takes the new signature.
+- **AP-02.** `CaptchaListener::isAuthenticated(mixed $user)` does not say why `mixed`. `Auth::getUser()` returns `?UserInterface`. Narrow the parameter.
+- Docblocks on `CacheKeyUtil`, `OutboundMailer`, and `CaptchaListener::isAuthenticated` explain the module cycle instead of the symbol contract.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -100,7 +110,7 @@ A registered-but-disabled requirement is not loaded. The resolver does not recur
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Checklist Step 2 production verifier FAIL — ESCALATE (AP-04, AP-03); same FAIL also names AP-01, AP-02, and cycle docblocks. See What Changed.
 
 ---
 
