@@ -10,7 +10,7 @@
   "model": "grok-4.7",
   "status": "failed",
   "startedAt": "2026-09-25T00:36:54.463Z",
-  "completedAt": "2026-09-25T02:54:41.115Z",
+  "completedAt": "2026-09-25T02:54:25.724Z",
   "phases": [
     {
       "phaseKey": "36078326145-1-PLAN",
@@ -70,13 +70,30 @@
         1,
         2
       ],
-      "startedAt": "2026-09-25T00:57:41.541Z",
-      "durationMs": 7012960,
+      "startedAt": "2026-09-25T00:57:42.730Z",
+      "durationMs": 7002511,
       "agent": {
         "id": "bc-783dbd7b-5277-4d34-82a8-40fdc7369e3c",
         "runId": "run-4a9f3df4-2ad1-4182-aab7-0d4d8c0bee44",
         "url": "https://cursor.com/agents/bc-783dbd7b-5277-4d34-82a8-40fdc7369e3c",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-4a9f3df4-2ad1-4182-aab7-0d4d8c0bee44",
+            "index": 1,
+            "startedAt": "2026-09-25T00:57:42.730Z",
+            "completedAt": "2026-09-25T02:54:25.724Z",
+            "durationMs": 7002511,
+            "tokens": {
+              "input": 253783,
+              "output": 16124,
+              "cacheRead": 1417472,
+              "cacheWrite": 0,
+              "total": 1687379
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36079879367,
@@ -94,7 +111,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE (decision): Step 2 — ESCALATE: AP-04 — `CacheKeyUtil` was moved to `Pagekit\\Database`, and `OutboundMailer` is a new `Pagekit\\User\\Mail` type. Where those concerns live is a module-boundary decision. Declaring the old imports cycles (`system/cache` requires `system/user`, which requires `database`; `system/mail` requires `system/user`). ESCALATE: AP-03 — `CaptchaListener::isAuthenticated` calls `isAuthenticated()` via `is_callable` and does not import `Pagekit\\User`. The dependency is r",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-25T02:54:25.724Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -105,7 +124,7 @@
       "cacheWrite": 0,
       "total": 2190970
     },
-    "durationMs": 8227999,
+    "durationMs": 8217550,
     "phaseCount": 2,
     "escalations": 1,
     "ghaJobs": 2,
