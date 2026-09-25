@@ -1,10 +1,18 @@
+import DisableInstance from './disable.vue';
 import InstallInstance from './install.vue';
 import UninstallInstance from './uninstall.vue';
 
+const Disable = Vue.extend(DisableInstance);
 const Install = Vue.extend(InstallInstance);
 const Uninstall = Vue.extend(UninstallInstance);
 
 export default {
+  data() {
+    return {
+      pendingDisable: false
+    };
+  },
+
   methods: {
     enable(pkg) {
       return this.$http.post('admin/system/package/enable', { name: pkg.name }).then(response => {
@@ -24,7 +32,22 @@ export default {
       }, this.error);
     },
 
+    // The status toggle asks first. Blockers, orphans and the data risk are
+    // shown there; the switch-off runs only once that confirm offers it.
     disable(pkg) {
+      if (this.pendingDisable) {
+        return;
+      }
+
+      this.pendingDisable = true;
+      const ask = new Disable({ parent: this });
+
+      return ask.ask(pkg, () => {
+        this.pendingDisable = false;
+      });
+    },
+
+    commitDisable(pkg) {
       return this.$http.post('admin/system/package/disable', { name: pkg.name }).then(response => {
         const warnings = (response.data && response.data.warnings) || [];
 

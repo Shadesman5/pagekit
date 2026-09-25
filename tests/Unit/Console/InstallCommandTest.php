@@ -132,6 +132,20 @@ final class InstallCommandTest extends TestCase
         self::assertNull($this->system->get('packages.demo'));
     }
 
+    public function testTheHelpSaysInstallDoesNotActivate(): void
+    {
+        $command = new InstallCommand($this->container());
+
+        self::assertSame(
+            'Install places the package and runs the install lifecycle. Activation is php pagekit enable.',
+            $command->getDescription(),
+        );
+        self::assertSame(
+            'Install places the package and runs the install lifecycle. It does not enable the package. Activation is php pagekit enable.',
+            $command->getHelp(),
+        );
+    }
+
     private function container(): Application
     {
         $app = new Application();

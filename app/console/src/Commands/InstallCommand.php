@@ -21,13 +21,16 @@ class InstallCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected string $description = 'Installs a Pagekit package from its ZIP archive';
+    protected string $description = 'Install places the package and runs the install lifecycle. Activation is php pagekit enable.';
 
     /**
      * {@inheritdoc}
      */
     protected function configure(): void
     {
+        $this->setHelp(
+            'Install places the package and runs the install lifecycle. It does not enable the package. Activation is php pagekit enable.'
+        );
         $this->addArgument('archive', InputArgument::REQUIRED, 'Path to the package archive');
     }
 

@@ -23,7 +23,9 @@ Dump selection, dump ownership, and restore collisions fold through one helper. 
 
 Disable and uninstall ask one query before anything changes. Blockers stop the call. Orphans and the data-risk hint are reported and do not. The active theme counts as enabled. Disabling that theme clears `site.theme`.
 
-Remaining work is the restore pre-flight, and panel plus console activation on the same `PackageManager` seam.
+The extensions status toggle and the uninstall confirm ask that query before they offer Disable or Remove. `php pagekit enable` and `php pagekit disable` call the same manager. `php pagekit install` still does not enable.
+
+Remaining work is the restore pre-flight.
 
 ---
 
@@ -286,6 +288,34 @@ Gates: production verifier PASS; PHPUnit + PHPStan FAIL then PASS after a produc
 
 Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; PHPUnit + PHPStan PASS. No deviations.
 
+### Panel and console activation (Checklist Step 9)
+
+The extensions status toggle and the uninstall confirm read the impact route before they offer Disable or Remove. Both render only when the payload has `blockers`, `orphans`, and `dataRisk` and `blockers` is empty. A failed read, or a payload missing one of those keys, leaves the control out. Each of the three results is one sentence. Tables are named and said to be left as they are. `enable` still notifies `response.data.error`.
+
+`php pagekit enable` loads a registered module, then calls `PackageManager::enable()`. An unregistered module name is not loaded. A requirement refusal is printed and the command returns failure. `php pagekit disable` resolves every name, then calls `disable()` once. A `RemovalBlockedException` is printed and the command returns failure. Any other throwable, including an unknown package and a circular requirement, propagates. Neither command has `--force`. Success prints the package title, or the package name when `title` is empty. `php pagekit install` still does not call `enable()`. Its description and help say the install lifecycle runs and activation is `php pagekit enable`. The console module already adds every `*Command.php`.
+
+| File | Change |
+|---|---|
+| `app/package/app/lib/impact-query.js` (new) | Posts to the impact route. `canProceed` is true only when `blockers`, `orphans`, and `dataRisk` have the expected shape and `blockers` is empty. A failed read or any other shape sets `impactFailed` and leaves the button out. |
+| `app/package/app/lib/impact.vue` (new) | One sentence each for blockers, orphans, and data risk, including the empty data-risk line. Tables are named and said to be left as they are. |
+| `app/package/app/lib/disable.vue` (new) | The status-toggle confirm. Disable renders only when `canProceed`. |
+| `app/package/app/lib/package.js` | `disable()` opens that confirm. `commitDisable` is the switch-off. `enable` still notifies `response.data.error`. |
+| `app/package/app/lib/uninstall.vue` | The confirm shows the same impact. Remove renders only when `canProceed`. |
+| `app/console/src/Commands/EnableCommand.php` (new) | Loads a registered module, then `enable()`. Prints a requirement refusal and returns failure. Other throwables propagate. No `--force`. Success prints the title, or the package name. |
+| `app/console/src/Commands/DisableCommand.php` (new) | Calls `disable()` on the resolved packages. Prints `RemovalBlockedException` and returns failure. Other throwables propagate. No `--force`. |
+| `app/console/src/Commands/InstallCommand.php` | Description and help say install runs the lifecycle and does not enable; activation is `php pagekit enable`. `execute()` does not call `enable()`. |
+
+#### Tests (Checklist Step 9)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Console/ActivationCommandInstallation.php` (new) | Fixture packages and modules the enable and disable commands resolve, including whether `main()` ran. |
+| `tests/Unit/Console/EnableCommandTest.php` (new) | No `--force`. A disabled or unregistered requirement is printed, `extensions` stay, and `main()` does not run. An unregistered module is enabled without `load()`. A registered module runs `main()` before it is enabled. An empty title uses the package name. A cycle, an unknown name, and a catalogue that is not a factory propagate, and an unknown name changes nothing. |
+| `tests/Unit/Console/DisableCommandTest.php` (new) | No `--force`. A blocked package and a blocked pair are printed and `extensions` stay. An unknown name throws before any package changes. Success prints the title or the package name. A catalogue that is not a factory throws. |
+| `tests/Unit/Console/InstallCommandTest.php` | The description and help say install does not activate. A successful install leaves the new module out of `extensions`. |
+
+Gates: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; PHPUnit + PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -326,6 +356,10 @@ Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-
 - **One refusal after every name.** `RemovalBlockedException` is thrown after every name is resolved and before the first snapshot or the first hook. One blocker and one module: `"%blocker%" requires "%name%", so it cannot be switched off.` Otherwise: `"%blockers%" require "%names%", so nothing was switched off.` The name is the module, or the package name when `module` is not a non-empty string. `uninstall(['present', 'missing'])` throws `Unable to find "missing".` and does not snapshot `present`. A blocker names the depender and the target and leaves `extensions` unchanged.
 - **Only the active theme clears `site.theme`.** The value is removed when the type is `pagekit-theme` and it equals the module name, and only after the pre-flight allows it. Clearing on a module-name match for an extension was rejected. Disabling the active theme unsets `site.theme`. Disabling another theme or an extension leaves it. A blocked theme stays the active theme.
 - **The route reports; disable refuses.** `@system/package/impact` takes the package `name`, requires CSRF, and returns the three keys without throwing on blockers. `disableAction` rethrows `RemovalBlockedException` as `BadRequestHttpException` with the same message. The payload lists an enabled theme that requires the package. That disable is a 400 with the sentence and does not pull `extensions`.
+- **A registered module is loaded before `enable()`.** `load()` throws `UnsatisfiedRequirementException`, and a successful enable runs `main()` the way the panel does. An unregistered name is left to `enable()`, which does not walk it. Calling `enable()` alone was rejected: that refusal would be wrapped, and `main()` would not have run. A registered module whose requirement is disabled or missing exits 1 with that sentence, `extensions` is unchanged, and the command does not throw `Undefined module` for a name that is not registered.
+- **Only the named refusals are printed.** A requirement refusal and a `RemovalBlockedException` are printed and return failure. Any other throwable, including `Unable to find "%name%".` and `Circular requirement "%s > %s" detected.`, propagates. There is no `--force`. Success prints `"%title%" enabled.` or `"%title%" disabled.` with the title, or the package name when `title` is not a non-empty string. Every name is a package before the first `enable()` or the `disable()` call. Letting the pre-flight exception escape was rejected, and so was passing the command-line strings into the manager.
+- **Install help says activation is separate.** `getDescription()` is `Install places the package and runs the install lifecycle. Activation is php pagekit enable.` `getHelp()` adds `It does not enable the package.` `execute()` does not call `enable()`, so a successful install leaves the new module out of `extensions`.
+- **A missing `blockers` key is not an empty list.** Remove and Disable render only when `blockers`, `orphans`, and `dataRisk` are present (`migrations` and `config` booleans, `nodes` and `tables` arrays) and `blockers` is empty. A failed read or any other shape leaves the button out. Each result is one sentence, including `No migrations, saved settings, node types, or tables were found.` Tables are named and said to be left as they are. `enable` still notifies `response.data.error`.
 
 ---
 
@@ -347,6 +381,8 @@ Uploading or installing an archive whose `require` names a module that is not re
 
 Disabling or uninstalling a package that an enabled module still requires fails before hooks run and before a snapshot exists. The message names the depender and the target. Several names are checked first; a later refusal does not leave an earlier package removed. There is no override. Orphans and the data-risk hint are reported and do not stop the call. Disabling the active theme clears `site.theme`. `@system/package/impact` returns the three keys and does not throw when blockers exist.
 
+The extensions status toggle asks before a package is switched off. Disable and Remove appear only when the impact answer has no blockers. A failed read or any other payload leaves both out. `php pagekit enable` and `php pagekit disable` call `PackageManager` and have no `--force`. A requirement refusal and a blocked disable are printed and exit 1. An unknown package and a circular requirement still throw. `php pagekit install` still does not enable; its help says activation is `php pagekit enable`.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -365,6 +401,10 @@ A prefix that matches none of the tables the database lists refuses the dump and
 
 Uninstall of two packages where one still requires the other is refused entirely. The sibling stays a blocker while it is enabled, so the call does not snapshot the first and then fail on the second. A reported orphan stays installed. A reported table stays in the database.
 
+`enable` of a registered module runs `load()` before the package is marked enabled, so `main()` has already run when the command prints success. A requirement refusal stops before that. A circular requirement still throws, and the module stays out of `extensions`.
+
+A failed impact read hides Disable and Remove. The server still refuses a switch-off those buttons never offered.
+
 ---
 
 ## 🔐 Security & Data Impact
@@ -378,6 +418,8 @@ An unregistered or non-literal `require` never lands under `packages/`. The uplo
 A selection of no table among the ones listed never becomes a finished dump. The staging file is removed on that failure.
 
 A blocker is refused before the package is switched off and before a snapshot is taken. `@system/package/impact` requires the package name and CSRF and does not itself switch anything off.
+
+Disable and Remove stay out unless the impact answer has an empty blockers list. The enable notify still shows the named requirement refusal.
 
 ---
 
@@ -399,6 +441,8 @@ Selection, dump ownership, and restore collisions share `TableNameFold`. `isRese
 
 Disable and uninstall share `PackageImpact`. Orphans are reported and not removed. There is no flag that skips a blocker. The Step 2.7.2 TODO on `uninstallAction` is gone.
 
+The panel and the console call `PackageManager`. There is no `--force`. `php pagekit install` does not enable.
+
 ---
 
 ## ✅ Verification (links only)
@@ -407,7 +451,7 @@ Disable and uninstall share `PackageImpact`. Orphans are reported and not remove
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry.
 
 ---
 

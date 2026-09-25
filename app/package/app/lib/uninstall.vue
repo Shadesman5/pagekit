@@ -29,6 +29,7 @@
             | trans
         }}
       </p>
+      <package-impact :impact="impact" :failed="impactFailed" />
     </div>
 
     <div v-else class="uk-modal-body">
@@ -73,7 +74,9 @@
       <a class="uk-button uk-button-text uk-margin-right" @click.prevent="close">{{
         'Cancel' | trans
       }}</a>
-      <a class="uk-button uk-button-danger" @click.prevent="confirm">{{ 'Remove' | trans }}</a>
+      <a v-if="canProceed" class="uk-button uk-button-danger" @click.prevent="confirm">{{
+        'Remove' | trans
+      }}</a>
     </div>
 
     <div v-else v-show="status != 'loading'" class="uk-modal-footer uk-text-right">
@@ -91,10 +94,16 @@
 </template>
 
 <script>
+import ImpactQuery from './impact-query';
 import Output from './output';
+import PackageImpact from './impact.vue';
 
 export default {
-  mixins: [Output],
+  components: {
+    'package-impact': PackageImpact
+  },
+
+  mixins: [Output, ImpactQuery],
 
   data() {
     return {
@@ -132,12 +141,13 @@ export default {
       this.$set(this, 'pkg', pkg);
       this.$set(this, 'packages', packages);
       this.keepsSnapshots = Boolean(keepsSnapshots);
+      this.readImpact(pkg.name);
 
       this.open();
     },
 
     confirm() {
-      if (this.removing) {
+      if (this.removing || !this.canProceed) {
         return;
       }
 

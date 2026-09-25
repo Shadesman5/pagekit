@@ -30,7 +30,7 @@
 - [x] Step 6 (M) — Archive require refused before write
 - [x] Step 7 (M) — Prefix fold and empty-dump refusal
 - [x] Step 8 (L) — Disable and uninstall pre-flight
-- [ ] Step 9 (M) — Panel and console activation
+- [x] Step 9 (M) — Panel and console activation
 - [ ] Step 10 (L) — Restore pre-flight before files return
 - [ ] Step 11 (XL) — Review (Bugbot + Security) + E2E
 
@@ -102,7 +102,10 @@ none
 - `PackageManager::clearActiveTheme` — `site.theme` is removed only when the type is `pagekit-theme` and the value is the module name, and only after the pre-flight allows it. Rejected clearing on a module-name match for an extension. Invariant: disabling the active theme unsets `site.theme`; disabling another theme or an extension leaves it.
 - `PackageController::impactAction` — `@system/package/impact` takes package `name`, requires CSRF, and returns the three keys without throwing on blockers. `disableAction` rethrows `RemovalBlockedException` as `BadRequestHttpException` with the same message. Invariant: the payload lists an enabled theme that requires the package; that disable is a 400 with the sentence and does not pull `extensions`.
 ### Step 9
-_none yet_
+- `EnableCommand::loadRegistered` — A registered module is loaded before `enable()`, because that load throws `UnsatisfiedRequirementException` and a successful enable runs `main()` the way the panel does. An unregistered name is not loaded and is passed to `enable()`, which does not walk it. Rejected calling `enable()` only: the same refusal would be wrapped, and `main()` would not have run. Invariant: a registered module whose requirement is disabled exits 1 and the display is `Module "%depender%" requires "%required%", which is registered but disabled.` or `which is not registered.`; `extensions` is unchanged; the command does not throw `Undefined module` for a name that is not registered.
+- `EnableCommand::execute` / `DisableCommand::execute` — A requirement refusal and a `RemovalBlockedException` are printed and return failure. Any other throwable, including `Unable to find "%name%".` and `Circular requirement "%s > %s" detected.`, propagates. There is no `--force`. Success prints `"%title%" enabled.` or `"%title%" disabled.` with the title, or the package name when `title` is not a non-empty string. Names are resolved before the first `enable()` or the `disable()` call. Rejected letting the pre-flight exception escape, and rejected passing the command-line strings into the manager: those methods take packages. Invariant: `disable` of a blocked package exits 1, the display is the manager's blocked sentence, and `extensions` is unchanged; `getDefinition()->hasOption('force')` is false; an unknown name throws before any package changes.
+- `InstallCommand` help — `getDescription()` is `Install places the package and runs the install lifecycle. Activation is php pagekit enable.` `getHelp()` is that plus `It does not enable the package.` Invariant: both contain `install lifecycle` and `php pagekit enable`; `execute()` does not call `enable()`, so a successful install leaves the new module out of `extensions`.
+- `impact-query.js::canProceed` / `impact.vue` — Remove and Disable render only when the payload has `blockers`, `orphans`, and `dataRisk` (`migrations` and `config` booleans, `nodes` and `tables` arrays) and `blockers` is empty. A failed read or any other shape leaves the button out. Each of the three results is one sentence, including the empty data-risk line `No migrations, saved settings, node types, or tables were found.`; tables are named and said to be left as they are. Rejected treating a missing `blockers` key as none. Invariant: a non-empty `blockers` list, a transport failure, or a payload missing one of those keys shows no proceed control; `enable` still notifies `response.data.error`.
 ### Step 10
 _none yet_
 ### Step 11
