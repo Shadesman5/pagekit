@@ -120,6 +120,10 @@ Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-
 
 `#[Access]` moves into `routing`. Sibling imports move (`UserInterface::isAuthenticated()`, `CacheKeyUtil` → `Pagekit\Util`, filesystem URL constants, debug middleware registered by the debug module). The edge test accepts a transitive `require` that reaches the module directory of the class; it fails cycles and has no parent-import exception.
 
+#### Checklist Step 4 — ESCALATE
+
+Verifier FAIL (AP-07). `UpdateCheckOnLoginTest::testTheSignedInAdministratorIsAuthenticated` constructs `AdministratorWhoUpdates` and asserts that the double implements `UserInterface` and that its hardcoded `isAuthenticated()` returns true. The login listener gates on `hasAccess()` (covered by `testAnAccountThatMayNotUpdateIsNotTakenThroughTheCheck`) and does not call `isAuthenticated()`, so those assertions stay green if `User::isAuthenticated()` or `CaptchaListener` regresses. A removed call path is proven by exercising that path.
+
 ### Activation and pre-flights (Checklist Steps 6–10) — plan
 
 Archive `require` is read like `autoload` (literals only) and refused before any write under `packages/`. Disable/uninstall share one pre-flight query (blockers / orphans / data-risk); the panel and new console `enable` / `disable` commands call `PackageManager` on that seam — panel-only activation is rejected; no `--force`. Restore refuses on recorded application version and dumped `packages.*` before `reinstate()`. Prefix fold for dump selection sits beside `RestoreTableNames`. PHASE deferrals (2.7.3 / 2.8 / 5.0) already name the follow-ons — no PHASE amendment from this plan pass.
@@ -185,7 +189,7 @@ The foundation sits in `kernel` beside HttpKernel. `app/modules/application/src`
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: ESCALATE (AP-07) — `UpdateCheckOnLoginTest::testTheSignedInAdministratorIsAuthenticated` asserts the double's type and a hardcoded `isAuthenticated()`, and the login listener does not call that method.
 
 ---
 
