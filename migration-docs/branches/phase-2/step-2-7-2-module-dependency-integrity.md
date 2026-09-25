@@ -21,7 +21,9 @@ The foundation (`Pagekit\Application`, `Event`, `Module`, `Container`, `Util`) l
 
 Dump selection, dump ownership, and restore collisions fold through one helper. A byte prefix matches without asking the server. A database that lists tables and yields none is not a dump; one that lists nothing still is.
 
-Remaining work keeps that contract: disable/uninstall/restore pre-flights, and panel plus console activation on the same `PackageManager` seam.
+Disable and uninstall ask one query before anything changes. Blockers stop the call. Orphans and the data-risk hint are reported and do not. The active theme counts as enabled. Disabling that theme clears `site.theme`.
+
+Remaining work is the restore pre-flight, and panel plus console activation on the same `PackageManager` seam.
 
 ---
 
@@ -264,6 +266,26 @@ Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test 
 
 Gates: production verifier PASS; PHPUnit + PHPStan FAIL then PASS after a production retry; test-writer done; test verifier PASS; PHPUnit + PHPStan PASS.
 
+### Disable and uninstall pre-flight (Checklist Step 8)
+
+`PackageImpact` is the query `removalImpact`, `disable`, and `uninstall` share. Blockers are enabled modules — the extensions list and the active theme — that `requiredBy` says require a target, including a sibling in the same call. A self-require is not one. Orphans and data risk are in the payload and do not stop the call. Every name is resolved before the first snapshot or the first hook. There is no override. Disabling the active theme, once the pre-flight allows it, clears `site.theme`.
+
+| File | Change |
+|---|---|
+| `app/package/src/PackageImpact.php` (new) | Blockers, orphans, and `dataRisk` (`migrations`, `config`, `nodes`, `tables`). A sibling in this call still blocks. Names in this call are not orphans. `config` is a row named for the module. `tables` use `TableNameFold`. No connection yields no tables. |
+| `app/package/src/RemovalBlockedException.php` (new) | Thrown when an enabled module still requires a package that was about to be switched off. |
+| `app/package/src/PackageManager.php` | `removalImpact()` is that query. `disable()` and `uninstall()` throw one `RemovalBlockedException` after every name is resolved and before the first hook or snapshot. A missing name still throws `Unable to find` before any snapshot. The lifecycle file is read once for the pre-flight and the hooks. `clearActiveTheme` removes `site.theme` only for the active `pagekit-theme`. |
+| `app/package/src/Controller/PackageController.php` | `@system/package/impact` takes the package name, requires CSRF, and returns the three keys without throwing on blockers. `disableAction` rethrows the refusal as a 400 with the same message. The Step 2.7.2 TODO on `uninstallAction` is gone. |
+| `app/modules/kernel/src/Module/ModuleManager.php` | `requires`, `isAlwaysLoaded`, and `nodeTypes` (string keys on the registered `nodes` map, in key order). |
+
+#### Tests (Checklist Step 8)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageRemovalPreflightTest.php` (new) | Impact and disable require the package name and CSRF. An enabled theme is a blocker; that disable is a 400 and leaves `extensions` and `site.theme`. Several blockers, and a package whose `module` is not a string, are named before anything changes. Uninstall of a package and its enabled depender throws before a snapshot and both stay installed. A missing name throws `Unable to find` and does not snapshot the present package. A self-require does not stop disable. Disabling the active theme clears `site.theme`; another theme, an extension, or a blocked theme leaves it. A boot requirement is an orphan only before the activity policy. A requirement is an orphan only when nothing outside the call still needs it. `packages.{module}` on the system row is not config at risk; a row named for the module is. Orphans, migrations, nodes, and tables are reported and do not stop disable or uninstall. The pre-flight and the removal hooks share one lifecycle read. A lifecycle that returns nothing still disables and reports `migrations` false. `pk_blog_post` matches without `SHOW`; a different case matches only when the server folds; SQLite keeps a different case out; no connection yields no tables. |
+
+Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; PHPUnit + PHPStan PASS. No deviations.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -297,6 +319,13 @@ Gates: production verifier PASS; PHPUnit + PHPStan FAIL then PASS after a produc
 - **No registry means not registered.** A `module` service that is not a `ModuleManager` cannot show a name as registered, so a non-empty `require` is refused. Skipping that check would install a name nobody can look up. An empty `require` with nothing to activate does not read the service. With no `ModuleManager`, `require()` of `['missing']` throws `ArchiveRefusedException` naming `missing` before a file is written. `require()` of `[]` does not read the service.
 - **The server is asked only when the bytes differ.** `TableNameFold` is the one comparison. A byte prefix matches without `SHOW`. The server is asked only when the folded forms match and the bytes do not, and only `lower_case_table_names` of `1` or `2` (string or int) then counts the table. Any other value, or no row, keeps the byte comparison. Folding every comparison was rejected: `name()` runs while the dump is read, before the lock, and a neighbour would ask on every dump. The variable is read with `SHOW GLOBAL VARIABLES`, because the connection substitutes the installation prefix for an `@`-led name outside quotes. SQLite never runs that statement. `pk_items` against `pk_` issues no `SHOW`. `other_items` against `pk_` issues none. `pk_items` against `PK_` matches only when the answer is `1` or `2`. `RestoreTableNames::isReserved` stays a byte match: a marker in another case is not a name this restore wrote. A same-case MySQL refusal still asks `lower_case_table_names` after `GET_LOCK` and before `REFERENTIAL_CONSTRAINTS`.
 - **A database that lists no table is still a dump.** `read()` throws `The dump selected no table.` before `stage()` only when the database lists at least one table and the prefix selects none. A database that lists nothing is written (header and the closing line, zero tables). Throwing then was rejected: uninstall snapshots first, and the uninstall suites open SQLite that has never had a table, so the removal would stop with no dump file. Putting the sentence on the outer exception was rejected: `dump()` already wraps every failure as `Failed to dump the database to "%s".` A connection with no tables returns `['tables' => 0, 'rows' => 0]` and the finished path exists. A database whose only table lies outside the prefix throws, `getPrevious()` is exactly `The dump selected no table.`, and the finished path and the `.part` file are both absent. `DatabaseRestorer::end()` still throws `The database dump holds no tables, so there is nothing in it to restore.`
+- **A sibling in this call still blocks.** An enabled depender counts even when it is also in the call. A self-require does not. Subtracting the whole call was rejected: uninstall would snapshot the first package, then `disable()` of that package alone would throw because the sibling is still enabled. `uninstall` of A and B, where enabled B requires A, throws `RemovalBlockedException` before any snapshot and both stay installed. `disable()` of a module whose only depender is itself still pulls it from `extensions`.
+- **Orphans are what this call would leave behind.** Names in this call are not orphans. A required name is one only outside the always-loaded closure, and only when no enabled module outside this call requires it. Before `setActivityPolicy` that closure is empty. `removalImpact` does not list the package's own module. It lists a required module that is not always-loaded when this package is the only enabled depender. After the policy, a module the boot module requires is not an orphan.
+- **The payload is three keys.** `blockers`, `orphans`, and `dataRisk` (`migrations` bool, `config` bool, `nodes` list, `tables` list). `config` is `ConfigManager::has($module)`; `packages.{module}` on the system row is not a row. `nodes` are the string keys on the registered manifest, in key order. `tables` are the live names, sorted by bytes, for which `TableNameFold::prefixed($name, $prefix . $module . '_')` is true. No connection yields no tables. `pk_blog_post` matches module `blog` and prefix `pk_` with no `SHOW`. `PK_blog_post` matches only when `lower_case_table_names` is `1` or `2`. `pk_blogpost` and `other_blog_post` do not. Orphans and data risk do not refuse.
+- **The lifecycle file is read once.** A throwable while reading it is no `MigrationSet` and does not refuse. The pre-flight and the disable and uninstall hooks share one `LifecycleRunner`. A second `require` was rejected: a file that declares a class would fatal. `scripts.php` that does not return a lifecycle still drops the module from `extensions` and reports `migrations` false. A `migrations()` that returns a `MigrationSet` reports true and does not refuse. That same object then runs the disable hook and, on uninstall, the uninstall hook.
+- **One refusal after every name.** `RemovalBlockedException` is thrown after every name is resolved and before the first snapshot or the first hook. One blocker and one module: `"%blocker%" requires "%name%", so it cannot be switched off.` Otherwise: `"%blockers%" require "%names%", so nothing was switched off.` The name is the module, or the package name when `module` is not a non-empty string. `uninstall(['present', 'missing'])` throws `Unable to find "missing".` and does not snapshot `present`. A blocker names the depender and the target and leaves `extensions` unchanged.
+- **Only the active theme clears `site.theme`.** The value is removed when the type is `pagekit-theme` and it equals the module name, and only after the pre-flight allows it. Clearing on a module-name match for an extension was rejected. Disabling the active theme unsets `site.theme`. Disabling another theme or an extension leaves it. A blocked theme stays the active theme.
+- **The route reports; disable refuses.** `@system/package/impact` takes the package `name`, requires CSRF, and returns the three keys without throwing on blockers. `disableAction` rethrows `RemovalBlockedException` as `BadRequestHttpException` with the same message. The payload lists an enabled theme that requires the package. That disable is a 400 with the sentence and does not pull `extensions`.
 
 ---
 
@@ -316,6 +345,8 @@ Enabling a package whose registered module requires something unregistered or re
 
 Uploading or installing an archive whose `require` names a module that is not registered fails before anything is written under `packages/`. The panel upload is a 400. The message names the archive's module and the missing name. A non-literal `require` is refused the same way. An update of an already-loaded package whose archive requires a registered-but-disabled module, or whose requirements cycle, fails before the installed tree is replaced. A fresh install may still unpack a requirement that is registered but disabled.
 
+Disabling or uninstalling a package that an enabled module still requires fails before hooks run and before a snapshot exists. The message names the depender and the target. Several names are checked first; a later refusal does not leave an earlier package removed. There is no override. Orphans and the data-risk hint are reported and do not stop the call. Disabling the active theme clears `site.theme`. `@system/package/impact` returns the three keys and does not throw when blockers exist.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -332,6 +363,8 @@ A fresh install does not walk activation. A package can land while a requirement
 
 A prefix that matches none of the tables the database lists refuses the dump and leaves no file. Uninstall snapshots first, so that refusal removes nothing. A database that has never held a table is still written; a later restore still refuses a dump that holds no tables.
 
+Uninstall of two packages where one still requires the other is refused entirely. The sibling stays a blocker while it is enabled, so the call does not snapshot the first and then fail on the second. A reported orphan stays installed. A reported table stays in the database.
+
 ---
 
 ## 🔐 Security & Data Impact
@@ -343,6 +376,8 @@ Captcha treats any `UserInterface` whose `isAuthenticated()` is true as signed i
 An unregistered or non-literal `require` never lands under `packages/`. The upload is refused before the file is staged. The archive file is not executed.
 
 A selection of no table among the ones listed never becomes a finished dump. The staging file is removed on that failure.
+
+A blocker is refused before the package is switched off and before a snapshot is taken. `@system/package/impact` requires the package name and CSRF and does not itself switch anything off.
 
 ---
 
@@ -362,6 +397,8 @@ The archive `require` is the literal list. The file is not executed. A refusal w
 
 Selection, dump ownership, and restore collisions share `TableNameFold`. `isReserved` is still the bytes a restore writes. There is no second fold.
 
+Disable and uninstall share `PackageImpact`. Orphans are reported and not removed. There is no flag that skips a blocker. The Step 2.7.2 TODO on `uninstallAction` is gone.
+
 ---
 
 ## ✅ Verification (links only)
@@ -370,7 +407,7 @@ Selection, dump ownership, and restore collisions share `TableNameFold`. `isRese
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none.
 
 ---
 

@@ -261,6 +261,63 @@ class ModuleManager implements \IteratorAggregate
     }
 
     /**
+     * Module names on the registered manifest's require list, in that order.
+     *
+     * @return list<string>
+     */
+    public function requires(string $name): array
+    {
+        $module = $this->registered[$name] ?? null;
+
+        if (!is_array($module)) {
+            return [];
+        }
+
+        $names = [];
+
+        foreach ((array) ($module['require'] ?? []) as $required) {
+            if (is_string($required) && $required !== '') {
+                $names[] = $required;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Whether the boot module's requirements keep this module loadable without it being enabled.
+     */
+    public function isAlwaysLoaded(string $name): bool
+    {
+        return isset($this->alwaysLoaded[$name]);
+    }
+
+    /**
+     * Node type ids declared on the registered manifest, in key order.
+     *
+     * @return list<string>
+     */
+    public function nodeTypes(string $name): array
+    {
+        $module = $this->registered[$name] ?? null;
+        $nodes = is_array($module) ? ($module['nodes'] ?? null) : null;
+
+        if (!is_array($nodes)) {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach (array_keys($nodes) as $id) {
+            if (is_string($id) && $id !== '') {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * Refuses a registered module whose requirements are not satisfied.
      *
      * @throws UnsatisfiedRequirementException a requirement is missing or disabled

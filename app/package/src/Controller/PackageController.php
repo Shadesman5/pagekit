@@ -11,6 +11,7 @@ use Pagekit\Package\Archive\ArchiveRefusedException;
 use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
+use Pagekit\Package\RemovalBlockedException;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
@@ -186,13 +187,32 @@ class PackageController
             throw new BadRequestHttpException(__('"%name%" has not been loaded.', ['%name%' => $package->get('title')]));
         }
 
-        $this->manager->disable($package);
+        try {
+            $this->manager->disable($package);
+        } catch (RemovalBlockedException $e) {
+            throw new BadRequestHttpException($e->getMessage(), $e);
+        }
 
         $this->module->get('system/cache')->clearCache();
 
         // The package is off either way; a step of its own that did not finish
         // is something the administrator hears about rather than a failure.
         return ['message' => 'success', 'warnings' => $this->manager->takeHookWarnings()];
+    }
+
+    /**
+     * Blockers, orphans, and data risk for switching this package off.
+     *
+     * @return array{blockers: list<string>, orphans: list<string>, dataRisk: array{migrations: bool, config: bool, nodes: list<string>, tables: list<string>}}
+     */
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function impactAction(string $name): array
+    {
+        if (!$package = $this->package->get($name)) {
+            throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
+        }
+
+        return $this->manager->removalImpact($package);
     }
 
     /**
@@ -304,12 +324,6 @@ class PackageController
     /**
      * Takes a package out of the installation, retaining it in a snapshot where
      * this installation keeps them ({@see keepsSnapshots()}).
-     *
-     * What the administrator confirmed before this ran says what the removal
-     * does to the package itself; it cannot yet say what else in the
-     * installation was counting on it.
-     *
-     * TODO: Must be refactored in Step 2.7.2 (Module Dependency Integrity)
      */
     #[RequestAttribute(['name' => 'string'], csrf: true)]
     public function uninstallAction(string $name): StreamedResponse
