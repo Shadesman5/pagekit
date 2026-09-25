@@ -26,4 +26,9 @@ interface UserInterface
      * @return string Password
      */
     public function getPassword(): string;
+
+    /**
+     * Whether this account has signed in.
+     */
+    public function isAuthenticated(): bool;
 }

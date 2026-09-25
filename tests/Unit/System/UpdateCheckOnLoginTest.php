@@ -86,6 +86,32 @@ final class UpdateCheckOnLoginTest extends TestCase
         }
     }
 
+    public function testAnAccountThatMayUpdateTheSoftwareIsCheckedEvenWhenItHasNotSignedIn(): void
+    {
+        $event = $this->login(
+            $this->migrationsThatReport(['success' => true, 'has_pending' => true]),
+            user: new AdministratorWhoUpdates(authenticated: false),
+        );
+
+        // The listener asks hasAccess('system: software updates'). A signed-in
+        // flag does not decide whether the check runs.
+        self::assertInstanceOf(RedirectResponse::class, $event->getResponse());
+        self::assertSame(self::RECORDED, $this->recordedVersion());
+    }
+
+    public function testASignedInAccountThatMayNotUpdateTheSoftwareIsLeftAlone(): void
+    {
+        $event = $this->login(
+            $this->migrationsThatReport(['success' => true, 'has_pending' => false]),
+            user: new AdministratorWhoUpdates(mayUpdate: false),
+        );
+
+        self::assertNull($event->getResponse());
+        self::assertSame(self::RECORDED, $this->recordedVersion());
+        self::assertSame([], $this->log->getRecords());
+        self::assertSame([], $this->session['new'] ?? []);
+    }
+
     public function testAnInstallationWithNothingOutstandingRecordsTheVersionItNowRuns(): void
     {
         $this->login($this->migrationsThatReport(['success' => true, 'has_pending' => false]));
@@ -166,8 +192,12 @@ final class UpdateCheckOnLoginTest extends TestCase
      *
      * @param object $migration what answers whether the database is behind the code
      */
-    private function login(object $migration, ?LoggerInterface $logger = null, ?MessageBag $message = null): LoginEvent
-    {
+    private function login(
+        object $migration,
+        ?LoggerInterface $logger = null,
+        ?MessageBag $message = null,
+        ?UserInterface $user = null,
+    ): LoginEvent {
         $this->log = new TestHandler();
 
         $log = new Logger('log');
@@ -204,7 +234,7 @@ final class UpdateCheckOnLoginTest extends TestCase
 
         self::assertNotNull($listener, 'The dispatcher binds a module listener to the module, which is what $this is here');
 
-        $event = new LoginEvent('auth.login', new AdministratorWhoUpdates());
+        $event = new LoginEvent('auth.login', $user ?? new AdministratorWhoUpdates());
 
         $listener($event);
 
@@ -336,11 +366,16 @@ final class ResponseThatRedirects
 }
 
 /**
- * An account that is allowed to update the installation, which is the only one
- * the check runs for.
+ * An account the login check asks `hasAccess('system: software updates')` of.
  */
 final class AdministratorWhoUpdates implements UserInterface
 {
+    public function __construct(
+        private readonly bool $authenticated = true,
+        private readonly bool $mayUpdate = true,
+    ) {
+    }
+
     public function getId(): string
     {
         return '1';
@@ -356,8 +391,13 @@ final class AdministratorWhoUpdates implements UserInterface
         return '';
     }
 
+    public function isAuthenticated(): bool
+    {
+        return $this->authenticated;
+    }
+
     public function hasAccess(?string $expression): bool
     {
-        return $expression === 'system: software updates';
+        return $this->mayUpdate && $expression === 'system: software updates';
     }
 }

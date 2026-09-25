@@ -12,6 +12,8 @@ use Pagekit\Debug\DataCollector\RoutesDataCollector;
 use Pagekit\Debug\DataCollector\SystemDataCollector;
 use Pagekit\Debug\DebugBar;
 use Pagekit\Debug\Event\TraceableEventDispatcher;
+use Pagekit\Debug\Middleware\DebugLogger;
+use Pagekit\Debug\Middleware\DebugMiddleware;
 use Pagekit\Debug\Storage\SqliteStorage;
 use Symfony\Component\Stopwatch\Stopwatch;
 
@@ -20,6 +22,14 @@ return [
     'name' => 'debug',
 
     'main' => function ($app) {
+
+        // The database module applies this list. It does not construct these classes.
+        $logger = new DebugLogger();
+        $logger->enabled = true;
+        $middleware = new DebugMiddleware($logger);
+        $app->set('db.debug_logger', $logger);
+        $app->set('db.debug_middleware', $middleware);
+        $app->set('db.middlewares', [$middleware]);
 
         if (!$this->config['enabled'] || !$this->config['file']) {
             return;

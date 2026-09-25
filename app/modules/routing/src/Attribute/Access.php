@@ -2,15 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\User\Attribute;
+namespace Pagekit\Routing\Attribute;
 
 /**
- * Access attribute for defining access control on controllers and methods.
- *
- * Usage:
- *   #[Access('permission name')]           - Require specific permission
- *   #[Access(admin: true)]                 - Require admin access
- *   #[Access('permission', admin: true)]   - Both permission and admin
+ * Access control on a controller class or method.
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 final class Access

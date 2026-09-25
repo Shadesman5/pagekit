@@ -7,9 +7,9 @@ namespace Pagekit\Widget\Controller;
 use function Pagekit\__;
 
 use Pagekit\Database\ORM\Repository;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
-use Pagekit\User\Attribute\Access;
 use Pagekit\Widget\Model\Widget;
 use Pagekit\Widget\PositionManager;
 use Symfony\Component\HttpFoundation\Request;

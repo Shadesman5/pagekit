@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pagekit\Cache\Controller;
 
 use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
-use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;
 
 #[Access(admin: true)]

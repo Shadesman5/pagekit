@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\ORM;
 
-use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Database\Connection;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
 use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Util\CacheKeyUtil;
 use Psr\Cache\CacheItemPoolInterface;
 
 class MetadataManager

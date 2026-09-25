@@ -7,6 +7,7 @@ namespace Pagekit\Site\Controller;
 use function Pagekit\__;
 
 use Pagekit\Database\ORM\Repository;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Routing\Router;
@@ -14,7 +15,6 @@ use Pagekit\Routing\UrlProvider;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\NodeRepository;
 use Pagekit\Site\SiteModule;
-use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;

@@ -2,14 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Cache;
+namespace Pagekit\Util;
 
 /**
- * PSR-6 cache key sanitizer.
- *
- * PSR-6 (RFC 6) reserves the characters {}()/\@: in cache keys.
- * This utility provides a single, canonical replacement used by
- * every component that builds dynamic cache keys.
+ * Replaces PSR-6 reserved characters in a cache key.
  */
 final class CacheKeyUtil
 {

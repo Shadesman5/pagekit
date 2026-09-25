@@ -8,8 +8,8 @@ use function Pagekit\__;
 
 use Pagekit\Mail\Mailer;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
-use Pagekit\User\Attribute\Access;
 use Pagekit\Util\Arr;
 use Symfony\Component\HttpFoundation\Request;
 

@@ -9,9 +9,9 @@ use Pagekit\Module\ModuleInterface;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Package\Snapshot\SnapshotStore;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
-use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**

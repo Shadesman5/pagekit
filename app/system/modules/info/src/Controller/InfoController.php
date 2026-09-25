@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Info\Controller;
 
 use Pagekit\Info\InfoHelper;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\Attribute\Access;
 
 #[Access(admin: true)]
 class InfoController

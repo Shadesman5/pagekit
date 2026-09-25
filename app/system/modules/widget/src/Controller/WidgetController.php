@@ -7,10 +7,10 @@ namespace Pagekit\Widget\Controller;
 use function Pagekit\__;
 
 use Pagekit\Database\ORM\Repository;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\NodeRepository;
-use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\Widget\Model\Widget;
 use Pagekit\Widget\PositionManager;
