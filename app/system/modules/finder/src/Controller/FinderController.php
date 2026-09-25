@@ -6,7 +6,6 @@ namespace Pagekit\Finder\Controller;
 
 use function Pagekit\__;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Finder\Event\FileAccessEvent;
@@ -14,6 +13,7 @@ use Pagekit\Kernel\Exception\ForbiddenException;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\UrlProvider;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 

@@ -52,11 +52,37 @@ Remaining work keeps that contract and adds a downward graph (foundation into th
 
 Gates: production verifier PASS; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; coverage PHPUnit + PHPStan PASS.
 
-### Graph boundary (Checklist Steps 2–5) — plan
+### Routing owns the URL helpers (Checklist Step 2)
+
+`Pagekit\Application\UrlProvider` and `Pagekit\Application\Response` are `Pagekit\Routing\UrlProvider` and `Pagekit\Routing\Response`. `application` still constructs the `url` and `response` services and still requires `routing`. `routing`'s `require` stays `kernel` and `filter`. The old classes are deleted.
+
+| File | Change |
+|---|---|
+| `app/modules/routing/src/UrlProvider.php` (new) | `Pagekit\Routing\UrlProvider`. The `use Pagekit\Routing\Router` import is dropped; `@param Router` resolves in this namespace. |
+| `app/modules/routing/src/Response.php` (new) | `Pagekit\Routing\Response`. |
+| `app/modules/application/src/Application/UrlProvider.php` (deleted) | |
+| `app/modules/application/src/Application/Response.php` (deleted) | |
+| `app/modules/application/index.php` | `url` and `response` are `new UrlProvider` / `new Response` from `Pagekit\Routing`. |
+| `app/modules/view/src/Helper/UrlHelper.php` | The provider property is `Pagekit\Routing\UrlProvider`. |
+| `app/installer/src/Controller/UpdateController.php`, `app/package/src/Controller/PackageController.php`, `app/package/src/PackageFactory.php`, `app/system/src/SystemMenu.php`, `app/system/src/Controller/AdminController.php`, `app/system/src/Controller/ExceptionController.php`, `app/system/src/Controller/MigrationController.php`, `app/system/modules/finder/src/Controller/FinderController.php`, `app/system/modules/intl/src/Controller/IntlController.php`, `app/system/modules/site/src/Controller/NodeController.php`, `app/system/modules/site/src/MenuHelper.php`, `app/system/modules/site/src/NodePresenter.php`, `app/system/modules/user/src/Controller/AuthController.php`, `app/system/modules/user/src/Controller/ProfileController.php`, `app/system/modules/user/src/Controller/RegistrationController.php`, `app/system/modules/user/src/Controller/ResetPasswordController.php`, `app/system/modules/user/src/Event/AccessListener.php`, `app/system/modules/view/src/Event/ResponseListener.php`, `packages/pagekit/blog/src/Controller/SiteController.php`, `packages/pagekit/blog/src/PostPresenter.php` | Import `Pagekit\Routing\UrlProvider`, `Pagekit\Routing\Response`, or both. |
+
+#### Tests (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `app/modules/routing/src/Tests/UrlProviderTest.php` (new) | Base path, query merge, named routes, an unknown or invalid route, a non-integer reference type, and static filesystem paths. |
+| `app/modules/routing/src/Tests/ResponseTest.php` (new) | `create` / `__invoke`, JSON, a resolved redirect, an unresolved redirect, a stream, and download of a present or missing file. |
+| `app/modules/routing/src/Tests/RoutingUrlOwnershipTest.php` (new) | The application module registers the routing services. The old classes and files are absent. `routing` does not require `application` and its tree does not reference `Pagekit\Application\`. Production code under `app/` and `packages/` does not name the old classes. |
+| `app/modules/view/src/Tests/UrlHelperTest.php` (new) | A resolved route is returned, an unresolved route is `''`, `base` and `previous` are forwarded, and an unknown method names `Pagekit\Routing\UrlProvider`. |
+| `app/system/modules/site/src/Tests/MenuHelperTest.php`, `app/system/modules/site/src/Tests/NodeApiControllerTest.php`, `app/system/modules/site/src/Tests/NodeControllerTest.php`, `app/system/modules/site/src/Tests/NodePresenterTest.php`, `app/system/modules/user/src/Tests/AccessListenerTest.php`, `app/system/modules/user/src/Tests/RegistrationControllerTest.php`, `app/system/modules/user/src/Tests/ResetPasswordControllerTest.php`, `tests/Unit/Blog/CommentApiControllerTest.php`, `tests/Unit/Blog/PostApiControllerTest.php`, `tests/Unit/Blog/PostPresenterTest.php`, `tests/Unit/Blog/SiteControllerTest.php`, `tests/Unit/Package/PackageControllerEnableRequirementTest.php`, `tests/Unit/Package/PackageFactoryTest.php`, `tests/Unit/Package/PackageFailureRecordTest.php`, `tests/Unit/Package/PackageHookWarningTest.php`, `tests/Unit/Package/PackageUploadBoundaryTest.php`, `tests/Unit/Snapshot/RemovalPromiseTest.php`, `tests/Unit/Snapshot/SnapshotAdminSurfaceTest.php`, `tests/Unit/System/MigrationControllerTest.php`, `tests/Unit/Theme/ThemeOneLogoTemplateTest.php` | Import `Pagekit\Routing\UrlProvider`, `Pagekit\Routing\Response`, or both. |
+
+Gates: production verifier PASS; production tester PASS; test-writer verifier FAIL once (`RoutingUrlOwnershipTest` class docblock), retry PASS; test verifier PASS; tester PASS.
+
+### Graph boundary (Checklist Steps 3–5) — plan
 
 Plan refine kept Checklist Step 1 verbatim and tightened Steps 2–11. The foundation joins the **existing** `kernel` module (HttpKernel home today): `Pagekit\Application`, `Event`, `Module` (including Step 1's manager and exception), `Container`, and `Util` move under `app/modules/kernel/src` with namespaces unchanged; Composer `"Pagekit\\"` retargets there. No new module, no alias, no HttpKernel rename. Composition root stays `application` (`application/index.php` requires `kernel` and keeps its stack `require`).
 
-Order before the edge test: `routing` owns `UrlProvider`, `Response`, and `#[Access]`; `kernel` takes the foundation; sibling imports move (`UserInterface::isAuthenticated()`, `CacheKeyUtil` → `Pagekit\Util`, filesystem URL constants, debug middleware registered by the debug module). `view` absorbs `view/twig`. The edge test accepts a transitive `require` that reaches the module directory of the class; it fails cycles and has no parent-import exception.
+`UrlProvider` and `Response` now live in `routing`. Still before the edge test: `#[Access]` moves into `routing`; `kernel` takes the foundation; sibling imports move (`UserInterface::isAuthenticated()`, `CacheKeyUtil` → `Pagekit\Util`, filesystem URL constants, debug middleware registered by the debug module). `view` absorbs `view/twig`. The edge test accepts a transitive `require` that reaches the module directory of the class; it fails cycles and has no parent-import exception.
 
 ### Activation and pre-flights (Checklist Steps 6–10) — plan
 
@@ -86,6 +112,8 @@ Enabling a package whose registered module requires something unregistered or re
 
 `Config::pull` on a list (through `Arr::pull`) now returns a packed list. Pulling `needs-off` from `['needs-off', 'pages']` leaves `['pages']` at index 0.
 
+`Pagekit\Application\UrlProvider` and `Pagekit\Application\Response` are `Pagekit\Routing\UrlProvider` and `Pagekit\Routing\Response`. The old names are gone.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -105,6 +133,8 @@ A registered-but-disabled requirement is not loaded. The resolver does not recur
 ## 🛡️ No-Mercy Compliance
 
 `resolveModules` no longer logs an unsatisfied `require` and continues. Nothing still loads that module, and there is no flag that asks it to.
+
+The URL classes live under `routing`. The old files are deleted, and call sites name `Pagekit\Routing\UrlProvider` and `Pagekit\Routing\Response`.
 
 ---
 

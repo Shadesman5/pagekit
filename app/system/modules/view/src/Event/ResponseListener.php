@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\View\Event;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Routing\UrlProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 

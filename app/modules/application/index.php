@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pagekit\Application\Response;
-use Pagekit\Application\UrlProvider;
+use Pagekit\Routing\Response;
+use Pagekit\Routing\UrlProvider;
 use Symfony\Component\ErrorHandler\ErrorHandler;
 
 return [

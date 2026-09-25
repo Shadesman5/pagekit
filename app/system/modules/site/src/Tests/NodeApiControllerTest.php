@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Tests;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Database\ORM\QueryBuilder;
 use Pagekit\Filter\FilterManager;
 use Pagekit\Intl\Loader\PhpFileLoader;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Site\Controller\NodeApiController;
 use Pagekit\Site\Model\Node;
 use Pagekit\Site\Model\NodeRepository;

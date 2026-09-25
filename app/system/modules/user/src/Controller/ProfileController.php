@@ -7,11 +7,11 @@ namespace Pagekit\User\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\Exception;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;

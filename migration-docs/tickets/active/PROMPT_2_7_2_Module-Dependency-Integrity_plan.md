@@ -23,7 +23,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (L) — Fail-closed requirements and requiredBy
-- [ ] Step 2 (L) — Routing owns URL helpers
+- [x] Step 2 (L) — Routing owns URL helpers
 - [ ] Step 3 (L) — Kernel owns the foundation
 - [ ] Step 4 (L) — Break sibling imports
 - [ ] Step 5 (M) — Import edges match manifest require
@@ -68,7 +68,7 @@
 - `Arr::pull` — Pack the list by assigning `array_values` through the by-ref parameter. Rejected `$array = &$packed`, which rebinds the parameter so `Config::pull` writes the gapped array back. Invariant: `Config::pull('extensions', $name)` on `['needs-off', 'pages']` leaves `['pages']` at index 0.
 - `PackageController::errorHandler` — The cleanup closure calls `restore_error_handler()` and `restore_exception_handler()`. Rejected reinstalling the previous callable with `set_error_handler` / `set_exception_handler`, because that pushes another frame and, when the previous handler is null, skipping the call leaves the frame in place. Invariant: after `enableAction()` returns, both handler stacks match the ones that were active when the action was entered.
 ### Step 2
-_none yet_
+none
 ### Step 3
 _none yet_
 ### Step 4

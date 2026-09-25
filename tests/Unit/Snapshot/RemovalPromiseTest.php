@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Snapshot;
 
 use Pagekit\Application;
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
@@ -15,6 +13,8 @@ use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
 use Pagekit\Package\PackageModule;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Routing\Response as PagekitResponse;
+use Pagekit\Routing\UrlProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;

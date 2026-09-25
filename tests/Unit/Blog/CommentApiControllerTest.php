@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Blog;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Controller\CommentApiController;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\PostRepository;
@@ -13,6 +12,7 @@ use Pagekit\Content\ContentHelper;
 use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;

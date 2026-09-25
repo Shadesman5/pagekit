@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Application;
+namespace Pagekit\Routing;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Routing\Generator\UrlGenerator;
-use Pagekit\Routing\Router;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;

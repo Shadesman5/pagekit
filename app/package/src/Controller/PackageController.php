@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Package\Controller;
 
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Module\UnsatisfiedRequirementException;
@@ -15,6 +13,8 @@ use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
+use Pagekit\Routing\Response as PagekitResponse;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Blog;
 
-use Pagekit\Application\Response;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Controller\SiteController;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Blog\Model\PostRepository;
@@ -15,6 +13,8 @@ use Pagekit\Database\ORM\QueryBuilder;
 use Pagekit\Feed\FeedFactory;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Response;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;

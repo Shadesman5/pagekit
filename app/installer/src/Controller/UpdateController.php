@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Installer\SelfUpdater;
 use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Response as PagekitResponse;
 use Pagekit\User\Attribute\Access;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\StreamOutput;

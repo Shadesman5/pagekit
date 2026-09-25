@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
-use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Routing\Response as PagekitResponse;
 use Pagekit\View\View;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Symfony\Component\HttpFoundation\Request;
