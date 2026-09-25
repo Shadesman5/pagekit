@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "09f7b0b3-8d87-487d-b486-d9d5057fd6ad",
+  "roadmapStepId": "2.7.2",
+  "title": "Step 2.7.2: Module Dependency Integrity",
+  "taskSlug": "PROMPT_2_7_2_Module-Dependency-Integrity",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_2_Module-Dependency-Integrity.md",
+  "issue": 268,
+  "branch": "feature/module-dependency-integrity",
+  "model": "grok-4.7",
+  "status": "in_progress",
+  "startedAt": "2026-09-25T00:36:49.269Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}
