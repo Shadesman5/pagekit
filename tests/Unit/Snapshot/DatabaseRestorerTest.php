@@ -1899,6 +1899,124 @@ final class DatabaseRestorerTest extends TestCase
         }
     }
 
+    public function testAQueryNamesTheMissingPrefixTheRestoreWouldAndDropsNothing(): void
+    {
+        $connection = $this->mysqlInstallation('');
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->workspace.'/never-written.dump');
+
+        self::assertSame([$this->refusedRestore($connection, 'carry no name prefix')->getMessage()], $reasons);
+        self::assertSame([], $connection->asked);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryNamesTheCopyMysqlCannotHoldBeforeItAsksForTheLock(): void
+    {
+        $connection = $this->mysqlInstallation();
+        $connection->locked = true;
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $table = 'pk_'.str_repeat('a', 59);
+
+        $this->dumpNaming($connection, [$table]);
+
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->dump());
+
+        self::assertSame([$this->refusedRestore($connection, 'cannot be restored on MySQL')->getMessage()], $reasons);
+        self::assertCount(1, $reasons);
+        self::assertStringNotContainsString('already running', $reasons[0]);
+        self::assertStringNotContainsString('fk_from_a_neighbour', $reasons[0]);
+        self::assertSame([], $connection->asked);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryNamesTheRestoreAlreadyRunningAndHoldsNoLock(): void
+    {
+        $connection = $this->mysqlInstallation();
+        $connection->locked = true;
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->dump());
+
+        self::assertSame([$this->refusedRestore($connection, 'already running')->getMessage()], $reasons);
+        self::assertSame([], $connection->locksGivenUp);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryNamesAnInboundReferenceGivesTheLockBackAndLeavesCopies(): void
+    {
+        $connection = $this->mysqlInstallation();
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->dump());
+
+        self::assertSame([$this->refusedRestore($connection, 'fk_from_a_neighbour')->getMessage()], $reasons);
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+        self::assertNotEmpty($connection->locksGivenUp);
+        self::assertContains('_r_pk_items', $connection->createSchemaManager()->listTableNames());
+        self::assertContains('_r_wp_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryThatWouldLetTheRestoreThroughLeavesCopiesWhereTheyAre(): void
+    {
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->refusals($this->dump()));
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+        self::assertNotEmpty($connection->locksGivenUp);
+        self::assertContains('_r_pk_items', $connection->createSchemaManager()->listTableNames());
+        self::assertContains('_r_wp_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testADumpThatNamesAReservedTableIsTheSameSentenceFromTheQuery(): void
+    {
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        $sentence = $this->refusedRestore($connection, 'makes for itself')->getMessage();
+
+        try {
+            (new DatabaseRestorer($connection))->refusals($this->dump());
+
+            self::fail('A dump that names a table a restore makes for itself must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertSame($sentence, $e->getMessage());
+        }
+
+        self::assertContains('_r_wp_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryOnSqliteReportsNothing(): void
+    {
+        $connection = $this->installation('');
+
+        if (!$this->isSqlite($connection)) {
+            self::markTestSkipped('Only MySQL has these restore refusals');
+        }
+
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->refusals($this->dump()));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
     public function testARestoreThatWentThroughIsLeftWithNoTablesOfItsOwn(): void
     {
         // The tables a restore sets aside hold what the site was reading until the

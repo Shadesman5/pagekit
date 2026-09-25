@@ -20,6 +20,7 @@ use Pagekit\Package\Snapshot\DatabaseDumper;
 use Pagekit\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Package\Snapshot\DumpFormat;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\RestoreRefusedException;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -267,12 +268,63 @@ final class SnapshotControllerTest extends TestCase
         self::assertTrue($answer['error']);
         self::assertStringContainsString('Test Extension', (string) $answer['message']);
         self::assertStringContainsString('error log', (string) $answer['message']);
+        self::assertStringNotContainsString('cannot be restored', (string) $answer['message']);
+        self::assertNotInstanceOf(RestoreRefusedException::class, $this->loggedException($id));
 
         // Nothing was replaced, so nothing the installation loads changed - and
         // the snapshot is still there for whoever looks at the log line.
         self::assertSame(0, $this->cache->clears);
         self::assertArrayHasKey($id, $this->store()->list());
         self::assertTrue($this->reported($id, 'could not be restored'));
+    }
+
+    public function testAnOperatorRefusalIsTheMessageThePanelShows(): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => '{"packages":{}}'], ['name' => 'system']);
+        $this->rewriteMetadata($id, ['application' => '1.2.43']);
+
+        $answer = $this->controller($this->snapshotter($connection))->restoreAction($id);
+        $logged = $this->loggedException($id);
+
+        self::assertTrue($answer['error']);
+        self::assertInstanceOf(RestoreRefusedException::class, $logged);
+        self::assertSame($logged->getMessage(), $answer['message']);
+        self::assertStringContainsString($id, (string) $answer['message']);
+        self::assertStringContainsString('1.2.43', (string) $answer['message']);
+        self::assertStringNotContainsString('error log', (string) $answer['message']);
+        self::assertDirectoryDoesNotExist($this->tree);
+        self::assertSame(0, $this->cache->clears);
+        self::assertArrayHasKey($id, $this->store()->list());
+    }
+
+    public function testAMysqlRefusalIsTheMessageThePanelShows(): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => '{"packages":{}}'], ['name' => 'system']);
+
+        $mysql = $this->openDatabase('', ConnectionThatAnswersForAMysqlServer::class);
+
+        self::assertInstanceOf(ConnectionThatAnswersForAMysqlServer::class, $mysql);
+
+        $answer = $this->controller($this->snapshotter($mysql))->restoreAction($id);
+        $logged = $this->loggedException($id);
+
+        self::assertTrue($answer['error']);
+        self::assertInstanceOf(RestoreRefusedException::class, $logged);
+        self::assertSame($logged->getMessage(), $answer['message']);
+        self::assertStringContainsString('carry no name prefix', (string) $answer['message']);
+        self::assertStringContainsString('"pk_"', (string) $answer['message']);
+        self::assertStringNotContainsString('error log', (string) $answer['message']);
+        self::assertSame([], $mysql->locksAskedFor);
+        self::assertDirectoryDoesNotExist($this->tree);
+        self::assertSame(0, $this->cache->clears);
     }
 
     // ------------------------------------------------------------------
@@ -587,6 +639,32 @@ final class SnapshotControllerTest extends TestCase
             'version' => '1.4.2',
             'path' => $this->tree,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    private function rewriteMetadata(string $id, array $overrides): void
+    {
+        $file = $this->file($id, SnapshotStore::METADATA_FILE);
+        $metadata = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($metadata);
+
+        file_put_contents($file, (string) json_encode($overrides + $metadata));
+    }
+
+    private function loggedException(string $id): \Throwable
+    {
+        foreach ($this->records->getRecords() as $record) {
+            $exception = $record->context['exception'] ?? null;
+
+            if ($exception instanceof \Throwable && str_contains($record->message, $id)) {
+                return $exception;
+            }
+        }
+
+        self::fail('The failure was expected in the log.');
     }
 
     /**

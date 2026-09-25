@@ -8,6 +8,7 @@ use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleInterface;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\RestoreRefusedException;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
@@ -84,6 +85,10 @@ class SnapshotController
 
         try {
             $this->snapshotter()->restore($id);
+        } catch (RestoreRefusedException $e) {
+            $this->logError(sprintf('Snapshot "%s" could not be restored', $id), $e);
+
+            return ['error' => true, 'message' => $e->getMessage()];
         } catch (\Throwable $e) {
             return $this->failed(sprintf('Snapshot "%s" could not be restored', $id), $e, __(
                 '"%name%" could not be restored. See the error log for details.',

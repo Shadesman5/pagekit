@@ -164,8 +164,7 @@ const Snapshots = {
       );
     },
 
-    // An operation that ran and did not do what it was asked. The message is the
-    // one the server chose: what actually refused is in the error log.
+    // The message is the one the server returned.
     failed(response) {
       const data = response.data || {};
 

@@ -47,7 +47,7 @@ use Pagekit\Filesystem\Filesystem;
  * the directory is there long before the snapshot is finished.
  *
  * @phpstan-type SnapshotDatabase array{driver: string, platform: string, prefix: string}
- * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase}
+ * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase, application?: string}
  * @phpstan-type Snapshot array{id: string, created: int, expires: int|null, size: int, complete: bool, package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase}
  */
 final class SnapshotStore
@@ -224,6 +224,28 @@ final class SnapshotStore
         } catch (\Throwable $e) {
             throw new \RuntimeException(sprintf('Failed to mark the snapshot in "%s" as complete.', $directory), 0, $e);
         }
+    }
+
+    /**
+     * The application version recorded when the snapshot was taken.
+     *
+     * Null where the metadata has no string `application`. That is an older
+     * snapshot, or a value that is not text, and it is not filled in from the
+     * installation that is reading it.
+     *
+     * @throws \InvalidArgumentException where the id is not one
+     */
+    public function application(string $id): ?string
+    {
+        $directory = $this->pathFor($id);
+
+        if (!is_dir($directory)) {
+            return null;
+        }
+
+        $version = $this->metadata($directory)['application'] ?? null;
+
+        return is_string($version) ? $version : null;
     }
 
     /**

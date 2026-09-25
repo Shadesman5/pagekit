@@ -25,7 +25,9 @@ Disable and uninstall ask one query before anything changes. Blockers stop the c
 
 The extensions status toggle and the uninstall confirm ask that query before they offer Disable or Remove. `php pagekit enable` and `php pagekit disable` call the same manager. `php pagekit install` still does not enable.
 
-Remaining work is the restore pre-flight.
+Restore asks before any package file is put back. A missing or different application version refuses by the snapshot id. A `packages.*` name that differs, or that sits on only one side, is named. The module the archived manifest names may be gone from the live map: that is the package the uninstall removed. A MySQL restore that would refuse does so with that sentence, and the lock is released before files change. The panel shows that message. Any other throwable stays the fixed line. The dump format is unchanged.
+
+Remaining work is the review and the E2E run.
 
 ---
 
@@ -316,6 +318,39 @@ The extensions status toggle and the uninstall confirm read the impact route bef
 
 Gates: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry; PHPUnit + PHPStan PASS; test-writer done; test-file verifier PASS; PHPUnit + PHPStan PASS.
 
+### Restore pre-flight before files return (Checklist Step 10)
+
+`restore()` asks before `reinstate()`. A missing application version, or one that differs from the running one, refuses by the snapshot id. Every `packages.*` name whose version differs, or that is present on only one side, is named. The module the archived `composer.json` names (`module` when that is a string, otherwise the basename of `name`) may be in the dump and absent live. A differing version of that module still refuses. The map is the `packages` object on the `system` row of the dumped `@system_config`, not a new header field. `DumpFormat::VERSION` is unchanged.
+
+A MySQL restore that would refuse — no table prefix, a copy name past 64 characters, a reserved `_r_` / `_b_` name, an inbound foreign key, the lock — is that same exception. `refusals()` runs those checks, releases the lock, and does not drop leftover copies or replace tables. `restore()` checks again when it later runs. A dump that cannot be read is not this refusal: an incomplete dump is still reported after the files are back.
+
+`RestoreRefusedException` extends `RuntimeException`. The panel `message` is that sentence. Any other throwable stays the fixed line and the log. A refusal leaves `packages/` as it was.
+
+The version on a new snapshot is the `version` service when it is a string, otherwise `''`. A snapshot written without the key reads as none. `''` is a recorded version. The listing from `get()` does not carry the key.
+
+| File | Change |
+|---|---|
+| `app/package/src/Snapshot/RestoreRefusedException.php` (new) | Extends `RuntimeException`. The operator sentence. |
+| `app/package/src/Snapshot/SnapshotStore.php` | `application()` is the recorded string, or null when metadata has no string `application`. `get()` does not carry the key. |
+| `app/package/src/Snapshot/DatabaseRestorer.php` | `packageVersions()` is the dump's `packages` object. `installedPackages()` is the live one. `refusals()` is the first MySQL sentence `restore()` would throw. The lock is released. Leftover copies stay. |
+| `app/package/src/Snapshot/PackageSnapshotter.php` | `details()` records the application version. `restore()` calls `assertRestorable` before `reinstate()`. A version or `packages.*` mismatch throws `RestoreRefusedException`. A dump that cannot be read is not that refusal. The exempted name comes from the archived manifest. |
+| `app/package/src/PackageModule.php` | The snapshotter is built with the `version` service when that value is a string, otherwise `''`. |
+| `app/package/src/Controller/SnapshotController.php` | `RestoreRefusedException` is returned in `message`. Any other throwable stays the fixed line and the log. |
+| `app/package/app/views/snapshots.js` | `failed()` notifies `data.message`. The comment that the real reason is only in the log is gone. |
+
+#### Tests (Checklist Step 10)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Snapshot/PackageSnapshotterTest.php` | A new snapshot records the application version it was built with. One built with no version records `''`. |
+| `tests/Unit/Snapshot/SnapshotStoreTest.php` | A recorded string, including `''`, is read back and stays off the listing. Metadata with no string `application` reads as null. |
+| `tests/Unit/Snapshot/SnapshotRestoreTest.php` | A different, missing, or non-text application version refuses by the snapshot id before files return. The archived manifest names the module that may be missing live; a non-string `module` does not exempt the package name. A one-sided name, and a version that differs even for the module being restored, is named and `packages/` stays. A MySQL refusal (no prefix, a name that will not fit, the lock, an inbound foreign key) refuses before files change. A dump that names a reserved table is not an operator refusal. A dump that cannot be applied leaves the files back and the database unchanged. |
+| `tests/Unit/Snapshot/DatabaseRestorerTest.php` | `refusals()` returns the sentence `restore()` would throw for a missing prefix, a copy MySQL cannot hold, a restore already running, an inbound reference, and a reserved name. The lock is given back. Leftover copies stay. SQLite reports nothing. |
+| `tests/Unit/Snapshot/SnapshotControllerTest.php` | An operator refusal and a MySQL refusal are the `message` the panel shows. An unrelated throwable still says to see the error log. |
+| `tests/Unit/Snapshot/SnapshotServiceWiringTest.php` | A `version` service that is not text is recorded as `''` and that snapshot still restores. A different application version refuses before the package files return. |
+
+Gates: production verifier PASS; production tester FAIL then PASS after one retry; test-writer done; test verifier PASS; coverage tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -360,6 +395,10 @@ Gates: production verifier FAIL (comment length in `impact-query.js`) then PASS 
 - **Only the named refusals are printed.** A requirement refusal and a `RemovalBlockedException` are printed and return failure. Any other throwable, including `Unable to find "%name%".` and `Circular requirement "%s > %s" detected.`, propagates. There is no `--force`. Success prints `"%title%" enabled.` or `"%title%" disabled.` with the title, or the package name when `title` is not a non-empty string. Every name is a package before the first `enable()` or the `disable()` call. Letting the pre-flight exception escape was rejected, and so was passing the command-line strings into the manager.
 - **Install help says activation is separate.** `getDescription()` is `Install places the package and runs the install lifecycle. Activation is php pagekit enable.` `getHelp()` adds `It does not enable the package.` `execute()` does not call `enable()`, so a successful install leaves the new module out of `extensions`.
 - **A missing `blockers` key is not an empty list.** Remove and Disable render only when `blockers`, `orphans`, and `dataRisk` are present (`migrations` and `config` booleans, `nodes` and `tables` arrays) and `blockers` is empty. A failed read or any other shape leaves the button out. Each result is one sentence, including `No migrations, saved settings, node types, or tables were found.` Tables are named and said to be left as they are. `enable` still notifies `response.data.error`.
+- **The exempted module is the archived manifest.** A name in the dump and absent live is skipped only when the archived `composer.json` names it: `module` when that is a string, otherwise the basename of `name`, the same rule as `PackageFactory::load`. The metadata `module` was rejected: rewriting that file to `../../escaped` left the dump's real module unexempted, and restore refused before `reinstate()`. The archive directory name was rejected: `packages.*` is keyed by the manifest module. A differing version, including that module's, still refuses, as does every other one-sided name. Restore after uninstall returns the package and the database when the application version matches and every other `packages.*` entry matches, including when metadata `module` is not the archived one. A module the archive does not name that is only on one side is named in `RestoreRefusedException`, and `packages/` is unchanged.
+- **A missing version is not a blank one.** `application()` is null when metadata has no string `application`. Putting the key on the array `get()` returns was rejected: that array is the listing, and a missing version must not be stored as `''` or copied from the running installation. A snapshot written without the key yields null and `restore()` refuses by the snapshot id before `reinstate()`. `""` is a recorded version and matches a snapshotter built with `""`.
+- **The recorded version defaults to `''`.** That includes a `version` service that is absent or not a string. A required constructor argument was rejected: existing construction passes six arguments, and `''` is the application module's own default. A snapshotter not given a version records `""` and restores a snapshot it just took when packages agree. A recorded `"1.2.43"` refuses against `""` before `reinstate()`.
+- **An unreadable dump is not an operator refusal.** A `RuntimeException` from reading the dump is left to `restore()` after the files are back. Refusing in the pre-flight was rejected: an incomplete dump is still that later path. A truncated dump leaves the package files restored, the database unchanged, and the message containing `incomplete`. A version or `packages.*` mismatch throws `RestoreRefusedException` and leaves `packages/` unchanged. `refusals()` returns the first MySQL sentence `restore()` would throw, releases the lock, and does not drop leftover copies.
 
 ---
 
@@ -383,6 +422,8 @@ Disabling or uninstalling a package that an enabled module still requires fails 
 
 The extensions status toggle asks before a package is switched off. Disable and Remove appear only when the impact answer has no blockers. A failed read or any other payload leaves both out. `php pagekit enable` and `php pagekit disable` call `PackageManager` and have no `--force`. A requirement refusal and a blocked disable are printed and exit 1. An unknown package and a circular requirement still throw. `php pagekit install` still does not enable; its help says activation is `php pagekit enable`.
 
+Restoring a snapshot whose recorded application version is missing or differs, or whose `packages.*` map does not match, fails before any package file is put back. The message names the snapshot and each module. A MySQL restore that would refuse (no prefix, a copy past 64 characters, a reserved name, an inbound foreign key, another restore holding the lock) fails the same way, and `packages/` is unchanged. The panel shows that message. Any other failure stays the fixed line. A snapshot taken after uninstall can still come back when the application version matches and the only missing live module is the one the archived manifest names.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -405,6 +446,12 @@ Uninstall of two packages where one still requires the other is refused entirely
 
 A failed impact read hides Disable and Remove. The server still refuses a switch-off those buttons never offered.
 
+A snapshot written with no application version is refused by name. `''` matches only a snapshotter built with `''`.
+
+`refusals()` releases the lock before `restore()` acquires it again. Another restore can take the lock in between; `restore()` checks again and does not clear leftover copies on the query.
+
+An incomplete dump is not this refusal. The package files are put back, the database is left as it was, and the message says the dump is incomplete.
+
 ---
 
 ## 🔐 Security & Data Impact
@@ -420,6 +467,8 @@ A selection of no table among the ones listed never becomes a finished dump. The
 A blocker is refused before the package is switched off and before a snapshot is taken. `@system/package/impact` requires the package name and CSRF and does not itself switch anything off.
 
 Disable and Remove stay out unless the impact answer has an empty blockers list. The enable notify still shows the named requirement refusal.
+
+A refused restore writes nothing under `packages/`. The panel shows the operator sentence. An unrelated failure stays the fixed line; the exception is in the log. The query releases the lock and does not replace a table.
 
 ---
 
@@ -443,6 +492,8 @@ Disable and uninstall share `PackageImpact`. Orphans are reported and not remove
 
 The panel and the console call `PackageManager`. There is no `--force`. `php pagekit install` does not enable.
 
+Restore has one refusal type. There is no flag that skips the version or the `packages.*` check. `refusals()` does not clear leftovers and does not replace tables. The dump format is unchanged. The comment that the real reason is only in the log is gone.
+
 ---
 
 ## ✅ Verification (links only)
@@ -451,7 +502,7 @@ The panel and the console call `PackageManager`. There is no `--force`. `php pag
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry.
+- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry. Step 10: production tester FAIL then PASS after one retry.
 
 ---
 

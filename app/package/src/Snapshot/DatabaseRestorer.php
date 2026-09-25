@@ -71,6 +71,13 @@ final class DatabaseRestorer
     private const LOCK_TIMEOUT = 0;
 
     /**
+     * What {@see self::refuseWithoutPrefix()} tells an operator. One sentence, so
+     * a query that asks the same question cannot drift from the restore that
+     * throws it.
+     */
+    private const NO_PREFIX = 'The tables of this installation carry no name prefix, so a restore cannot tell them from the rest of the database while it swaps them. Reinstalling with a table prefix - "pk_" is the default - is what makes a restore possible.';
+
+    /**
      * The lock this restore is holding, or nothing where it holds none - which is
      * every restore on SQLite, and any refused before it got that far.
      */
@@ -147,6 +154,125 @@ final class DatabaseRestorer
     }
 
     /**
+     * What a MySQL restore of this dump would refuse before it replaced a table.
+     *
+     * Empty on SQLite and where those checks would pass. The lock is released
+     * before this returns; leftover copies stay, and no table is replaced.
+     *
+     * @return list<string>
+     * @throws \RuntimeException where the dump cannot be read
+     */
+    public function refusals(string $file): array
+    {
+        if ($this->platform() !== DumpFormat::MYSQL) {
+            return [];
+        }
+
+        if ($this->prefix() === '') {
+            return [self::NO_PREFIX];
+        }
+
+        $dump = $this->inspect($file);
+
+        try {
+            $this->preflight($dump['names']);
+        } catch (\RuntimeException $e) {
+            return [$e->getMessage()];
+        } finally {
+            $this->release();
+        }
+
+        return [];
+    }
+
+    /**
+     * The `packages` object on the `system` row of `@system_config` in the dump.
+     *
+     * A missing table, row, or object is an empty map. A version is whatever
+     * JSON stored: a string when the installation wrote it, and anything else
+     * JSON can hold, which still has to be compared rather than dropped.
+     *
+     * @return array<string, mixed>
+     * @throws \RuntimeException where the dump cannot be read
+     */
+    public function packageVersions(string $file): array
+    {
+        $wanted = $this->fold->comparable($this->connection->replacePrefix('@system_config'));
+        /** @var list<string>|null $columns */
+        $columns = null;
+        $nameAt = false;
+        $valueAt = false;
+        $packages = [];
+        $found = false;
+
+        foreach ($this->read($file) as $record) {
+            if ($record['type'] === DumpFormat::TABLE) {
+                $columns = null;
+                $nameAt = false;
+                $valueAt = false;
+
+                if ($this->fold->comparable($record['name']) !== $wanted) {
+                    continue;
+                }
+
+                $columns = $record['columns'];
+                $nameAt = $this->columnIndex($columns, 'name');
+                $valueAt = $this->columnIndex($columns, 'value');
+
+                continue;
+            }
+
+            if ($columns === null || $found || !is_int($nameAt) || !is_int($valueAt)) {
+                continue;
+            }
+
+            $name = $record['values'][$nameAt][0];
+
+            if ($name !== 'system') {
+                continue;
+            }
+
+            $packages = $this->packagesObject($record['values'][$valueAt][0]);
+            $found = true;
+        }
+
+        return $packages;
+    }
+
+    /**
+     * The `packages` object on the live `system` row of `@system_config`.
+     *
+     * The same shape as {@see self::packageVersions()}. No such table is an
+     * empty map: the installation has no system config to differ from the dump.
+     *
+     * @return array<string, mixed>
+     */
+    public function installedPackages(): array
+    {
+        $wanted = $this->fold->comparable($this->connection->replacePrefix('@system_config'));
+        $table = null;
+
+        foreach ($this->connection->createSchemaManager()->listTableNames() as $name) {
+            if ($this->fold->comparable($name) === $wanted) {
+                $table = $name;
+
+                break;
+            }
+        }
+
+        if ($table === null) {
+            return [];
+        }
+
+        $value = $this->connection->fetchOne(
+            'SELECT value FROM '.$this->connection->getDatabasePlatform()->quoteIdentifier($table).' WHERE name = ?',
+            ['system'],
+        );
+
+        return $this->packagesObject($value === false ? null : $value);
+    }
+
+    /**
      * Refuses a MySQL restore of an installation whose tables carry no prefix.
      *
      * A restore there fills copies of the tables and swaps them in, and both
@@ -160,7 +286,65 @@ final class DatabaseRestorer
             return;
         }
 
-        throw new \RuntimeException('The tables of this installation carry no name prefix, so a restore cannot tell them from the rest of the database while it swaps them. Reinstalling with a table prefix - "pk_" is the default - is what makes a restore possible.');
+        throw new \RuntimeException(self::NO_PREFIX);
+    }
+
+    /**
+     * @param  list<string> $columns
+     * @return int|false    the index, matched without regard to case when the
+     *                     platform did not hand the name back as it was declared
+     */
+    private function columnIndex(array $columns, string $wanted): int|false
+    {
+        $index = array_search($wanted, $columns, true);
+
+        if ($index !== false) {
+            return $index;
+        }
+
+        foreach ($columns as $index => $column) {
+            if (strcasecmp($column, $wanted) === 0) {
+                return $index;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  mixed                  $value the `value` column: JSON text, or null when the row has none
+     * @return array<string, mixed>
+     */
+    private function packagesObject(mixed $value): array
+    {
+        if (!is_string($value) || $value === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $packages = $decoded['packages'] ?? null;
+
+        if (!is_array($packages)) {
+            return [];
+        }
+
+        $map = [];
+
+        foreach ($packages as $name => $version) {
+            // A numeric JSON key arrives as an int. The map is compared by module name.
+            $map[(string) $name] = $version;
+        }
+
+        return $map;
     }
 
     /**

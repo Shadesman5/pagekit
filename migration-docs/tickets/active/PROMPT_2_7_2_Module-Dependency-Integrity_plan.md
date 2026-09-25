@@ -31,7 +31,7 @@
 - [x] Step 7 (M) — Prefix fold and empty-dump refusal
 - [x] Step 8 (L) — Disable and uninstall pre-flight
 - [x] Step 9 (M) — Panel and console activation
-- [ ] Step 10 (L) — Restore pre-flight before files return
+- [x] Step 10 (L) — Restore pre-flight before files return
 - [ ] Step 11 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
@@ -107,6 +107,9 @@ none
 - `InstallCommand` help — `getDescription()` is `Install places the package and runs the install lifecycle. Activation is php pagekit enable.` `getHelp()` is that plus `It does not enable the package.` Invariant: both contain `install lifecycle` and `php pagekit enable`; `execute()` does not call `enable()`, so a successful install leaves the new module out of `extensions`.
 - `impact-query.js::canProceed` / `impact.vue` — Remove and Disable render only when the payload has `blockers`, `orphans`, and `dataRisk` (`migrations` and `config` booleans, `nodes` and `tables` arrays) and `blockers` is empty. A failed read or any other shape leaves the button out. Each of the three results is one sentence, including the empty data-risk line `No migrations, saved settings, node types, or tables were found.`; tables are named and said to be left as they are. Rejected treating a missing `blockers` key as none. Invariant: a non-empty `blockers` list, a transport failure, or a payload missing one of those keys shows no proceed control; `enable` still notifies `response.data.error`.
 ### Step 10
-_none yet_
+- `PackageSnapshotter::packageReasons` — A module present in the dump and absent live is not a refusal only when the archived `composer.json` names it (`module` when that is a string, otherwise `basename` of `name`, the same rule as `PackageFactory::load`). Rejected `$snapshot['module']`: rewriting that file to `../../escaped` left the dump's real module unexempted and restore refused before `reinstate()`. Rejected the archive directory name: `packages.*` is keyed by the manifest module. A differing version, including that module's, still refuses, as does every other one-sided name. Invariant: restore after uninstall returns the package and the database when the application version matches and every other `packages.*` entry matches, including when metadata `module` is not the archived one; a module the archive does not name that is only on one side is named in `RestoreRefusedException`, and `packages/` is unchanged.
+- `SnapshotStore::application` — Null when metadata has no string `application`. Rejected putting the key on the array `get()` returns: that array is the listing, and a missing version must not be stored as `''` or copied from the running installation. Invariant: a snapshot written without the key yields null and `restore()` refuses by the snapshot id before `reinstate()`; `""` is a recorded version and matches a snapshotter built with `""`.
+- `PackageSnapshotter::__construct` / `PackageModule::applicationVersion` — The version defaults to `''`, including when the `version` service is absent or not a string. Rejected a required argument: existing construction passes six arguments, and `''` is the application module's own default. Invariant: one snapshotter not given a version records `""` and restores a snapshot it just took when packages agree; a recorded `"1.2.43"` refuses against `""` before `reinstate()`.
+- `PackageSnapshotter::assertRestorable` — A `RuntimeException` from reading the dump is not an operator refusal. Rejected failing there: an incomplete dump is still reported by `restore()` after the files are back. Invariant: a truncated dump leaves the package files restored, the database unchanged, and the message containing `incomplete`; a version or `packages.*` mismatch throws `RestoreRefusedException` and leaves `packages/` unchanged. `DatabaseRestorer::refusals` returns the first MySQL sentence `restore()` would throw, releases the lock, and does not drop leftover copies.
 ### Step 11
 _none yet_
