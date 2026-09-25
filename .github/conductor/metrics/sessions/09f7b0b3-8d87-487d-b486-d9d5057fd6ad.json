@@ -10,7 +10,7 @@
   "model": "grok-4.7",
   "status": "failed",
   "startedAt": "2026-09-25T00:36:54.463Z",
-  "completedAt": "2026-09-25T17:26:35.690Z",
+  "completedAt": "2026-09-25T19:44:24.775Z",
   "phases": [
     {
       "phaseKey": "36078326145-1-PLAN",
@@ -333,13 +333,30 @@
         6,
         7
       ],
-      "startedAt": "2026-09-25T17:27:19.073Z",
-      "durationMs": 8241385,
+      "startedAt": "2026-09-25T17:27:20.402Z",
+      "durationMs": 8223813,
       "agent": {
         "id": "bc-d4f8b735-3472-4c38-aa0b-56c7d74fcd7d",
         "runId": "run-ba26ad3c-90c4-44f3-8ea0-3274358ee2b7",
         "url": "https://cursor.com/agents/bc-d4f8b735-3472-4c38-aa0b-56c7d74fcd7d",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-ba26ad3c-90c4-44f3-8ea0-3274358ee2b7",
+            "index": 1,
+            "startedAt": "2026-09-25T17:27:20.402Z",
+            "completedAt": "2026-09-25T19:44:24.775Z",
+            "durationMs": 8223813,
+            "tokens": {
+              "input": 299066,
+              "output": 9613,
+              "cacheRead": 1571456,
+              "cacheWrite": 0,
+              "total": 1880135
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36167185229,
@@ -357,7 +374,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Batch done. Steps: [6, 7]. Last commit: 3a754262e9444fe934a4fedb8d8edcce6440c5d1.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-25T19:44:24.775Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -368,7 +387,7 @@
       "cacheWrite": 0,
       "total": 9747233
     },
-    "durationMs": 33636166,
+    "durationMs": 33618594,
     "phaseCount": 7,
     "escalations": 2,
     "ghaJobs": 5,
