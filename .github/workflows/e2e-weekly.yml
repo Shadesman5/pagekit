@@ -100,7 +100,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Create writable runtime directories
-        run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+        run: mkdir -p tmp/logs tmp/cache tmp/temp storage
 
       # Must precede setup-node: `cache: pnpm` below resolves the store path via the pnpm binary.
       # No version input — the action reads it from package.json#packageManager.

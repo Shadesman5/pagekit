@@ -139,12 +139,6 @@ parameters:
 			path: app/installer/views/installer.php
 
 		-
-			message: '#^Variable \$view might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/installer/views/marketplace.php
-
-		-
 			message: '#^Variable \$failed might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
@@ -803,42 +797,6 @@ parameters:
 			identifier: if.alwaysTrue
 			count: 1
 			path: app/modules/view/src/View.php
-
-		-
-			message: '#^Call to an undefined method Composer\\Downloader\\DownloadManager\:\:setOutputProgress\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/package/src/Helper/Composer.php
-
-		-
-			message: '#^Call to an undefined method Composer\\Installer\:\:setAdditionalInstalledRepository\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/package/src/Helper/Composer.php
-
-		-
-			message: '#^PHPDoc tag @return with type null is incompatible with native type Composer\\Composer\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/package/src/Helper/Composer.php
-
-		-
-			message: '#^Parameter \#3 \$installationManager of class Composer\\Package\\Locker constructor expects Composer\\Installer\\InstallationManager, Composer\\Repository\\RepositoryManager given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/package/src/Helper/Composer.php
-
-		-
-			message: '#^Parameter \#4 \$composerFileContents of class Composer\\Package\\Locker constructor expects string, Composer\\Installer\\InstallationManager given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/package/src/Helper/Composer.php
-
-		-
-			message: '#^Parameter \#5 \$process of class Composer\\Package\\Locker constructor expects Composer\\Util\\ProcessExecutor\|null, string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/package/src/Helper/Composer.php
 
 		-
 			message: '#^Possibly invalid array key type string\|null\.$#'

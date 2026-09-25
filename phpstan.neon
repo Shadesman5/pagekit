@@ -30,8 +30,6 @@ parameters:
     excludePaths:
         - app/vendor
         - app/modules/*/vendor
-        - packages/autoload.php
-        - packages/composer
         - */node_modules/*
         - tmp
         - storage

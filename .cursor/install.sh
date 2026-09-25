@@ -73,7 +73,7 @@ pnpm install --frozen-lockfile
 pnpm build
 
 # Writable directories (tmp/sessions is required by the session handler)
-mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages tmp/sessions storage
+mkdir -p tmp/logs tmp/cache tmp/temp tmp/sessions storage
 
 # Refresh Playwright browser after dependency updates (snapshot already ships
 # chromium; this re-applies it whenever the package version changes)

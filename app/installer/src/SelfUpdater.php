@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer;
 
-use Composer\Console\HtmlOutputFormatter;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -50,8 +49,6 @@ class SelfUpdater
 
             ob_implicit_flush(true);
             @ob_end_flush();
-
-            $this->output->setFormatter(new HtmlOutputFormatter());
         }
     }
 

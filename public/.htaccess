@@ -65,7 +65,7 @@
     # - img-src: Allow Gravatar and general HTTPS images
     # - connect-src: Allow external APIs for Dashboard widgets:
     #   * reCAPTCHA - Form protection
-    #   * pagekit.com - Update checks, marketplace
+    #   * pagekit.com - Update checks
     #   * api.rss2json.com - Feed widget (RSS to JSON converter)
     # - frame-src: Allow reCAPTCHA iframe
     # - object-src: 'none' - No Flash/plugins

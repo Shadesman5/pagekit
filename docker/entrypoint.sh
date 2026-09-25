@@ -104,7 +104,7 @@ cd "$app_dir"
 
 # A volume can be mounted empty and tmp/ is container-local, so the directories
 # the application writes to are recreated on every start.
-mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/packages tmp/sessions tmp/system tmp/temp
+mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/sessions tmp/system tmp/temp
 
 # The snapshots of removed packages are the one thing the application writes
 # under tmp/ that is not a cache: a snapshot holds the only copy of a package

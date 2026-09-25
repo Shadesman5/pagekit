@@ -49,7 +49,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Create writable runtime directories
-        run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+        run: mkdir -p tmp/logs tmp/cache tmp/temp storage
 
       - name: Fetch PR base ref
         # actions/checkout does not create the origin/<base> remote-tracking ref on a

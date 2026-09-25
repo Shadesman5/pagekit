@@ -11,8 +11,7 @@
     </div>
 
     <v-modal ref="modal">
-      <!-- <package-details :api="api" :package="package" /> -->
-      <package-details :api="api" :package="pkg" />
+      <package-details :package="pkg" />
 
       <div class="uk-modal-footer uk-text-right">
         <button class="uk-button uk-button-text uk-margin-right uk-modal-close" type="button">
@@ -36,10 +35,6 @@ export default {
   mixins: [Package, Theme.Mixins.Helper],
 
   props: {
-    api: {
-      type: String,
-      default: ''
-    },
     packages: {
       type: Array,
       default() {
@@ -154,18 +149,13 @@ export default {
     doInstall() {
       this.$refs.modal.close();
 
-      this.install(
-        this.upload.package,
-        this.packages,
-        output => {
-          if (output.status === 'success') {
-            setTimeout(() => {
-              location.reload();
-            }, 300);
-          }
-        },
-        true
-      );
+      this.install(this.upload.package, this.packages, output => {
+        if (output.status === 'success') {
+          setTimeout(() => {
+            location.reload();
+          }, 300);
+        }
+      });
     }
   }
 };

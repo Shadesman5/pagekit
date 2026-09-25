@@ -153,6 +153,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 ### Minimum Requirements
 
 -   **PHP**: 8.5 or higher
+-   **zip**: the PHP zip extension. Installing a package and building its archive both use it, and `composer install` requires it
 -   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
 -   **Node.js**: `^20.19.0 || >=22.12.0` (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
 -   **Composer**: 2.0+
@@ -252,7 +253,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
     - **Apache**: `DocumentRoot /path/to/pagekit/public`, with `AllowOverride All` (the shipped `public/.htaccess` carries the rewrite rules and security headers), `Options FollowSymLinks` (the media library is a symlink) and `mod_rewrite` enabled. Behind anything that terminates TLS in front of Apache — Cloudflare, an nginx proxy, a load balancer — add `Define PAGEKIT_TRUSTED_PROXY` to the server configuration as well: the redirect to HTTPS steps aside for `X-Forwarded-Proto: https` only on a server that has been told a proxy is there, and until it has been, every request through the proxy is redirected back through it for ever. A server reached directly must not define it, or the header becomes anyone's way around the redirect.
     - **Nginx**: `root /path/to/pagekit/public;` and route unknown paths to the front controller: `try_files $uri /index.php$is_args$args;` — also deny `*.db` (e.g. `location ~* \.db$ { deny all; }`) since `.htaccess` does not apply.
-    - **Permissions**: `tmp/` and `storage/` must be writable by the web server user
+    - **Permissions**: `tmp/`, `storage/` and `packages/` must be writable by the web server user — `packages/` is where the panel puts a package it installs, replaces one it updates, removes one it uninstalls and puts one back on restore. `php pagekit install <archive.zip>` writes `packages/<vendor>/<name>` as the user running it, so run it as the web server user, as with snapshots: a tree another user owns is one the panel cannot remove (the removal ends with the files still on disk and the snapshot as the complete copy) and can update only by leaving the replaced tree behind — or not at all, where that user also created `packages/<vendor>/`. A folder named `.<name>-<hex>` under `packages/<vendor>/` is such a leftover, or an unpack that failed: nothing reads or lists it, the error log names it, and it can be deleted once no install is running.
     - **Two directories under `tmp/` are data, not cache**: `tmp/snapshots` holds the only copy of every package removed through the panel or `php pagekit uninstall` — it is what a restore reads — and `tmp/system` holds the record of extensions that failed and were switched off. Include both in backups alongside `storage/`, the database and `config.php`, and keep them out of any routine that empties `tmp/`. Snapshots are written owner-only, so a console-taken snapshot is readable by the panel only when the console and the web server run as the same user.
     - **What a restore costs on MySQL**: it writes the snapshot into copies of the tables and swaps the copies in with a single rename, so the database holds the dumped tables twice over while it runs — expect roughly twice their disk until the tables they replaced are dropped at the end of it. The rename takes a metadata lock on every table in it, and anything reading them waits: a stall of a moment on an ordinary installation, not zero downtime. Foreign-key and CHECK constraints on the restored tables come back under generated names, MySQL having no way to rename a constraint in place — nothing in Pagekit reads those names, but a script of your own that does will not find the old ones. An installation whose tables have no prefix cannot be restored on MySQL — reinstall with a prefix (`pk_` is the default).
 
@@ -353,6 +354,8 @@ Two named volumes hold what has to outlive it:
 -   `pagekit_storage` → `/var/www/html/storage`: the media library.
 
 MySQL keeps its data in `mysql_data`. Everything else is disposable: what is left under `tmp/` is cache the container recreates on each start, and the application comes from the image. A backup therefore covers the volumes, not the container.
+
+The application tree, `packages/` included, belongs to root in the image and the site runs as `www-data`, so a running container serves the packages its image was built with and takes no other: the panel's _Upload_ → _Install_ and `php pagekit install <archive.zip>` are refused at the first folder they try to create, a restore is refused before it touches the database, and an uninstall gets as far as its snapshot, the disabling and the package's own cleanup before the folder refuses to go — the package's data is gone, its tree is listed again as installed and off, and the snapshot is the copy to keep. Add a package by putting it under `packages/` and building the image again; where a package installed at runtime lives in a container is ROADMAP Step 2.7.5. `php pagekit archive` in the container writes into the installation root by default, which is root's as well; give it `--dir` with a directory the site can write, the data volume (`/var/www/data`) being the one that outlives the container.
 
 #### TLS and reverse proxies
 
@@ -603,13 +606,28 @@ docker compose exec web chown -R www-data:www-data /var/www/html
 
 ## Extensions & Themes
 
-**Important**: The original Pagekit marketplace is no longer functional as the API was deactivated. This modernized version currently includes:
+An extension or a theme is installed from its ZIP archive. Nothing is resolved or downloaded: there is no marketplace (ROADMAP Step 5.6), so an archive has to carry everything its package needs. The installation ships with:
 
--   **Built-in Blog Extension**: Full-featured blogging system
--   **Modern Admin Theme**: UIkit 3 based administration interface
--   **Theme One**: Responsive frontend theme
--   **Demo Content**: Sample data for testing
--   **E2E Testing**: Comprehensive Playwright-based testing framework
+-   **Blog** (`pagekit/blog`): full-featured blogging extension
+-   **Theme One** (`pagekit/theme-one`): responsive frontend theme
+-   **Admin Theme**: UIkit 3 based administration interface
+-   **Demo Content**: sample data for testing
+
+### Installing a Package
+
+-   **In the admin panel**: _System → Extensions_ (or _Themes_) → _Upload_. The archive is checked on upload and its details are shown; _Install_ puts the package under `packages/<vendor>/<name>`, and it is enabled from the same page.
+-   **From the command line**: `php pagekit install <archive.zip>` installs it the same way. It does not enable the package — do that in the admin panel.
+
+Installing a package that is already there updates it: its folder is replaced as a whole, and an enabled package stays enabled.
+
+### Building an Archive
+
+`php pagekit archive <vendor/name> [--dir <directory>]` writes `<vendor>-<name>.zip` from `packages/<vendor>/<name>` into the installation root, or into the directory `--dir` names. It leaves out what the package's `.gitignore` and the `archive.exclude` list of its `composer.json` name. The archive holds the package sources only; its built bundles live under `public/` and are not part of it yet (ROADMAP Step 2.8).
+
+An archive is refused unless it carries, at its root rather than inside a wrapping folder:
+
+-   `composer.json` with `name` (`vendor/name`), `type` (`pagekit-extension` or `pagekit-theme`), `version` and `title`
+-   the module's `index.php`, returning an array whose `name` is the part of the package name after the slash and whose `autoload` map names the folders its classes are loaded from (`'autoload' => []` when there are none). The file is read without being run, so both are written out as plain strings and arrays.
 
 ### Extension Development
 
@@ -617,8 +635,6 @@ docker compose exec web chown -R www-data:www-data /var/www/html
 -   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.5+ standards
 -   **Theme System**: Full theming support with modern tooling and developer APIs
 -   **Hooks & Filters**: Extensive customization capabilities for developers
-
-**Note**: A new marketplace system needs to be developed from the ground up to replace the original functionality.
 
 ## Security Best Practices
 

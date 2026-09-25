@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
-use Pagekit\Package\Helper\Composer;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
@@ -45,22 +44,6 @@ class BuildCommand extends Command
         $path = $this->container->get('path');
         $vers = $this->container->get('version');
         $filter = '/' . implode('|', $this->excludes) . '/i';
-        $packages = [
-            'pagekit/blog' => '*',
-            'pagekit/theme-one' => '*',
-        ];
-
-        $config = [];
-        foreach (['path.temp', 'path.cache', 'path.vendor', 'path.artifact', 'path.packages', 'system.api'] as $key) {
-            $config[$key] = $this->container->get($key);
-        }
-
-        // TODO: Step 5.6 (Marketplace & Extensions) — optional release step: bundle the published
-        // marketplace versions of the first-party packages into the ZIP instead of the in-repo
-        // sources. Disabled in 2020 when the pagekit.com backend (system.api) was shut down;
-        // re-enable only after a self-hostable package-distribution API exists.
-        // $composer = new Composer($config, $output);
-        // $composer->install($packages);
 
         $this->line('Starting: build');
 
@@ -105,7 +88,6 @@ class BuildCommand extends Command
         $zip->addEmptyDir('tmp/temp/');
         $zip->addEmptyDir('tmp/logs/');
         $zip->addEmptyDir('tmp/sessions/');
-        $zip->addEmptyDir('tmp/packages/');
 
         $zip->close();
 

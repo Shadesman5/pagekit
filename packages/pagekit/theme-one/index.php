@@ -6,6 +6,8 @@ return [
 
     'name' => 'theme-one',
 
+    'autoload' => [],
+
     'main' => function ($app) {
 
         if ($app->get('isAdmin')) {

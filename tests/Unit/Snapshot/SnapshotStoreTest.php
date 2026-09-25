@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Snapshot;
 
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
+use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Package\Package;
+use Pagekit\Package\Snapshot\DatabaseDumper;
+use Pagekit\Package\Snapshot\DatabaseRestorer;
+use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 /**
  * The store holds what a removal took away, which puts two demands on it that
@@ -27,6 +35,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class SnapshotStoreTest extends TestCase
 {
+    use SnapshotDatabase;
+
     /**
      * What a snapshot's own description is called on disk. Tests putting a
      * damaged or foreign one in place have to write the file the store reads.
@@ -48,7 +58,7 @@ final class SnapshotStoreTest extends TestCase
      */
     private const FIELDS = [
         'id', 'created', 'expires', 'size', 'complete', 'package', 'module',
-        'title', 'type', 'version', 'composer', 'reason', 'format', 'database',
+        'title', 'type', 'version', 'reason', 'format', 'database',
     ];
 
     private const DAY = 86400;
@@ -77,6 +87,8 @@ final class SnapshotStoreTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->closeDatabases();
+
         // A test that provoked a directory nobody can write has to hand it back
         // before the workspace can be removed.
         $this->restoreModes($this->workspace);
@@ -183,7 +195,6 @@ final class SnapshotStoreTest extends TestCase
         self::assertSame('Blog', $snapshot['title']);
         self::assertSame('pagekit-extension', $snapshot['type']);
         self::assertSame('1.4.2', $snapshot['version']);
-        self::assertTrue($snapshot['composer']);
         self::assertSame('uninstall', $snapshot['reason']);
         self::assertSame(1, $snapshot['format']);
         // A dump can only be replayed into the driver it was taken from, so
@@ -528,32 +539,78 @@ final class SnapshotStoreTest extends TestCase
         self::assertSame(['driver' => '', 'platform' => '', 'prefix' => ''], $snapshot['database']);
     }
 
-    #[DataProvider('provideComposerClaims')]
-    public function testASnapshotCountsAsComposerInstalledOnlyWhereItSaysSoOutright(string $claim, bool $composer): void
+    public function testASnapshotWhoseDescriptionStillNamesComposerListsAsWholeAndRestoresWithoutThatKey(): void
     {
-        // This decides whether a restore has Composer's own bookkeeping to put
-        // back. A string that merely reads as true would send a hand-installed
-        // package down that path.
-        $this->place('20260101-000000-blog-a1b2c3d4', $this->description(['composer' => null], $claim));
+        // An earlier release wrote this flag into the description. The file is
+        // left as it stands; a caller reads the fields the store still has.
+        $connection = $this->openKeptDatabase();
+        $packages = $this->workspace.'/packages';
+        $tree = $packages.'/pagekit/kept';
+        $files = new Filesystem();
 
-        $snapshot = $this->store()->get('20260101-000000-blog-a1b2c3d4');
+        mkdir($tree, 0755, true);
+        file_put_contents($tree.'/marker.txt', 'kept');
 
+        $store = new SnapshotStore($this->path, $files);
+        $snapshotter = new PackageSnapshotter(
+            $store,
+            new DatabaseDumper($connection),
+            new DatabaseRestorer($connection),
+            $files,
+            new NullLogger(),
+            $packages,
+        );
+
+        $id = $snapshotter->create(new Package([
+            'name' => 'pagekit/kept',
+            'type' => 'pagekit-extension',
+            'module' => 'kept',
+            'title' => 'Kept',
+            'version' => '1.0.0',
+            'path' => $tree,
+        ]), PackageSnapshotter::REASON_UNINSTALL);
+
+        $metadataFile = $store->directory($id).'/'.self::METADATA;
+        $metadata = json_decode((string) file_get_contents($metadataFile), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($metadata);
+        self::assertArrayNotHasKey('composer', $metadata);
+
+        $metadata['composer'] = true;
+        file_put_contents($metadataFile, (string) json_encode($metadata, JSON_THROW_ON_ERROR));
+
+        $files->delete($tree);
+        $connection->update('pk_kept', ['title' => 'after'], ['title' => 'before']);
+
+        self::assertFileDoesNotExist($tree.'/marker.txt');
+        self::assertSame('after', $connection->fetchOne('SELECT title FROM pk_kept'));
+
+        $listed = $store->list();
+        $snapshot = $store->get($id);
+
+        self::assertArrayHasKey($id, $listed);
         self::assertNotNull($snapshot);
-        self::assertSame($composer, $snapshot['composer']);
-    }
+        self::assertTrue($listed[$id]['complete']);
+        self::assertTrue($snapshot['complete']);
+        self::assertSame('pagekit/kept', $snapshot['package']);
+        self::assertSame(self::FIELDS, array_keys($snapshot));
+        self::assertArrayNotHasKey('composer', $snapshot);
+        self::assertArrayNotHasKey('composer', $listed[$id]);
 
-    /**
-     * @return array<string, array{0: string, 1: bool}>
-     */
-    public static function provideComposerClaims(): array
-    {
-        return [
-            'installed by composer' => ['true', true],
-            'not installed by composer' => ['false', false],
-            'a string that reads as true' => ['"yes"', false],
-            'a number that reads as true' => ['1', false],
-            'nothing said either way' => ['null', false],
-        ];
+        $snapshotter->restore($id);
+
+        self::assertSame('kept', (string) file_get_contents($tree.'/marker.txt'));
+        self::assertSame('before', $connection->fetchOne('SELECT title FROM pk_kept'));
+
+        $stored = json_decode((string) file_get_contents($metadataFile), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($stored);
+        self::assertTrue($stored['composer']);
+
+        $reread = $store->get($id);
+
+        self::assertNotNull($reread);
+        self::assertArrayNotHasKey('composer', $reread);
     }
 
     #[DataProvider('provideConfiguredWindows')]
@@ -861,6 +918,22 @@ final class SnapshotStoreTest extends TestCase
     }
 
     /**
+     * A database with one row a restore can put back, under the installation prefix.
+     */
+    private function openKeptDatabase(): Connection
+    {
+        $connection = $this->openDatabase();
+        $table = new Table('pk_kept');
+        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+        $table->addColumn('title', Types::STRING, ['length' => 64]);
+        $table->setPrimaryKey(['id']);
+        $connection->createSchemaManager()->createTable($table);
+        $connection->insert('pk_kept', ['title' => 'before']);
+
+        return $connection;
+    }
+
+    /**
      * The store as the application builds it: the directory the snapshots live
      * in, the filesystem service that writes them, and the retention window an
      * installation gets where it configures none of its own.
@@ -889,7 +962,6 @@ final class SnapshotStoreTest extends TestCase
             'title' => 'Blog',
             'type' => 'pagekit-extension',
             'version' => '1.4.2',
-            'composer' => true,
             'reason' => 'uninstall',
             'format' => 1,
             'database' => ['driver' => 'pdo_sqlite', 'platform' => 'sqlite', 'prefix' => 'pk_'],
@@ -904,21 +976,14 @@ final class SnapshotStoreTest extends TestCase
      *                                        description missing one can be
      *                                        written as well
      */
-    private function description(array $overrides = [], ?string $composer = null): string
+    private function description(array $overrides = []): string
     {
         $data = array_filter(
             $overrides + ['created' => time()] + $this->details(),
             static fn (mixed $value): bool => $value !== null
         );
 
-        $json = (string) json_encode($data);
-
-        // The one field a caller is asked to place verbatim: whether a snapshot
-        // is Composer-installed is read strictly, which takes a value JSON can
-        // carry but the details array cannot.
-        return $composer !== null
-            ? substr($json, 0, -1).',"composer":'.$composer.'}'
-            : $json;
+        return (string) json_encode($data);
     }
 
     /**

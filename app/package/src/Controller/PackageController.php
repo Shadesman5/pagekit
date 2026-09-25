@@ -8,12 +8,14 @@ use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Archive\ArchiveRefusedException;
+use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\PackageFactory;
-use Pagekit\Package\PackageInterface;
 use Pagekit\Package\PackageManager;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -22,9 +24,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 class PackageController
 {
     /**
-     * @param PackageSnapshotter|null $snapshotter what a removed package can be restored
-     *                                             from, and null in an installation that
-     *                                             keeps no snapshots at all
+     * @param string                  $packageStaging where an uploaded archive waits for the request
+     *                                                that installs it
+     * @param PackageSnapshotter|null $snapshotter    what a removed package can be restored
+     *                                                from, and null in an installation that
+     *                                                keeps no snapshots at all
      */
     public function __construct(
         protected PackageManager $manager,
@@ -33,10 +37,9 @@ class PackageController
         private readonly UrlProvider $url,
         private readonly Request $request,
         private readonly PagekitResponse $response,
-        private readonly string $path,
+        private readonly string $packageStaging,
         private readonly bool $debug,
         private readonly Logger $log,
-        private readonly string $systemApi = 'https://pagekit.com',
         private readonly ?PackageSnapshotter $snapshotter = null,
     ) {
     }
@@ -67,7 +70,6 @@ class PackageController
                 'name' => 'package:views/themes.php',
             ],
             '$data' => [
-                'api' => $this->systemApi,
                 'packages' => $packages,
                 'keepsSnapshots' => $this->keepsSnapshots(),
             ],
@@ -111,7 +113,6 @@ class PackageController
                 'name' => 'package:views/extensions.php',
             ],
             '$data' => [
-                'api' => $this->systemApi,
                 'packages' => $packages,
                 'keepsSnapshots' => $this->keepsSnapshots(),
             ],
@@ -194,58 +195,94 @@ class PackageController
     {
         $file = $this->request->files->get('file');
 
-        if ($file === null || !$file->isValid()) {
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
             throw new BadRequestHttpException(__('No file uploaded.'));
         }
 
-        $package = $this->loadPackage($file->getPathname());
-
-        if (!$package->getName() || !$package->get('title') || !$package->get('version')) {
-            throw new BadRequestHttpException(__('"composer.json" file not valid.'));
+        try {
+            $archive = PackageArchive::open($file->getPathname());
+        } catch (ArchiveRefusedException $e) {
+            // The page reads the reason out of a 400 body; a RuntimeException would reach it as a 500 without one.
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
 
-        if ($package->get('type') !== 'pagekit-' . $type) {
+        if ($archive->type() !== 'pagekit-' . $type) {
             throw new BadRequestHttpException(__('No Pagekit %type%', ['%type%' => $type]));
         }
 
-        $filename = str_replace('/', '-', $package->getName()) . '-' . $package->get('version') . '.zip';
+        $package = $this->package->load($archive->composer());
 
-        $file->move($this->path . '/tmp/packages', $filename);
+        if ($package === null) {
+            throw new BadRequestHttpException(__('"composer.json" file not valid.'));
+        }
 
-        return compact('package');
+        $extra = $package->get('extra');
+
+        if (is_array($extra) && (isset($extra['icon']) || isset($extra['image']))) {
+            unset($extra['icon'], $extra['image']);
+            $package->set('extra', $extra);
+        }
+
+        $file->move($this->packageStaging, self::stagedName($archive->name(), $archive->version()));
+
+        return ['package' => $package];
     }
 
     /**
+     * Installs the archive the upload staged for the package and version the request names.
+     *
      * @param array<string, mixed> $package
      */
-    #[RequestAttribute(['package' => 'array', 'packagist' => 'boolean'], csrf: true)]
-    public function installAction(array $package = [], bool $packagist = false): StreamedResponse
+    #[RequestAttribute(['package' => 'array'], csrf: true)]
+    public function installAction(array $package = []): StreamedResponse
     {
-        $file = $this->path . '/tmp/temp/composer/composer.json';
+        $name = $package['name'] ?? null;
+        $version = $package['version'] ?? null;
 
-        if (!file_exists(dirname($file))) {
-            mkdir(dirname($file), 0755, true);
-            file_put_contents($file, '{}');
-        }
+        return $this->response->stream(function () use ($name, $version): void {
 
-        return $this->response->stream(function () use ($package, $packagist) {
+            if (
+                !is_string($name) || preg_match(PackageArchive::NAME_PATTERN, $name) !== 1
+                || !is_string($version) || preg_match(PackageArchive::VERSION_PATTERN, $version) !== 1
+            ) {
+                echo __('No valid package name and version given.'), "\nstatus=error";
+
+                return;
+            }
+
+            $staged = $this->packageStaging . '/' . self::stagedName($name, $version);
+            $installed = false;
 
             try {
-
-                $package = $this->package->load($package);
-
-                if (!$package) {
-                    throw new \RuntimeException('Invalid parameters.');
+                if (!is_file($staged)) {
+                    throw new \RuntimeException(__('The uploaded archive of %name% %version% is gone. Upload it again.', ['%name%' => $name, '%version%' => $version]));
                 }
 
-                $this->manager->install([(string) $package->getName() => $package->get('version')], $packagist);
+                // The file sat on disk since the upload, so what the upload checked vouches for nothing now.
+                $archive = PackageArchive::open($staged);
 
-                echo "\nstatus=success";
+                // Staged names are not unique: "a-b/c" and "a/b-c" share one.
+                if ($archive->name() !== $name || $archive->version() !== $version) {
+                    throw new \RuntimeException(__('The uploaded archive is not %name% %version%. Upload it again.', ['%name%' => $name, '%version%' => $version]));
+                }
 
-            } catch (\Exception $e) {
-
-                printf("%s\nstatus=error", $e->getMessage());
+                $this->manager->install($archive);
+                $installed = true;
+            } catch (\Throwable $e) {
+                echo $this->failure(
+                    sprintf('Failed to install package "%s"', $name),
+                    $e,
+                    __('The installation could not be completed. See error log for details.'),
+                );
+            } finally {
+                $this->discardStaged($staged);
             }
+
+            if ($installed) {
+                $this->clearCache();
+            }
+
+            echo $installed ? "\nstatus=success" : "\nstatus=error";
 
         });
     }
@@ -279,7 +316,11 @@ class PackageController
             } catch (\Throwable $e) {
                 $failure = $e;
 
-                echo $this->removalFailure($name, $e);
+                echo $this->failure(
+                    sprintf('Failed to remove package "%s"', $name),
+                    $e,
+                    __('The removal could not be completed. See error log for details.'),
+                );
             }
 
             // Either way, and before the outcome is reported. A removal breaks
@@ -319,42 +360,69 @@ class PackageController
     }
 
     /**
-     * What the page is told about a removal that broke off.
+     * What the page is told about an install or a removal that broke off.
      *
-     * A removal refuses in words written for an administrator - no snapshot
-     * could be taken, the files would not go - and those are passed on as they
-     * stand. An Error is none of that: it is a fault in the code that was
-     * running, its text names classes and paths that belong in a log rather than
-     * in a panel, and nothing has written it down yet. So it is written down
-     * here, and the page is told that much.
+     * An Exception carries words written for an administrator and is passed on as it stands; an
+     * Error's text names classes and paths, so it goes to the log and the page is told $generic.
+     *
+     * @param string $context what was being attempted, for the log
+     * @param string $generic what the page is told in place of an Error
      */
-    private function removalFailure(string $name, \Throwable $e): string
+    private function failure(string $context, \Throwable $e, string $generic): string
     {
         if ($e instanceof \Exception) {
             return $e->getMessage();
         }
 
-        $this->logError(sprintf('Failed to remove package "%s"', $name), $e);
+        $this->logError($context, $e);
 
-        return __('The removal could not be completed. See error log for details.');
+        return $generic;
     }
 
     /**
      * Rebuilds what the installation had cached, the way enabling and disabling
      * do.
      *
-     * A clear that could not be asked for is not a removal that did not happen,
-     * so it does not get to be the answer: what the page is waiting to hear is
-     * whether the package is out of the installation. What it costs instead is a
-     * panel serving what it had cached until the next clear, which is worth the
-     * line in the log that says so.
+     * A clear that could not be asked for is not an install or a removal that
+     * did not happen, so it does not get to be the answer: what the page is
+     * waiting to hear is whether the package went in or out. What it costs
+     * instead is a panel serving what it had cached until the next clear, which
+     * is worth the line in the log that says so.
      */
     private function clearCache(): void
     {
         try {
             $this->module->get('system/cache')->clearCache();
         } catch (\Throwable $e) {
-            $this->logError('Failed to clear the cache after removing a package', $e);
+            $this->logError('Failed to clear the cache after installing or removing a package', $e);
+        }
+    }
+
+    /**
+     * The file an uploaded archive waits in until the install request.
+     */
+    private static function stagedName(string $name, string $version): string
+    {
+        return strtr($name, '/', '-') . '-' . $version . '.zip';
+    }
+
+    /**
+     * Deletes what sits at a staged archive's path, so that an upload is installed at most once.
+     */
+    private function discardStaged(string $staged): void
+    {
+        if (!file_exists($staged) && !is_link($staged)) {
+            return;
+        }
+
+        if (@unlink($staged)) {
+            return;
+        }
+
+        try {
+            $this->log->error(sprintf('Failed to delete the staged archive "%s".', $staged));
+        } catch (\Throwable) {
+            // Nothing left to report it to.
         }
     }
 
@@ -363,7 +431,7 @@ class PackageController
      *
      * Read from inside a streamed response, where the status line the page waits
      * for is still to be written: a log that cannot take the line does not get
-     * to be the reason the page never hears how the removal ended.
+     * to be the reason the page never hears how the operation ended.
      *
      * @param string $context what was being attempted, for the log
      */
@@ -388,38 +456,6 @@ class PackageController
         foreach ($this->manager->takeHookWarnings() as $warning) {
             printf("\nwarning=%s", str_replace(["\r\n", "\r", "\n"], ' ', $warning));
         }
-    }
-
-    protected function loadPackage(string $file): PackageInterface
-    {
-        if (is_file($file)) {
-
-            $zip = new \ZipArchive();
-
-            if ($zip->open($file) === true) {
-                $json = $zip->getFromName('composer.json');
-
-                if ($json && $package = $this->package->load($json)) {
-                    $extra = $package->get('extra');
-
-                    if (isset($extra['icon']) || isset($extra['image'])) {
-                        unset($extra['icon']);
-                        unset($extra['image']);
-                        $package->set('extra', $extra);
-                    }
-
-                    $package->set('shasum', sha1_file($file));
-                }
-
-                $zip->close();
-            }
-        }
-
-        if (isset($package) && $package) {
-            return $package;
-        }
-
-        throw new BadRequestHttpException(__('Can\'t load json file from package.'));
     }
 
     protected function errorHandler(string $name): ?callable

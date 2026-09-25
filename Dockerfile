@@ -251,7 +251,7 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 # screens and the installer write it at runtime, and an image is not the place
 # for that. It dangles until an installation creates the file.
 RUN set -eux; \
-    mkdir -p tmp/cache tmp/logs tmp/packages tmp/sessions tmp/temp storage \
+    mkdir -p tmp/cache tmp/logs tmp/sessions tmp/temp storage \
     "$PAGEKIT_DATA_DIR" /var/run/apache2 /var/lock/apache2; \
     ln -sfn ../storage public/storage; \
     ln -sfn "$PAGEKIT_DATA_DIR/config.php" config.php; \

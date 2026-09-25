@@ -4,7 +4,6 @@ export default {
   data() {
     return {
       pkg: {},
-      updatePkg: {},
       output: '',
       status: 'loading',
       warnings: [],
