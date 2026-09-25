@@ -8,6 +8,7 @@ use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Module\UnsatisfiedRequirementException;
 use Pagekit\Package\Archive\ArchiveRefusedException;
 use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\PackageFactory;
@@ -151,9 +152,16 @@ class PackageController
                 $e->getMessage()
             ), ['exception' => $e]);
 
-            $errorMessage = $this->debug
-                ? sprintf('%s', $e->getMessage())
-                : __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
+            if ($e instanceof UnsatisfiedRequirementException) {
+                $errorMessage = __($e->messageId(), [
+                    '%depender%' => $e->depender,
+                    '%required%' => $e->requirement,
+                ]);
+            } elseif ($this->debug) {
+                $errorMessage = $e->getMessage();
+            } else {
+                $errorMessage = __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
+            }
 
             return ['error' => $errorMessage];
 
@@ -464,7 +472,7 @@ class PackageController
 
         ini_set('display_errors', 0);
 
-        $originalErrorHandler = set_error_handler(function ($severity, $message, $file, $line) use ($name) {
+        set_error_handler(function ($severity, $message, $file, $line) use ($name) {
             if ($severity & (E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR)) {
                 while (ob_get_level()) {
                     ob_get_clean();
@@ -483,7 +491,7 @@ class PackageController
             return false;
         });
 
-        $originalExceptionHandler = set_exception_handler(function ($exception) use ($name) {
+        set_exception_handler(function ($exception) use ($name) {
             while (ob_get_level()) {
                 ob_get_clean();
             }
@@ -498,13 +506,12 @@ class PackageController
             exit;
         });
 
-        return function () use ($originalErrorHandler, $originalExceptionHandler, $originalErrorReporting) {
-            if ($originalErrorHandler !== null) {
-                set_error_handler($originalErrorHandler);
-            }
-            if ($originalExceptionHandler !== null) {
-                set_exception_handler($originalExceptionHandler);
-            }
+        return function () use ($originalErrorReporting) {
+            // Pop the frames this call pushed. Installing the previous callable again
+            // leaves these frames on the stack, and skipping that call when the previous
+            // handler was null leaves them there too.
+            restore_error_handler();
+            restore_exception_handler();
             error_reporting($originalErrorReporting);
             ini_set('display_errors', 1);
         };

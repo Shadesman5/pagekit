@@ -26,6 +26,36 @@ class ModuleManager implements \IteratorAggregate
     protected array $registrationFailures = [];
 
     /**
+     * Modules switched on for this request, or null until the boot names them.
+     *
+     * Null is not an empty site: load() of the boot module walks core
+     * requirements before that list exists, and those modules are registered.
+     *
+     * @var array<string, true>|null
+     */
+    private ?array $enabled = null;
+
+    /**
+     * Boot module whose requirements stay loadable without being enabled.
+     */
+    private ?string $bootModule = null;
+
+    /**
+     * Transitive requirements of the boot module, including the boot module.
+     *
+     * @var array<string, true>
+     */
+    private array $alwaysLoaded = [];
+
+    /**
+     * Reverse edges of the registered manifests. Dropped whenever register()
+     * runs, so a lookup does not walk every manifest again.
+     *
+     * @var array<string, list<string>>|null
+     */
+    private ?array $requiredBy = null;
+
+    /**
      * @var LoaderInterface[]
      */
     protected array $preLoaders = [];
@@ -87,6 +117,7 @@ class ModuleManager implements \IteratorAggregate
      */
     public function load(string|array $modules): self
     {
+        /** @var array<string, array<string, mixed>> $resolved */
         $resolved = [];
 
         if (is_string($modules)) {
@@ -141,6 +172,10 @@ class ModuleManager implements \IteratorAggregate
      */
     public function register(string|array $paths, ?string $basePath = null): self
     {
+        // Manifests changed, so the reverse index from the previous registration
+        // would answer for modules that are no longer the ones on disk.
+        $this->requiredBy = null;
+
         $app = $this->app;
         $includes = [];
 
@@ -180,7 +215,58 @@ class ModuleManager implements \IteratorAggregate
             $this->register($includes);
         }
 
+        // A lookup during this register() would have indexed a half-built set.
+        $this->requiredBy = null;
+        $this->refreshActivity();
+
         return $this;
+    }
+
+    /**
+     * Sets which registered modules may satisfy a requirement.
+     *
+     * @param list<string> $enabled
+     */
+    public function setActivityPolicy(array $enabled, string $bootModule): void
+    {
+        $active = [];
+
+        foreach ($enabled as $name) {
+            if ($name !== '') {
+                $active[$name] = true;
+            }
+        }
+
+        $this->enabled = $active;
+        $this->bootModule = $bootModule;
+        $this->refreshActivity();
+    }
+
+    /**
+     * Modules whose manifest lists $name under require, in registration order.
+     *
+     * @return list<string>
+     */
+    public function requiredBy(string $name): array
+    {
+        return $this->requiredByIndex()[$name] ?? [];
+    }
+
+    /**
+     * Refuses a registered module whose requirements are not satisfied.
+     *
+     * @throws UnsatisfiedRequirementException a requirement is missing or disabled
+     * @throws \RuntimeException               the requirements cycle
+     */
+    public function assertRequirements(string $name): void
+    {
+        if (!isset($this->registered[$name])) {
+            return;
+        }
+
+        /** @var array<string, array<string, mixed>> $resolved */
+        $resolved = [];
+        $this->resolveModules($this->registered[$name], $resolved);
     }
 
     /**
@@ -228,33 +314,150 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Resolves module requirements.
      *
-     * @param array<string, mixed>            $module
-     * @param array<array<string, mixed>>     $resolved
-     * @param array<array<string, mixed>>     $unresolved
+     * @param array<string, mixed>                $module
+     * @param array<string, array<string, mixed>> $resolved
+     * @param array<string, array<string, mixed>> $unresolved
      *
-     * @throws \RuntimeException
+     * @throws UnsatisfiedRequirementException a requirement is missing or disabled
+     * @throws \RuntimeException               the requirements cycle
      */
     protected function resolveModules(array $module, array &$resolved = [], array &$unresolved = []): void
     {
-        $unresolved[$module['name']] = $module;
+        $name = $module['name'] ?? null;
 
-        if (isset($module['require'])) {
-            foreach ((array) $module['require'] as $required) {
-                if (!isset($resolved[$required])) {
+        if (!is_string($name)) {
+            throw new \RuntimeException('Undefined module: ' . get_debug_type($name));
+        }
 
-                    if (isset($unresolved[$required])) {
-                        throw new \RuntimeException(sprintf('Circular requirement "%s > %s" detected.', $module['name'], $required));
-                    }
+        $unresolved[$name] = $module;
 
-                    if (isset($this->registered[$required])) {
-                        $this->resolveModules($this->registered[$required], $resolved, $unresolved);
-                    }
+        foreach ((array) ($module['require'] ?? []) as $required) {
+            if (!is_string($required) || $required === '') {
+                throw new UnsatisfiedRequirementException(
+                    $name,
+                    is_string($required) ? $required : get_debug_type($required),
+                    false,
+                );
+            }
+
+            if (isset($resolved[$required])) {
+                continue;
+            }
+
+            if (isset($unresolved[$required])) {
+                throw new \RuntimeException(sprintf('Circular requirement "%s > %s" detected.', $name, $required));
+            }
+
+            if (!isset($this->registered[$required])) {
+                throw new UnsatisfiedRequirementException($name, $required, false);
+            }
+
+            // Recursing would load a package the site has switched off.
+            if (!$this->isActive($required)) {
+                throw new UnsatisfiedRequirementException($name, $required, true);
+            }
+
+            $this->resolveModules($this->registered[$required], $resolved, $unresolved);
+        }
+
+        $resolved[$name] = $module;
+        unset($unresolved[$name]);
+    }
+
+    /**
+     * Whether a registered module may be loaded to satisfy a requirement.
+     *
+     * Null means the policy is unset, so the name is active; an empty enabled list is not.
+     */
+    private function isActive(string $name): bool
+    {
+        if ($this->enabled === null) {
+            return true;
+        }
+
+        return isset($this->alwaysLoaded[$name]) || isset($this->enabled[$name]);
+    }
+
+    private function refreshActivity(): void
+    {
+        if ($this->bootModule === null) {
+            return;
+        }
+
+        $this->alwaysLoaded = $this->alwaysLoadedClosure($this->bootModule);
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function alwaysLoadedClosure(string $bootModule): array
+    {
+        $closure = [];
+        $pending = [$bootModule];
+
+        while ($pending !== []) {
+            $name = array_pop($pending);
+
+            if (isset($closure[$name])) {
+                continue;
+            }
+
+            $closure[$name] = true;
+            $module = $this->registered[$name] ?? null;
+
+            if (!is_array($module)) {
+                continue;
+            }
+
+            foreach ((array) ($module['require'] ?? []) as $required) {
+                if (
+                    !is_string($required)
+                    || $required === ''
+                    || isset($closure[$required])
+                    || !isset($this->registered[$required])
+                ) {
+                    continue;
                 }
+
+                $pending[] = $required;
             }
         }
 
-        $resolved[$module['name']] = $module;
-        unset($unresolved[$module['name']]);
+        return $closure;
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private function requiredByIndex(): array
+    {
+        if ($this->requiredBy !== null) {
+            return $this->requiredBy;
+        }
+
+        /** @var array<string, array<string, true>> $seen */
+        $seen = [];
+
+        foreach ($this->registered as $name => $module) {
+            foreach ((array) ($module['require'] ?? []) as $required) {
+                if (!is_string($required) || $required === '') {
+                    continue;
+                }
+
+                $seen[$required] ??= [];
+                $seen[$required][$name] = true;
+            }
+        }
+
+        $index = [];
+
+        foreach ($seen as $required => $dependers) {
+            $index[$required] = array_keys($dependers);
+        }
+
+        $this->requiredBy = $index;
+
+        return $index;
     }
 
     /**

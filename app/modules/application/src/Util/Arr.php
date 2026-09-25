@@ -141,8 +141,9 @@ class Arr
                 unset($array[$key]);
             }
 
-            $new = array_values($array);
-            $array = &$new;
+            // Write the packed list through the reference. `$array = &$packed`
+            // would rebind the parameter and leave the caller's keys gapped.
+            $array = array_values($array);
         }
 
         return $array;

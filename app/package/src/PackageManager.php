@@ -6,6 +6,7 @@ namespace Pagekit\Package;
 
 use Pagekit\Filesystem\Path;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
@@ -268,6 +269,13 @@ class PackageManager
             $cleared = null;
             $moduleName = $package->get('module');
 
+            // An update calls enable() without load(), so this walk is the one that
+            // refuses a requirement before config is written or a hook runs.
+            // The manifest value is untyped; only a string is a module name.
+            if (is_string($moduleName)) {
+                $this->assertPackageRequirements($moduleName);
+            }
+
             try {
                 $previousPackageConfig = $package;
                 foreach ($previousPackageConfigs as $packageConfig) {
@@ -392,6 +400,24 @@ class PackageManager
                 );
             }
         }
+    }
+
+    /**
+     * Throws when the registered module's requirements are not satisfied.
+     */
+    private function assertPackageRequirements(string $moduleName): void
+    {
+        if ($moduleName === '' || !$this->app->has('module')) {
+            return;
+        }
+
+        $modules = $this->app->get('module');
+
+        if (!$modules instanceof ModuleManager) {
+            return;
+        }
+
+        $modules->assertRequirements($moduleName);
     }
 
     /**
