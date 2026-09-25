@@ -9,21 +9,38 @@
   "branch": "feature/module-dependency-integrity",
   "model": "grok-4.7",
   "status": "in_progress",
-  "startedAt": "2026-09-25T00:36:49.269Z",
-  "completedAt": null,
+  "startedAt": "2026-09-25T00:36:54.463Z",
+  "completedAt": "2026-09-25T00:57:10.334Z",
   "phases": [
     {
       "phaseKey": "36078326145-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-25T00:36:53.512Z",
-      "durationMs": 1230230,
+      "startedAt": "2026-09-25T00:36:54.463Z",
+      "durationMs": 1215039,
       "agent": {
         "id": "bc-08579d09-9861-4378-9195-e1743c5f20b3",
         "runId": "run-42362f4d-7583-4b85-959b-b39b53f1929e",
         "url": "https://cursor.com/agents/bc-08579d09-9861-4378-9195-e1743c5f20b3",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-42362f4d-7583-4b85-959b-b39b53f1929e",
+            "index": 1,
+            "startedAt": "2026-09-25T00:36:54.463Z",
+            "completedAt": "2026-09-25T00:57:10.334Z",
+            "durationMs": 1215039,
+            "tokens": {
+              "input": 80656,
+              "output": 6807,
+              "cacheRead": 416128,
+              "cacheWrite": 0,
+              "total": 503591
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36078326145,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_2_Module-Dependency-Integrity_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-25T00:57:10.334Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 0,
       "total": 503591
     },
-    "durationMs": 1230230,
+    "durationMs": 1215039,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
