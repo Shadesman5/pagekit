@@ -187,6 +187,10 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    this ticket is a ROADMAP row). Never use the GitHub issue title (`Step X.Y: Name`) as the PR
    title. Body: short summary + `<!-- metadata -->` (labels, milestone, `Closes #XXX`). V1 UI extra
    labels: `orchestrator-subagent-workflow.mdc`. This triggers the PR CI checks.
+   **Changing an existing PR** (title, body, labels, or any `gh pr edit`) uses the fine-grained
+   token `Github_PR_r_w`: `GH_TOKEN="$Github_PR_r_w" gh …`. Reads (`gh pr view`, `gh pr checks`,
+   `gh pr list`) stay on the default credential. `bugbot run` / `security run` stay on
+   `$PAGEKIT_BACKGROUND_AGENT` (step 4.1).
 2. **CI quality gate** — wait on the PR's status checks for this branch yourself (a watch, not a test —
    no tester needed). `gh pr checks` covers every required gate (the PHP Tests jobs, `infection-diff`,
    `e2e-smoke`, `frontend`) rather than a single workflow:
@@ -291,6 +295,7 @@ timeout, manual cancel) that already opened the PR or bumped the version but nev
 
 - **PR:** if a PR for this branch already exists (`gh pr list --head <branch> --state all` → open **or**
   already merged), **reuse** it / do nothing; only `gh pr create` when none exists (never open a second).
+  If that existing PR must be changed, use `Github_PR_r_w` (step 1).
 - **Version / CHANGELOG:** if the target version is already in `app/system/config.php` with its
   `CHANGELOG-NEW.md` section, do **not** bump again — the doc-writer amends that section in place
   (Rule 4: one version bump per PR).
