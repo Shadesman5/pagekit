@@ -158,10 +158,11 @@ final class PackageSnapshotter
      * installation over rather than by carrying on with it.
      *
      * @throws \InvalidArgumentException where no snapshot goes by this id
-     * @throws RestoreRefusedException   where the recorded application version is missing
+     * @throws RestoreRefusedException   where a stored application version is not text
      *                                  or differs, a `packages.*` entry does not match, or
-     *                                  a MySQL restore would refuse. Nothing under packages/
-     *                                  has been changed
+     *                                  a MySQL restore would refuse. A snapshot from before
+     *                                  the version was stored is not this refusal. Nothing
+     *                                  under packages/ has been changed
      * @throws \RuntimeException         where the snapshot is not one anything can be
      *                                  restored from, or the restore could not be applied
      */
@@ -354,11 +355,12 @@ final class PackageSnapshotter
     }
 
     /**
-     * Refuses a restore whose recorded application version is missing or
+     * Refuses a restore whose stored application version is not text or
      * differs, whose package versions do not match, or whose MySQL pre-flight
      * would refuse.
      *
-     * A dump that cannot be read is not one of those refusals: {@see self::restore()}
+     * A snapshot from before an application version was stored is not one of
+     * those refusals, and neither is a dump that cannot be read: {@see self::restore()}
      * reports that after the files are back.
      *
      * @throws RestoreRefusedException
@@ -404,9 +406,15 @@ final class PackageSnapshotter
     {
         $recorded = $this->store->application($id);
 
-        // Null is a missing key and a value that is not text. Neither can be
-        // shown to match this installation, and the dump would still replace the schema.
+        if ($recorded === null && !$this->store->applicationWasStored($id)) {
+            // Readable metadata with no version and no mark is a snapshot from
+            // before the field. The package map still ties it to this installation.
+            return [];
+        }
+
         if ($recorded === null) {
+            // A non-text value, a removed key, or a file that cannot be read
+            // cannot be shown to match, and the dump would replace the schema.
             return [__('It records no application version.')];
         }
 
@@ -645,6 +653,8 @@ final class PackageSnapshotter
             'version' => $this->text($package->get('version')),
             'reason' => $reason,
             'application' => $this->application,
+            // Left beside the version so a metadata file that loses the key is not an older snapshot.
+            SnapshotStore::APPLICATION_STORED => true,
             'format' => DumpFormat::VERSION,
             'database' => $this->dumper->describe(),
         ];

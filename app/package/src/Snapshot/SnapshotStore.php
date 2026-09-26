@@ -47,7 +47,7 @@ use Pagekit\Filesystem\Filesystem;
  * the directory is there long before the snapshot is finished.
  *
  * @phpstan-type SnapshotDatabase array{driver: string, platform: string, prefix: string}
- * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase, application?: string}
+ * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase, application?: string, applicationStored?: bool}
  * @phpstan-type Snapshot array{id: string, created: int, expires: int|null, size: int, complete: bool, package: string, module: string, title: string, type: string, version: string, reason: string, format: int, database: SnapshotDatabase}
  */
 final class SnapshotStore
@@ -64,6 +64,12 @@ final class SnapshotStore
      * into code on the next read.
      */
     public const METADATA_FILE = 'metadata.json';
+
+    /**
+     * Written next to `application` so a file that loses that key is not read as
+     * a snapshot from before the version was stored.
+     */
+    public const APPLICATION_STORED = 'applicationStored';
 
     /**
      * The database as it stood before the removal.
@@ -229,9 +235,9 @@ final class SnapshotStore
     /**
      * The application version recorded when the snapshot was taken.
      *
-     * Null where the metadata has no string `application`. That is an older
-     * snapshot, or a value that is not text, and it is not filled in from the
-     * installation that is reading it.
+     * Null where the metadata has no string `application`. An older snapshot and
+     * a value that is not text are told apart by {@see self::applicationWasStored()},
+     * and neither is filled in from the installation that is reading it.
      *
      * @throws \InvalidArgumentException where the id is not one
      */
@@ -246,6 +252,26 @@ final class SnapshotStore
         $version = $this->metadata($directory)['application'] ?? null;
 
         return is_string($version) ? $version : null;
+    }
+
+    /**
+     * Whether this snapshot stored an application version, or cannot be shown not to.
+     *
+     * False only when the metadata is readable and has neither the version nor
+     * the mark written beside it: a snapshot from before the field existed.
+     *
+     * @throws \InvalidArgumentException where the id is not one
+     */
+    public function applicationWasStored(string $id): bool
+    {
+        $data = $this->decodedMetadata($this->pathFor($id));
+
+        if ($data === null) {
+            return true;
+        }
+
+        return array_key_exists('application', $data)
+            || ($data[self::APPLICATION_STORED] ?? null) === true;
     }
 
     /**
@@ -627,24 +653,37 @@ final class SnapshotStore
      */
     private function metadata(string $directory): array
     {
+        return $this->decodedMetadata($directory) ?? [];
+    }
+
+    /**
+     * The metadata object, or null where the file is missing or not that object.
+     *
+     * Null is not an empty description: a snapshot from before a field existed
+     * still has a readable object, and a file that cannot be read does not.
+     *
+     * @return array<array-key, mixed>|null
+     */
+    private function decodedMetadata(string $directory): ?array
+    {
         try {
             $file = $directory.'/'.self::METADATA_FILE;
 
             if (!is_file($file)) {
-                return [];
+                return null;
             }
 
             $content = @file_get_contents($file);
 
             if ($content === false || trim($content) === '') {
-                return [];
+                return null;
             }
 
             $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
 
-            return is_array($data) ? $data : [];
+            return is_array($data) ? $data : null;
         } catch (\Throwable) {
-            return [];
+            return null;
         }
     }
 
