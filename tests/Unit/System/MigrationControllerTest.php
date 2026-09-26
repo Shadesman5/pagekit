@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\System;
 
 use Pagekit\Application;
-use Pagekit\Application\Response;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
+use Pagekit\Routing\Response;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Session\MessageBag;
 use Pagekit\System\Controller\MigrationController;
 use Pagekit\System\SystemModule;

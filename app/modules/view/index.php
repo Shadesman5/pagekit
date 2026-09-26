@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Pagekit\Event\PrefixEventDispatcher;
+use Pagekit\Twig\TwigCache;
+use Pagekit\Twig\TwigLoader;
 use Pagekit\View\Asset\AssetFactory;
 use Pagekit\View\Asset\AssetManager;
 use Pagekit\View\Engine\DelegatingEngine;
@@ -23,20 +25,40 @@ use Pagekit\View\Loader\FilesystemLoader;
 use Pagekit\View\PhpEngine;
 use Pagekit\View\View;
 use Symfony\Component\HttpFoundation\Response;
+use Twig\Environment;
+use Twig\Extension\DebugExtension;
 
 return [
 
     'name' => 'view',
 
-    'include' => 'modules/*/index.php',
-
     'require' => [
 
-        'view/twig',
+        'filesystem',
+        'kernel',
+        'markdown',
+        'routing',
+        'session',
 
     ],
 
     'main' => function ($app) {
+
+        $app->set('twig', function ($app) {
+
+            $twig = new Environment(new TwigLoader($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null), [
+                'cache' => new TwigCache($app->get('path.cache')),
+                'auto_reload' => true,
+                'debug' => $app->get('debug'),
+            ]);
+
+            if ($app->has('debug') && $app->get('debug')) {
+                $twig->addExtension(new DebugExtension());
+            }
+
+            return $twig;
+
+        });
 
         $app->set('view', fn ($app) => new View(new PrefixEventDispatcher('view.', $app->get('events'))));
 
@@ -173,6 +195,7 @@ return [
     'autoload' => [
 
         'Pagekit\\View\\' => 'src',
+        'Pagekit\\Twig\\' => 'src/Twig',
 
     ],
 

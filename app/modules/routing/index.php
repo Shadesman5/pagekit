@@ -92,6 +92,7 @@ return [
 
         'kernel',
         'filter',
+        'filesystem',
 
     ],
 

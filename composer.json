@@ -68,7 +68,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Pagekit\\": "app/modules/application/src",
+      "Pagekit\\": "app/modules/kernel/src",
       "Pagekit\\Installer\\": "app/installer/src",
       "Pagekit\\Package\\": "app/package/src",
       "Pagekit\\System\\": "app/system/src",
@@ -89,6 +89,7 @@
       "Pagekit\\Routing\\": "app/modules/routing/src",
       "Pagekit\\Session\\": "app/modules/session/src",
       "Pagekit\\View\\": "app/modules/view/src",
+      "Pagekit\\Twig\\": "app/modules/view/src/Twig",
       "Pagekit\\Mail\\": "app/system/modules/mail/src",
       "Pagekit\\Site\\": "app/system/modules/site/src",
       "Pagekit\\User\\": "app/system/modules/user/src",

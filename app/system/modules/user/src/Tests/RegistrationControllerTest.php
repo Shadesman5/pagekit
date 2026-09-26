@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Tests;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Database\ORM\QueryBuilder;
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Message;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
 use Pagekit\Session\MessageBag;
 use Pagekit\Site\SiteModule;

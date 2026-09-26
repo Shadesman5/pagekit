@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace Pagekit\Package\Controller;
 
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Module\UnsatisfiedRequirementException;
 use Pagekit\Package\Archive\ArchiveRefusedException;
 use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
+use Pagekit\Package\RemovalBlockedException;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\Response as PagekitResponse;
+use Pagekit\Routing\UrlProvider;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -151,9 +153,16 @@ class PackageController
                 $e->getMessage()
             ), ['exception' => $e]);
 
-            $errorMessage = $this->debug
-                ? sprintf('%s', $e->getMessage())
-                : __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
+            if ($e instanceof UnsatisfiedRequirementException) {
+                $errorMessage = __($e->messageId(), [
+                    '%depender%' => $e->depender,
+                    '%required%' => $e->requirement,
+                ]);
+            } elseif ($this->debug) {
+                $errorMessage = $e->getMessage();
+            } else {
+                $errorMessage = __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
+            }
 
             return ['error' => $errorMessage];
 
@@ -178,13 +187,32 @@ class PackageController
             throw new BadRequestHttpException(__('"%name%" has not been loaded.', ['%name%' => $package->get('title')]));
         }
 
-        $this->manager->disable($package);
+        try {
+            $this->manager->disable($package);
+        } catch (RemovalBlockedException $e) {
+            throw new BadRequestHttpException($e->getMessage(), $e);
+        }
 
         $this->module->get('system/cache')->clearCache();
 
         // The package is off either way; a step of its own that did not finish
         // is something the administrator hears about rather than a failure.
         return ['message' => 'success', 'warnings' => $this->manager->takeHookWarnings()];
+    }
+
+    /**
+     * Blockers, orphans, and data risk for switching this package off.
+     *
+     * @return array{blockers: list<string>, orphans: list<string>, dataRisk: array{migrations: bool, config: bool, nodes: list<string>, tables: list<string>}}
+     */
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function impactAction(string $name): array
+    {
+        if (!$package = $this->package->get($name)) {
+            throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
+        }
+
+        return $this->manager->removalImpact($package);
     }
 
     /**
@@ -202,8 +230,7 @@ class PackageController
         try {
             $archive = PackageArchive::open($file->getPathname());
         } catch (ArchiveRefusedException $e) {
-            // The page reads the reason out of a 400 body; a RuntimeException would reach it as a 500 without one.
-            throw new BadRequestHttpException($e->getMessage(), $e);
+            $this->rejectedArchive($e);
         }
 
         if ($archive->type() !== 'pagekit-' . $type) {
@@ -221,6 +248,13 @@ class PackageController
         if (is_array($extra) && (isset($extra['icon']) || isset($extra['image']))) {
             unset($extra['icon'], $extra['image']);
             $package->set('extra', $extra);
+        }
+
+        try {
+            // Before move(): a refusal must not leave the staged archive behind.
+            $this->manager->assertArchiveRequirements($archive);
+        } catch (ArchiveRefusedException $e) {
+            $this->rejectedArchive($e);
         }
 
         $file->move($this->packageStaging, self::stagedName($archive->name(), $archive->version()));
@@ -290,12 +324,6 @@ class PackageController
     /**
      * Takes a package out of the installation, retaining it in a snapshot where
      * this installation keeps them ({@see keepsSnapshots()}).
-     *
-     * What the administrator confirmed before this ran says what the removal
-     * does to the package itself; it cannot yet say what else in the
-     * installation was counting on it.
-     *
-     * TODO: Must be refactored in Step 2.7.2 (Module Dependency Integrity)
      */
     #[RequestAttribute(['name' => 'string'], csrf: true)]
     public function uninstallAction(string $name): StreamedResponse
@@ -399,6 +427,14 @@ class PackageController
     }
 
     /**
+     * The page reads the reason out of a 400 body; a RuntimeException would reach it as a 500 without one.
+     */
+    private function rejectedArchive(ArchiveRefusedException $e): never
+    {
+        throw new BadRequestHttpException($e->getMessage(), $e);
+    }
+
+    /**
      * The file an uploaded archive waits in until the install request.
      */
     private static function stagedName(string $name, string $version): string
@@ -464,7 +500,7 @@ class PackageController
 
         ini_set('display_errors', 0);
 
-        $originalErrorHandler = set_error_handler(function ($severity, $message, $file, $line) use ($name) {
+        set_error_handler(function ($severity, $message, $file, $line) use ($name) {
             if ($severity & (E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR)) {
                 while (ob_get_level()) {
                     ob_get_clean();
@@ -483,7 +519,7 @@ class PackageController
             return false;
         });
 
-        $originalExceptionHandler = set_exception_handler(function ($exception) use ($name) {
+        set_exception_handler(function ($exception) use ($name) {
             while (ob_get_level()) {
                 ob_get_clean();
             }
@@ -498,13 +534,12 @@ class PackageController
             exit;
         });
 
-        return function () use ($originalErrorHandler, $originalExceptionHandler, $originalErrorReporting) {
-            if ($originalErrorHandler !== null) {
-                set_error_handler($originalErrorHandler);
-            }
-            if ($originalExceptionHandler !== null) {
-                set_exception_handler($originalExceptionHandler);
-            }
+        return function () use ($originalErrorReporting) {
+            // Pop the frames this call pushed. Installing the previous callable again
+            // leaves these frames on the stack, and skipping that call when the previous
+            // handler was null leaves them there too.
+            restore_error_handler();
+            restore_exception_handler();
             error_reporting($originalErrorReporting);
             ini_set('display_errors', 1);
         };

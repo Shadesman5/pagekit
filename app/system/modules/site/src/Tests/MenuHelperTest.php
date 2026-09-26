@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Tests;
 
-use Pagekit\Application\UrlProvider;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Site\MenuHelper;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Node;

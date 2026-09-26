@@ -439,7 +439,7 @@ final class DatabaseRestorerTest extends TestCase
             ],
             'a dump of no tables, which restores nothing' => [
                 $header.self::compose([['type' => DumpFormat::END, 'tables' => 0, 'rows' => 0]]),
-                'holds no tables',
+                'The database dump holds no tables, so there is nothing in it to restore.',
             ],
             'a table with no name' => [
                 $header.self::compose([
@@ -1034,8 +1034,91 @@ final class DatabaseRestorerTest extends TestCase
             ['GET_LOCK', 'lower_case_table_names', 'REFERENTIAL_CONSTRAINTS', 'RELEASE_LOCK'],
             $this->whatTheServerWasAsked($connection),
         );
+        $this->assertTheServerWasAskedHowNamesFold($connection);
 
         self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+    }
+
+    public function testANeighbourNamedInTheDumpIsRefusedWithoutAskingHowNamesFold(): void
+    {
+        // A name that does not match the prefix even folded is not this
+        // installation's on any server. The dump is read before the lock, so
+        // asking here would be a question on every dump that names a neighbour.
+        $connection = $this->mysqlInstallation();
+        $connection->folding = '1';
+
+        $this->dumpNaming($connection, ['other_items']);
+
+        $this->refusedRestore($connection, 'not part of this installation');
+
+        self::assertSame([], $connection->asked);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    /**
+     * @return array<string, array{0: string|int|null, 1: bool}>
+     */
+    public static function provideWhetherADifferentCaseIsTheSameTable(): array
+    {
+        return [
+            'names stored folded, answered as text' => ['1', true],
+            'names stored folded, answered as an integer' => [1, true],
+            'names matched folded but stored as given, answered as text' => ['2', true],
+            'names matched folded but stored as given, answered as an integer' => [2, true],
+            'names matched as they are written' => ['0', false],
+            'names matched as they are written, answered as an integer' => [0, false],
+            'an answer this does not treat as folding' => [3, false],
+            'an answer in words' => ['ON', false],
+            'an empty answer' => ['', false],
+            'a server that gives no row' => [null, false],
+        ];
+    }
+
+    #[DataProvider('provideWhetherADifferentCaseIsTheSameTable')]
+    public function testATableNamedInAnotherCaseBelongsToThisInstallationOnlyWhereTheServerFolds(string|int|null $folding, bool $belongs): void
+    {
+        // The dump is judged while it is read, which is before the lock. A name
+        // that differs from the prefix only by case is the one comparison that
+        // has to ask; the answer is what says whether a restore may drop it.
+        $connection = $this->mysqlInstallation();
+        $connection->folding = $folding;
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'PK_items'],
+        ];
+
+        $this->dumpNaming($connection, ['PK_items']);
+
+        if ($belongs) {
+            $this->refusedRestore($connection, 'fk_from_a_neighbour');
+
+            self::assertSame(
+                ['lower_case_table_names', 'GET_LOCK', 'REFERENTIAL_CONSTRAINTS', 'RELEASE_LOCK'],
+                $this->whatTheServerWasAsked($connection),
+            );
+        } else {
+            $this->refusedRestore($connection, 'not part of this installation');
+
+            self::assertSame(['lower_case_table_names'], $this->whatTheServerWasAsked($connection));
+        }
+
+        $this->assertTheServerWasAskedHowNamesFold($connection);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAMarkerInACaseNoRestoreWritesIsNotANameTheDumpIsRefusedForAsItsOwn(): void
+    {
+        // Reservation is the bytes a restore writes. A marker in another case is
+        // somebody else's table, including where the server matches names folded.
+        $connection = $this->mysqlInstallation();
+        $connection->folding = '1';
+
+        $this->dumpNaming($connection, ['_R_pk_items']);
+
+        $refusal = $this->refusedRestore($connection, 'not part of this installation');
+
+        self::assertStringNotContainsString('that a restore makes for itself', $refusal->getMessage());
+        self::assertSame([], $connection->asked);
+        self::assertSame(2, $this->countItems($connection));
     }
 
     public function testTheLockIsGivenUpWhenTheRestoreItselfCouldNotBeCarriedThrough(): void
@@ -1816,6 +1899,124 @@ final class DatabaseRestorerTest extends TestCase
         }
     }
 
+    public function testAQueryNamesTheMissingPrefixTheRestoreWouldAndDropsNothing(): void
+    {
+        $connection = $this->mysqlInstallation('');
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->workspace.'/never-written.dump');
+
+        self::assertSame([$this->refusedRestore($connection, 'carry no name prefix')->getMessage()], $reasons);
+        self::assertSame([], $connection->asked);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryNamesTheCopyMysqlCannotHoldBeforeItAsksForTheLock(): void
+    {
+        $connection = $this->mysqlInstallation();
+        $connection->locked = true;
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $table = 'pk_'.str_repeat('a', 59);
+
+        $this->dumpNaming($connection, [$table]);
+
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->dump());
+
+        self::assertSame([$this->refusedRestore($connection, 'cannot be restored on MySQL')->getMessage()], $reasons);
+        self::assertCount(1, $reasons);
+        self::assertStringNotContainsString('already running', $reasons[0]);
+        self::assertStringNotContainsString('fk_from_a_neighbour', $reasons[0]);
+        self::assertSame([], $connection->asked);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryNamesTheRestoreAlreadyRunningAndHoldsNoLock(): void
+    {
+        $connection = $this->mysqlInstallation();
+        $connection->locked = true;
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->dump());
+
+        self::assertSame([$this->refusedRestore($connection, 'already running')->getMessage()], $reasons);
+        self::assertSame([], $connection->locksGivenUp);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryNamesAnInboundReferenceGivesTheLockBackAndLeavesCopies(): void
+    {
+        $connection = $this->mysqlInstallation();
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $reasons = (new DatabaseRestorer($connection))->refusals($this->dump());
+
+        self::assertSame([$this->refusedRestore($connection, 'fk_from_a_neighbour')->getMessage()], $reasons);
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+        self::assertNotEmpty($connection->locksGivenUp);
+        self::assertContains('_r_pk_items', $connection->createSchemaManager()->listTableNames());
+        self::assertContains('_r_wp_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryThatWouldLetTheRestoreThroughLeavesCopiesWhereTheyAre(): void
+    {
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->refusals($this->dump()));
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+        self::assertNotEmpty($connection->locksGivenUp);
+        self::assertContains('_r_pk_items', $connection->createSchemaManager()->listTableNames());
+        self::assertContains('_r_wp_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testADumpThatNamesAReservedTableIsTheSameSentenceFromTheQuery(): void
+    {
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        $sentence = $this->refusedRestore($connection, 'makes for itself')->getMessage();
+
+        try {
+            (new DatabaseRestorer($connection))->refusals($this->dump());
+
+            self::fail('A dump that names a table a restore makes for itself must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertSame($sentence, $e->getMessage());
+        }
+
+        self::assertContains('_r_wp_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAQueryOnSqliteReportsNothing(): void
+    {
+        $connection = $this->installation('');
+
+        if (!$this->isSqlite($connection)) {
+            self::markTestSkipped('Only MySQL has these restore refusals');
+        }
+
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->refusals($this->dump()));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
     public function testARestoreThatWentThroughIsLeftWithNoTablesOfItsOwn(): void
     {
         // The tables a restore sets aside hold what the site was reading until the
@@ -1900,6 +2101,55 @@ final class DatabaseRestorerTest extends TestCase
 
         self::assertSame(['tables' => 2, 'rows' => 3], $summary);
         self::assertSame($snapshotted, $this->items($connection));
+    }
+
+    public function testTheSystemRowIsReadWhenItsColumnsDifferOnlyByCase(): void
+    {
+        $connection = $this->installation();
+
+        $this->dumpConfig($connection, ['Name', 'Value'], [
+            ['locale', '{"packages":{"ghost":"9.0.0"}}'],
+            ['system', '{"packages":{"blog":"1.0.0"}}'],
+        ]);
+
+        self::assertSame(
+            ['blog' => '1.0.0'],
+            (new DatabaseRestorer($connection))->packageVersions($this->dump()),
+        );
+    }
+
+    public function testAConfigTableWithoutNameOrValueHoldsNoPackages(): void
+    {
+        $connection = $this->installation();
+
+        $this->dumpConfig($connection, ['id'], [[1]]);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->packageVersions($this->dump()));
+    }
+
+    #[DataProvider('systemRowsThatHoldNoPackages')]
+    public function testASystemRowThatHoldsNoPackagesObjectIsAnEmptyMap(mixed $value): void
+    {
+        $connection = $this->installation();
+
+        $this->dumpConfig($connection, ['name', 'value'], [['system', $value]]);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->packageVersions($this->dump()));
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function systemRowsThatHoldNoPackages(): array
+    {
+        return [
+            'empty' => [''],
+            'not text' => [null],
+            'not json' => ['{'],
+            'not an object' => ['"blog"'],
+            'no packages object' => ['{"extensions":[]}'],
+            'packages that are not an object' => ['{"packages":"blog"}'],
+        ];
     }
 
     // ------------------------------------------------------------------
@@ -2164,6 +2414,20 @@ final class DatabaseRestorerTest extends TestCase
         return array_map(self::whatItAskedAbout(...), $connection->asked);
     }
 
+    /**
+     * The one statement that asks how table names are matched. Anything else
+     * that mentions the variable, including an @-led name, is a different question.
+     */
+    private function assertTheServerWasAskedHowNamesFold(ConnectionThatAnswersForAMysqlServer $connection): void
+    {
+        $asked = array_values(array_filter(
+            $connection->asked,
+            static fn (string $query): bool => str_contains($query, 'lower_case_table_names') || str_contains($query, '@@'),
+        ));
+
+        self::assertSame(["SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'"], $asked);
+    }
+
     private static function whatItAskedAbout(string $query): string
     {
         foreach (['GET_LOCK', 'RELEASE_LOCK', 'lower_case_table_names', 'REFERENTIAL_CONSTRAINTS'] as $subject) {
@@ -2423,6 +2687,33 @@ final class DatabaseRestorerTest extends TestCase
     private function dump(): string
     {
         return $this->workspace.'/db.dump';
+    }
+
+    /**
+     * @param list<string>       $columns
+     * @param list<list<mixed>>  $rows
+     */
+    private function dumpConfig(Connection $connection, array $columns, array $rows): void
+    {
+        $prefix = $connection->getPrefix() ?? '';
+        $table = $prefix.'system_config';
+        $records = [
+            self::header(['prefix' => $prefix]),
+            [
+                'type' => DumpFormat::TABLE,
+                'name' => $table,
+                'ddl' => [sprintf('CREATE TABLE %s (id INTEGER)', $table)],
+                'columns' => $columns,
+            ],
+        ];
+
+        foreach ($rows as $row) {
+            $records[] = ['type' => DumpFormat::ROW, 'values' => $row];
+        }
+
+        $records[] = ['type' => DumpFormat::END, 'tables' => 1, 'rows' => count($rows)];
+
+        $this->writeDump($connection, $records);
     }
 
     /**

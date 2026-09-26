@@ -8,8 +8,8 @@ use function Pagekit\__;
 
 use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request as RequestAttr;
-use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;

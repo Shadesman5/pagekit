@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Site;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Routing\Generator\UrlGenerator;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Model\User;
 

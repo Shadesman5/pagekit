@@ -11,7 +11,10 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Package\Package;
 use Pagekit\Package\Snapshot\DatabaseDumper;
 use Pagekit\Package\Snapshot\DatabaseRestorer;
+use Pagekit\Package\Snapshot\DumpFormat;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\RestoreRefusedException;
+use Pagekit\Package\Snapshot\RestoreTableNames;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -113,6 +116,8 @@ final class SnapshotRestoreTest extends TestCase
         $connection = $this->installation();
         $id = $this->take($connection);
 
+        self::assertSame('', $this->store()->application($id));
+
         $this->removePackage($connection);
 
         $this->snapshotter($connection)->restore($id);
@@ -178,6 +183,7 @@ final class SnapshotRestoreTest extends TestCase
         $this->snapshotter($connection)->restore($id);
 
         self::assertFileExists($this->tree.'/composer.json');
+        self::assertSame(self::INSTALLED, $this->configuration($connection));
         self::assertSame(['pagekit'], $this->entries($this->packages));
         self::assertSame(['packages', 'snapshots'], $this->entries($this->workspace));
     }
@@ -204,6 +210,388 @@ final class SnapshotRestoreTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // What is refused before any package file is put back
+    // ------------------------------------------------------------------
+
+    public function testADifferentApplicationVersionRefusesBeforeAnyPackageFileIsPutBack(): void
+    {
+        $connection = $this->installation();
+        $id = $this->snapshotter($connection, log: new NullLogger(), application: '1.2.43')
+            ->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+
+        self::assertSame('1.2.43', $this->store()->application($id));
+
+        $this->removePackage($connection);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString($id, $failure->getMessage());
+        self::assertStringContainsString(
+            'It was taken on application "1.2.43" and this installation runs "".',
+            $failure->getMessage(),
+        );
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    public function testASnapshotWithNoApplicationVersionRefusesByNameBeforeAnyFileIsPutBack(): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+        $this->forgetMetadata($id, 'application');
+
+        self::assertNull($this->store()->application($id));
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString($id, $failure->getMessage());
+        self::assertStringContainsString('It records no application version.', $failure->getMessage());
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    #[DataProvider('provideApplicationVersionsThatAreNotText')]
+    public function testAnApplicationVersionThatIsNotTextRefusesByName(mixed $application): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+        $this->rewriteMetadata($id, ['application' => $application]);
+
+        self::assertNull($this->store()->application($id));
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString('It records no application version.', $failure->getMessage());
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function provideApplicationVersionsThatAreNotText(): array
+    {
+        return [
+            'a number' => [12],
+            'a list' => [['1.2.43']],
+            'a boolean' => [false],
+            'a null' => [null],
+        ];
+    }
+
+    public function testTheArchivedManifestNamesTheModuleThatMayBeMissingLive(): void
+    {
+        // Metadata module is a file in the store. The packages key comes from the archived composer.json.
+        $connection = $this->installation();
+        $dumped = '{"packages":{"widgets":"3.1.0"},"extensions":["widgets"]}';
+
+        $connection->update('pk_system_config', ['value' => $dumped], ['name' => 'system']);
+        file_put_contents($this->tree.'/composer.json', (string) json_encode([
+            'name' => 'pagekit/test-ext',
+            'type' => 'pagekit-extension',
+            'version' => '3.1.0',
+            'module' => 'widgets',
+        ], JSON_THROW_ON_ERROR));
+
+        $id = $this->take($connection);
+
+        $this->rewriteMetadata($id, ['module' => '../../escaped', 'package' => '../../escaped']);
+        $this->removePackage($connection);
+
+        $this->snapshotter($connection)->restore($id);
+
+        self::assertSame($dumped, $this->configuration($connection));
+        self::assertSame('widgets', $this->manifestModule());
+        self::assertSame(['pagekit'], $this->entries($this->packages));
+    }
+
+    public function testANonStringManifestModuleDoesNotExemptThePackageName(): void
+    {
+        $connection = $this->installation();
+
+        file_put_contents($this->tree.'/composer.json', (string) json_encode([
+            'name' => 'pagekit/test-ext',
+            'type' => 'pagekit-extension',
+            'version' => '1.4.2',
+            'module' => 1,
+        ], JSON_THROW_ON_ERROR));
+
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"test-ext" is in the snapshot and not in this installation.',
+            $failure->getMessage(),
+        );
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    public function testAModuleOnlyTheSnapshotHasIsNamedAndThePackageStaysGone(): void
+    {
+        $connection = $this->installation();
+
+        $connection->update(
+            'pk_system_config',
+            ['value' => '{"packages":{"test-ext":"1.4.2","blog":"1.0.0"},"extensions":["test-ext"]}'],
+            ['name' => 'system'],
+        );
+
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString($id, $failure->getMessage());
+        self::assertStringContainsString(
+            '"blog" is in the snapshot and not in this installation.',
+            $failure->getMessage(),
+        );
+        self::assertStringNotContainsString('"test-ext" is in the snapshot', $failure->getMessage());
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    public function testAModuleOnlyTheInstallationHasIsNamedAndThePackageStaysGone(): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+        $live = '{"packages":{"blog":"2.0.0"},"extensions":[]}';
+
+        $this->removePackage($connection);
+        $connection->update('pk_system_config', ['value' => $live], ['name' => 'system']);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"blog" is in this installation and not in the snapshot.',
+            $failure->getMessage(),
+        );
+        self::assertStringNotContainsString('"test-ext" is in the snapshot', $failure->getMessage());
+        $this->assertFilesWereNotPutBack($id, $connection, $live);
+    }
+
+    public function testAPackageVersionThatDiffersIsNamedEvenWhenTheModuleIsTheOneBeingRestored(): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+        $live = '{"packages":{"test-ext":"9.0.0"},"extensions":["test-ext"]}';
+
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => $live], ['name' => 'system']);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"test-ext" is "1.4.2" in the snapshot and "9.0.0" in this installation.',
+            $failure->getMessage(),
+        );
+        $this->assertFilesWereNotPutBack($id, $connection, $live);
+    }
+
+    public function testAPackageVersionThatIsNotTextDoesNotCountAsTheSameVersion(): void
+    {
+        $connection = $this->installation();
+
+        $connection->update(
+            'pk_system_config',
+            ['value' => '{"packages":{"test-ext":"1.4.2","blog":1},"extensions":["test-ext"]}'],
+            ['name' => 'system'],
+        );
+
+        $id = $this->take($connection);
+        $live = '{"packages":{"blog":1}}';
+
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => $live], ['name' => 'system']);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"blog" is "1" in the snapshot and "1" in this installation.',
+            $failure->getMessage(),
+        );
+        self::assertStringNotContainsString('"test-ext" is', $failure->getMessage());
+        $this->assertFilesWereNotPutBack($id, $connection, $live);
+    }
+
+    public function testAVersionOnBothSidesThatDiffersIsNamedAndTheArchivedModuleIsNot(): void
+    {
+        $connection = $this->installation();
+
+        $connection->update(
+            'pk_system_config',
+            ['value' => '{"packages":{"test-ext":"1.4.2","blog":"1.0.0"},"extensions":["test-ext"]}'],
+            ['name' => 'system'],
+        );
+
+        $id = $this->take($connection);
+        $live = '{"packages":{"blog":"2.0.0"}}';
+
+        $this->removePackage($connection);
+        $connection->update('pk_system_config', ['value' => $live], ['name' => 'system']);
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"blog" is "1.0.0" in the snapshot and "2.0.0" in this installation.',
+            $failure->getMessage(),
+        );
+        self::assertStringNotContainsString('"test-ext" is', $failure->getMessage());
+        $this->assertFilesWereNotPutBack($id, $connection, $live);
+    }
+
+    public function testAMysqlInstallWithoutAPrefixRefusesBeforeAnyPackageFileIsPutBack(): void
+    {
+        $id = $this->removedSnapshot();
+        $mysql = $this->mysqlConnection('');
+
+        $this->keepARow($mysql);
+
+        $failure = $this->refused(fn () => $this->snapshotter($mysql)->restore($id));
+
+        self::assertStringContainsString($id, $failure->getMessage());
+        self::assertStringContainsString('carry no name prefix', $failure->getMessage());
+        self::assertStringContainsString('"pk_"', $failure->getMessage());
+        self::assertSame([], $mysql->locksAskedFor);
+        $this->assertFilesWereNotPutBack($id);
+        $this->assertKept($mysql);
+    }
+
+    public function testAMysqlNameThatWillNotFitRefusesBeforeAnyPackageFileIsPutBack(): void
+    {
+        $id = $this->removedSnapshot();
+        $mysql = $this->mysqlConnection();
+        $table = 'pk_'.str_repeat('a', 59);
+
+        $this->replaceDump($id, $mysql, [$table]);
+        $this->keepARow($mysql);
+
+        $failure = $this->refused(fn () => $this->snapshotter($mysql)->restore($id));
+
+        self::assertStringContainsString($table, $failure->getMessage());
+        self::assertStringContainsString('cannot be restored on MySQL', $failure->getMessage());
+        self::assertSame([], $mysql->locksAskedFor);
+        $this->assertFilesWereNotPutBack($id);
+        $this->assertKept($mysql);
+    }
+
+    public function testAMysqlRestoreAlreadyRunningRefusesBeforeAnyPackageFileIsPutBack(): void
+    {
+        $id = $this->removedSnapshot();
+        $mysql = $this->mysqlConnection();
+
+        $mysql->locked = true;
+        $this->replaceDump($id, $mysql, ['pk_items']);
+        $this->keepARow($mysql);
+
+        $failure = $this->refused(fn () => $this->snapshotter($mysql)->restore($id));
+
+        self::assertStringContainsString('already running', $failure->getMessage());
+        self::assertSame([], $mysql->locksGivenUp);
+        $this->assertFilesWereNotPutBack($id);
+        $this->assertKept($mysql);
+    }
+
+    public function testAnInboundForeignKeyRefusesBeforeAnyPackageFileIsPutBackAndLeavesReservedNames(): void
+    {
+        $id = $this->removedSnapshot();
+        $mysql = $this->mysqlConnection();
+
+        $mysql->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+        $this->replaceDump($id, $mysql, ['pk_items']);
+        $this->tableNamed($mysql, RestoreTableNames::shadow('pk_items'));
+        $this->tableNamed($mysql, RestoreTableNames::shadow('wp_items'));
+        $this->keepARow($mysql);
+
+        $failure = $this->refused(fn () => $this->snapshotter($mysql)->restore($id));
+
+        self::assertStringContainsString('fk_from_a_neighbour', $failure->getMessage());
+        self::assertStringContainsString('other_items', $failure->getMessage());
+        self::assertStringContainsString('have to be dropped before a restore can run', $failure->getMessage());
+        self::assertSame($mysql->locksAskedFor, $mysql->locksGivenUp);
+        self::assertNotEmpty($mysql->locksGivenUp);
+        self::assertContains('_r_pk_items', $mysql->createSchemaManager()->listTableNames());
+        self::assertContains('_r_wp_items', $mysql->createSchemaManager()->listTableNames());
+        $this->assertFilesWereNotPutBack($id);
+        $this->assertKept($mysql);
+    }
+
+    public function testADumpThatNamesAReservedTableIsNotAnOperatorRefusal(): void
+    {
+        // The dump cannot be compared, so the restore reports that after the files are back.
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+        $this->replaceDump($id, $connection, [RestoreTableNames::shadow('pk_items')]);
+
+        $failure = $this->refusal(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertNotInstanceOf(RestoreRefusedException::class, $failure);
+        self::assertStringContainsString('makes for itself', $failure->getMessage());
+        self::assertFileExists($this->tree.'/composer.json');
+        self::assertSame(self::REMOVED, $this->configuration($connection));
+        self::assertSame([], $this->log->records);
+    }
+
+    public function testAMysqlDumpThatCannotBeReadIsNotAnOperatorRefusal(): void
+    {
+        $id = $this->removedSnapshot();
+        $mysql = $this->mysqlConnection();
+
+        $this->replaceDump($id, $mysql, ['pk_items']);
+        $this->cutTheDumpShort($id);
+        $this->keepARow($mysql);
+
+        $failure = $this->refusal(fn () => $this->snapshotter($mysql)->restore($id));
+
+        self::assertNotInstanceOf(RestoreRefusedException::class, $failure);
+        self::assertStringContainsString('incomplete', $failure->getMessage());
+        self::assertFileExists($this->tree.'/composer.json');
+        $this->assertKept($mysql);
+        self::assertSame([$id], array_keys($this->store()->list()));
+    }
+
+    #[DataProvider('manifestsThatNameNoModule')]
+    public function testAnArchivedManifestThatNamesNoModuleDoesNotExemptOne(string $manifest): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+        file_put_contents(
+            $this->file($id, SnapshotStore::FILES_DIR).'/pagekit/test-ext/composer.json',
+            $manifest,
+        );
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"test-ext" is in the snapshot and not in this installation.',
+            $failure->getMessage(),
+        );
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function manifestsThatNameNoModule(): array
+    {
+        return [
+            'empty' => [''],
+            'not json' => ['{'],
+            'not an object' => ['42'],
+        ];
+    }
+
+    // ------------------------------------------------------------------
     // A restore that cannot be finished
     // ------------------------------------------------------------------
 
@@ -222,6 +610,7 @@ final class SnapshotRestoreTest extends TestCase
 
         $failure = $this->refusal(fn () => $this->snapshotter($connection)->restore($id));
 
+        self::assertNotInstanceOf(RestoreRefusedException::class, $failure);
         self::assertStringContainsString('incomplete', $failure->getMessage());
         self::assertFileExists($this->tree.'/composer.json');
         self::assertSame(self::REMOVED, $this->configuration($connection));
@@ -443,8 +832,15 @@ final class SnapshotRestoreTest extends TestCase
      * @param AbstractLogger|null $log   where the trail goes, for the test about
      *                                   what happens when it cannot be written
      */
-    private function snapshotter(Connection $connection, ?Filesystem $files = null, ?AbstractLogger $log = null): PackageSnapshotter
-    {
+    /**
+     * @param string $application the running version recorded on a new snapshot
+     */
+    private function snapshotter(
+        Connection $connection,
+        ?Filesystem $files = null,
+        ?AbstractLogger $log = null,
+        string $application = '',
+    ): PackageSnapshotter {
         $files ??= new Filesystem();
 
         return new PackageSnapshotter(
@@ -454,6 +850,7 @@ final class SnapshotRestoreTest extends TestCase
             $files,
             $log ?? $this->log,
             $this->packages,
+            $application,
         );
     }
 
@@ -623,6 +1020,18 @@ final class SnapshotRestoreTest extends TestCase
         file_put_contents($file, (string) json_encode($overrides + $metadata));
     }
 
+    private function forgetMetadata(string $id, string $key): void
+    {
+        $file = $this->file($id, SnapshotStore::METADATA_FILE);
+        $metadata = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($metadata);
+
+        unset($metadata[$key]);
+
+        file_put_contents($file, (string) json_encode($metadata));
+    }
+
     /**
      * Runs a restore that has to be refused, and hands back what it refused
      * with. Captured rather than asserted on inside the catch, because a failed
@@ -637,6 +1046,120 @@ final class SnapshotRestoreTest extends TestCase
         }
 
         self::fail('The restore was expected to be refused.');
+    }
+
+    /**
+     * @param callable(): void $call
+     */
+    private function refused(callable $call): RestoreRefusedException
+    {
+        $failure = $this->refusal($call);
+
+        self::assertInstanceOf(RestoreRefusedException::class, $failure);
+
+        return $failure;
+    }
+
+    /**
+     * A finished snapshot whose package has already been removed.
+     */
+    private function removedSnapshot(): string
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+
+        return $id;
+    }
+
+    private function mysqlConnection(string $prefix = 'pk_'): ConnectionThatAnswersForAMysqlServer
+    {
+        $connection = $this->openDatabase($prefix, ConnectionThatAnswersForAMysqlServer::class);
+
+        self::assertInstanceOf(ConnectionThatAnswersForAMysqlServer::class, $connection);
+
+        return $connection;
+    }
+
+    /**
+     * @param list<string> $tables
+     */
+    private function replaceDump(string $id, Connection $connection, array $tables): void
+    {
+        $description = DumpFormat::describe($connection);
+        $records = [[
+            'type' => DumpFormat::HEADER,
+            'format' => DumpFormat::VERSION,
+            'created' => time(),
+            'driver' => $description['driver'],
+            'platform' => $description['platform'],
+            'prefix' => $description['prefix'],
+        ]];
+
+        foreach ($tables as $table) {
+            $records[] = [
+                'type' => DumpFormat::TABLE,
+                'name' => $table,
+                'ddl' => [sprintf('CREATE TABLE %s (id INTEGER)', $table)],
+                'columns' => ['id'],
+            ];
+        }
+
+        $records[] = ['type' => DumpFormat::END, 'tables' => count($tables), 'rows' => 0];
+
+        $lines = '';
+
+        foreach ($records as $record) {
+            $lines .= DumpFormat::line($record);
+        }
+
+        file_put_contents($this->file($id, SnapshotStore::DUMP_FILE), $lines);
+    }
+
+    private function tableNamed(Connection $connection, string $name): void
+    {
+        $table = new Table($name);
+        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
+        $table->setPrimaryKey(['id']);
+
+        $connection->createSchemaManager()->createTable($table);
+    }
+
+    private function keepARow(Connection $connection): void
+    {
+        $this->tableNamed($connection, 'kept');
+        $connection->insert('kept', ['id' => 1]);
+    }
+
+    private function assertKept(Connection $connection): void
+    {
+        self::assertSame(1, (int) $connection->fetchOne('SELECT id FROM kept'));
+    }
+
+    private function manifestModule(): string
+    {
+        $manifest = json_decode((string) file_get_contents($this->tree.'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($manifest);
+
+        $module = $manifest['module'] ?? null;
+
+        self::assertIsString($module);
+
+        return $module;
+    }
+
+    private function assertFilesWereNotPutBack(string $id, ?Connection $connection = null, ?string $configuration = null): void
+    {
+        self::assertDirectoryDoesNotExist($this->tree);
+        self::assertFileExists($this->file($id, SnapshotStore::FILES_DIR).'/pagekit/test-ext/composer.json');
+        self::assertSame([$id], array_keys($this->store()->list()));
+        self::assertSame([], $this->log->records);
+
+        if ($connection !== null && $configuration !== null) {
+            self::assertSame($configuration, $this->configuration($connection));
+        }
     }
 
     /**

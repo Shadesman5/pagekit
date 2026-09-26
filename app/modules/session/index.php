@@ -14,6 +14,13 @@ return [
 
     'name' => 'session',
 
+    'require' => [
+
+        'database',
+        'kernel',
+
+    ],
+
     'main' => function ($app) {
 
         $app->set('session', function ($app) {

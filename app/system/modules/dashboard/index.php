@@ -6,6 +6,13 @@ return [
 
     'name' => 'system/dashboard',
 
+    'require' => [
+
+        'kernel',
+        'routing',
+
+    ],
+
     'main' => 'Pagekit\\Dashboard\\DashboardModule',
 
     'autoload' => [

@@ -55,6 +55,7 @@ return [
 
     'autoload' => [
 
+        'Pagekit\\' => 'src',
         'Pagekit\\Kernel\\' => 'src',
 
     ],

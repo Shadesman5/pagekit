@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Tests;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Database\ORM\Repository;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Site\Controller\NodeController;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Node;

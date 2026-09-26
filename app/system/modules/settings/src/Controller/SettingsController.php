@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Controller;
+namespace Pagekit\Settings\Controller;
 
 use function Pagekit\__;
 
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
-use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;
 
 #[Access('system: access settings', admin: true)]

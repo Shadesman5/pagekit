@@ -6,6 +6,13 @@ return [
 
     'name' => 'system/intl',
 
+    'require' => [
+
+        'kernel',
+        'routing',
+
+    ],
+
     'main' => 'Pagekit\\Intl\\IntlModule',
 
     'autoload' => [

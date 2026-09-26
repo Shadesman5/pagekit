@@ -31,6 +31,7 @@ return [
     'require' => [
 
         'database',
+        'kernel',
 
     ],
 

@@ -7,9 +7,9 @@ namespace Pagekit\Site\Controller;
 use function Pagekit\__;
 
 use Pagekit\Database\ORM\Repository;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Page;
-use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Access('site: manage site')]

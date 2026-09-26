@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Routing\Router;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;

@@ -118,6 +118,15 @@ final class PackageSnapshotterTest extends TestCase
         self::assertSame($connection->getParams()['driver'], $snapshot['database']['driver']);
         self::assertSame($this->isSqlite($connection) ? DumpFormat::SQLITE : DumpFormat::MYSQL, $snapshot['database']['platform']);
         self::assertSame('pk_', $snapshot['database']['prefix']);
+        self::assertSame('', $this->store()->application($id));
+    }
+
+    public function testASnapshotRecordsTheApplicationVersionItWasBuiltWith(): void
+    {
+        $id = $this->snapshotter($this->installation(), application: '1.2.43')
+            ->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+
+        self::assertSame('1.2.43', $this->store()->application($id));
     }
 
     public function testTheDatabaseInASnapshotIsAWholeDumpOfTheInstallation(): void
@@ -343,8 +352,12 @@ final class PackageSnapshotterTest extends TestCase
     // The snapshotter as the application builds it
     // ------------------------------------------------------------------
 
-    private function snapshotter(Connection $connection, ?Filesystem $files = null, ?AbstractLogger $log = null): PackageSnapshotter
-    {
+    private function snapshotter(
+        Connection $connection,
+        ?Filesystem $files = null,
+        ?AbstractLogger $log = null,
+        string $application = '',
+    ): PackageSnapshotter {
         $files ??= new Filesystem();
 
         return new PackageSnapshotter(
@@ -354,6 +367,7 @@ final class PackageSnapshotterTest extends TestCase
             $files,
             $log ?? $this->log,
             $this->packages,
+            $application,
         );
     }
 

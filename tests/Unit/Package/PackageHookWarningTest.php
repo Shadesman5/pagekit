@@ -6,8 +6,6 @@ namespace Pagekit\Tests\Unit\Package;
 
 use Monolog\Handler\TestHandler;
 use Pagekit\Application;
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
@@ -18,6 +16,8 @@ use Pagekit\Package\Controller\PackageController;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
+use Pagekit\Routing\Response as PagekitResponse;
+use Pagekit\Routing\UrlProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 

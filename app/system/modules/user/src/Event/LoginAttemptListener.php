@@ -6,8 +6,8 @@ namespace Pagekit\User\Event;
 
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Exception\AuthException;
-use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Util\CacheKeyUtil;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;

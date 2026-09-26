@@ -11,6 +11,13 @@ return [
 
     'name' => 'system/content',
 
+    'require' => [
+
+        'kernel',
+        'markdown',
+
+    ],
+
     'main' => function ($app) {
 
         $app->get('events')->subscribe(new MarkdownPlugin($app->get('markdown')));

@@ -12,6 +12,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageModule;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\RestoreRefusedException;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -104,6 +105,8 @@ final class SnapshotServiceWiringTest extends TestCase
 
         $id = $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
 
+        self::assertSame('', (new SnapshotStore($this->snapshots, new Filesystem()))->application($id));
+
         // The removal the snapshot was taken for: the files are out of the live
         // tree and the configuration no longer says the extension is installed.
         (new Filesystem())->delete($this->tree);
@@ -114,6 +117,105 @@ final class SnapshotServiceWiringTest extends TestCase
         self::assertFileExists($this->tree.'/composer.json');
         self::assertSame(
             '{"packages":{"test-ext":"1.4.2"}}',
+            (string) $connection->fetchOne('SELECT value FROM pk_system_config WHERE name = ?', ['system']),
+        );
+    }
+
+    #[DataProvider('provideVersionsThatAreNotText')]
+    public function testAVersionThatIsNotTextIsRecordedAsEmptyAndStillRestores(mixed $version): void
+    {
+        $services = $this->services();
+        $connection = $services['db'];
+
+        self::assertInstanceOf(Connection::class, $connection);
+
+        $this->plantATable($connection);
+
+        $services['version'] = $version;
+
+        $snapshotter = $this->boot($services)->get('snapshotter');
+
+        self::assertInstanceOf(PackageSnapshotter::class, $snapshotter);
+
+        $id = $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+
+        self::assertSame('', (new SnapshotStore($this->snapshots, new Filesystem()))->application($id));
+
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => '{"packages":{}}'], ['name' => 'system']);
+
+        unset($services['version']);
+
+        $later = $this->boot($services)->get('snapshotter');
+
+        self::assertInstanceOf(PackageSnapshotter::class, $later);
+
+        $later->restore($id);
+
+        self::assertFileExists($this->tree.'/composer.json');
+        self::assertSame(
+            '{"packages":{"test-ext":"1.4.2"}}',
+            (string) $connection->fetchOne('SELECT value FROM pk_system_config WHERE name = ?', ['system']),
+        );
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function provideVersionsThatAreNotText(): array
+    {
+        return [
+            'a number' => [12],
+            'a list' => [['1.2.43']],
+            'nothing in the slot' => [null],
+        ];
+    }
+
+    public function testADifferentApplicationVersionRefusesBeforeThePackageFilesReturn(): void
+    {
+        $services = $this->services();
+        $connection = $services['db'];
+
+        self::assertInstanceOf(Connection::class, $connection);
+
+        $this->plantATable($connection);
+
+        $withVersion = $services;
+        $withVersion['version'] = '1.2.43';
+
+        $snapshotter = $this->boot($withVersion)->get('snapshotter');
+
+        self::assertInstanceOf(PackageSnapshotter::class, $snapshotter);
+
+        $id = $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+
+        self::assertSame('1.2.43', (new SnapshotStore($this->snapshots, new Filesystem()))->application($id));
+
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => '{"packages":{}}'], ['name' => 'system']);
+
+        $later = $this->boot($services)->get('snapshotter');
+
+        self::assertInstanceOf(PackageSnapshotter::class, $later);
+
+        $thrown = null;
+
+        try {
+            $later->restore($id);
+        } catch (RestoreRefusedException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(RestoreRefusedException::class, $thrown);
+        self::assertInstanceOf(\RuntimeException::class, $thrown);
+        self::assertStringContainsString($id, $thrown->getMessage());
+        self::assertStringContainsString(
+            'It was taken on application "1.2.43" and this installation runs "".',
+            $thrown->getMessage(),
+        );
+        self::assertFileDoesNotExist($this->tree.'/composer.json');
+        self::assertSame(
+            '{"packages":{}}',
             (string) $connection->fetchOne('SELECT value FROM pk_system_config WHERE name = ?', ['system']),
         );
     }

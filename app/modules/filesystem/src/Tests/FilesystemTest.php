@@ -7,6 +7,7 @@ namespace Pagekit\Filesystem\Tests;
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class FilesystemTest extends TestCase
 {
@@ -49,6 +50,26 @@ class FilesystemTest extends TestCase
         $this->assertSame('/path?arg=value#anchor', $this->file->getUrl($http));
         $this->assertSame('//username:password@example.com/path?arg=value#anchor', $this->file->getUrl($http, 3));
         $this->assertSame($http, $this->file->getUrl($http, true));
+    }
+
+    public function testGetUrlFollowsTheSymfonyReferenceTypeIntegers(): void
+    {
+        // Callers pass 1 and 3. Those are the Symfony path and network types,
+        // and true stays the absolute URL.
+        $this->assertSame('/Fixtures', $this->file->getUrl($this->fixtures));
+        $this->assertSame('/Fixtures', $this->file->getUrl($this->fixtures, UrlGeneratorInterface::ABSOLUTE_PATH));
+        $this->assertSame('//localhost/Fixtures', $this->file->getUrl($this->fixtures, 3));
+        $this->assertSame('//localhost/Fixtures', $this->file->getUrl($this->fixtures, UrlGeneratorInterface::NETWORK_PATH));
+        $this->assertSame('http://localhost/Fixtures', $this->file->getUrl($this->fixtures, true));
+        $this->assertSame('http://localhost/Fixtures', $this->file->getUrl($this->fixtures, UrlGeneratorInterface::ABSOLUTE_URL));
+    }
+
+    public function testFilesystemDoesNotImportRouting(): void
+    {
+        $source = file_get_contents(dirname(__DIR__).'/Filesystem.php');
+
+        $this->assertIsString($source);
+        $this->assertStringNotContainsString('Pagekit\\Routing', $source);
     }
 
     public function testGetUrlNotFound(): void
