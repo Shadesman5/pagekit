@@ -1,5 +1,38 @@
 # Changelog
 
+## Pagekit 1.2.44 - Module Dependency Integrity (September 26, 2026)
+
+### 💥 Breaking Changes
+
+- **A module whose `require` is missing or switched off is not loaded** — the resolver throws and does not record that module. After the activity policy is set, active means the enabled extensions plus the active theme, or the always-loaded closure of `system`. An already-enabled extension in that state is switched off and the sentence is stored; a theme is recorded and left on. `enable()` runs the same check before any config write, lifecycle hook, or `package.enable`. The panel `error` names both modules even when debug is off. There is no override. (Closes #268)
+- **`Config::pull` on a list returns a packed list** — pulling one name from `['needs-off', 'pages']` leaves `['pages']` at index 0.
+- **URL, settings, access, cache-key, request, model, and unique-constraint types moved** — `Pagekit\Application\UrlProvider` and `Response` are `Pagekit\Routing\…`. `Pagekit\System\Controller\SettingsController` is `Pagekit\Settings\Controller\SettingsController`. `Pagekit\User\Attribute\Access` is `Pagekit\Routing\Attribute\Access`. `Pagekit\Cache\CacheKeyUtil` is `Pagekit\Util\CacheKeyUtil`. `UserInterface` requires `isAuthenticated(): bool`. `Pagekit\System\Controller\ValidatesRequestTrait` is `Pagekit\Routing\ValidatesRequestTrait`. `Pagekit\System\Model\DataModelTrait` is `Pagekit\Database\ORM\DataModelTrait`. `NodeInterface` and `NodeTrait` are `Pagekit\Site\Model`. `Unique` and `UniqueValidator` are `Pagekit\Database\Validator\Constraints`. The old names are gone. The `view/twig` module is gone; `view` registers the Twig environment.
+- **An archive `require` that names an unregistered module never lands under `packages/`** — upload is a 400 before the file is moved; `php pagekit install` throws before the tree is replaced. The message names the archive's module and the missing name. A non-literal `require` is refused the same way. The file is not executed. An update of an already-loaded package whose archive requires a registered-but-disabled module, or whose requirements cycle, fails before the installed tree is replaced. A fresh install may still unpack a requirement that is registered but disabled.
+- **Disable and uninstall stop when an enabled module still requires the package** — before hooks run and before a snapshot exists. The message names the depender and the target. Several names are checked first. There is no override. Orphans and the data-risk hint are reported and do not stop the call. Disabling the active theme clears `site.theme`.
+- **Disable and Remove stay hidden unless the impact answer has no blockers** — a failed read or any other payload leaves both out. `php pagekit enable` and `php pagekit disable` call the same manager and have no `--force`. A requirement refusal and a blocked disable are printed and exit 1. `php pagekit install` still does not enable.
+- **A snapshot restore asks before any package file is put back** — a different application version, or a `packages.*` entry that differs or sits on only one side, refuses by name and leaves `packages/` as it was. A readable snapshot from before the version field (neither `application` nor `applicationStored`) is not refused for that field; the package map still has to match. A non-text version, a key removed from a snapshot this release stored, or metadata that cannot be read, refuses. A MySQL restore that would refuse (no prefix, a copy past 64 characters, a reserved name, an inbound foreign key, the lock) fails the same way. The panel shows that sentence. Any other failure stays the fixed line. The module the archived manifest names may be gone from the live map: that is the package the uninstall removed.
+
+### ✨ Added
+
+- **`php pagekit enable` and `php pagekit disable`** — they call `PackageManager`. Success prints the package title, or the package name when the title is empty. `php pagekit install` help says activation is `php pagekit enable`.
+- **`@system/package/impact`** — package name and CSRF. Returns blockers, orphans, and data risk, and does not throw when blockers exist. The extensions status toggle and the uninstall confirm read it before they offer Disable or Remove.
+
+### ♻️ Changed
+
+- **The foundation lives in the existing `kernel` module** — `Pagekit\Application`, `Event`, `Module`, `Container`, and `Util` sit beside `Pagekit\Kernel\`. Namespaces are unchanged. `application` still composes the stack and requires `kernel`. `kernel` does not require that stack.
+- **One comparison selects dump tables and restore collisions** — a byte prefix matches without asking the server. The server is asked only when the names differ by case, and only `lower_case_table_names` of `1` or `2` then counts the table. A database that lists tables and yields none is not a dump. A database that lists nothing still is.
+- **Installer boot does not create `pagekit.db`** — `view.scripts` asks `hasAccess` only after `config.file` exists.
+
+### ❌ Removed
+
+- **`app/modules/application/src`, the `view/twig` module, and the old `Pagekit\System` trait, node types, and unique constraint** — call sites name the new homes. No alias.
+
+### 🔒 Security
+
+- **A registered-but-disabled requirement is not loaded**, and the resolver does not recurse into it. An unregistered or non-literal archive `require` is refused before anything is written under `packages/`. A blocker is refused before the package is switched off and before a snapshot is taken. A refused restore writes nothing under `packages/`. Before `config.php` exists, the user module does not query roles.
+
+---
+
 ## Pagekit 1.2.43 - Runtime Composer Removal (September 24, 2026)
 
 ### 💥 Breaking Changes

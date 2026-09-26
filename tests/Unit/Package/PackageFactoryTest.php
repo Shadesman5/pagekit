@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Package;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use PHPUnit\Framework\TestCase;
 
 /**

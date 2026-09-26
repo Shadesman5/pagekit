@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Event;
 
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\Event;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Kernel\Event\RequestEvent;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Generator\UrlGenerator;
+use Pagekit\Routing\Response as PagekitResponse;
 use Pagekit\Routing\Route;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;

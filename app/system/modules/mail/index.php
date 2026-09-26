@@ -10,6 +10,13 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 return [
     'name' => 'system/mail',
 
+    'require' => [
+
+        'kernel',
+        'routing',
+
+    ],
+
     'main' => function ($app) {
 
         $app->set('mailer', function ($app) {

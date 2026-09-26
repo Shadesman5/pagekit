@@ -7,7 +7,7 @@ namespace Pagekit\Finder\Controller;
 use function Pagekit\__;
 
 use Pagekit\Module\ModuleManager;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\Attribute\Access;
 
 #[Access('system: manage storage', admin: true)]
 class StorageController

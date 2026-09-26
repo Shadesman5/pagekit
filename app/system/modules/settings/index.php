@@ -6,13 +6,21 @@ return [
 
     'name' => 'system/settings',
 
+    'require' => [
+
+        'config',
+        'filesystem',
+        'routing',
+
+    ],
+
     'main' => function ($app) {
         $app->set('configFile', fn ($app) => $app->get('config.file'));
     },
 
     'autoload' => [
 
-        'Pagekit\\System\\' => 'src',
+        'Pagekit\\Settings\\' => 'src',
 
     ],
 
@@ -20,7 +28,7 @@ return [
 
         '/system/settings' => [
             'name' => '@system/settings',
-            'controller' => 'Pagekit\\System\\Controller\\SettingsController',
+            'controller' => 'Pagekit\\Settings\\Controller\\SettingsController',
         ],
 
     ],

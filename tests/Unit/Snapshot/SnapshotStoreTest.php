@@ -204,6 +204,83 @@ final class SnapshotStoreTest extends TestCase
         self::assertGreaterThan(0, $snapshot['size']);
     }
 
+    #[DataProvider('provideRecordedApplicationVersions')]
+    public function testARecordedApplicationVersionIsReadBackAndKeptOffTheListing(string $version): void
+    {
+        // The listing is what the panel renders. A missing version must not be stored as '' there, and a recorded one is not copied onto it.
+        $store = $this->store();
+        $id = $store->create($this->details('blog', ['application' => $version]));
+
+        self::assertSame($version, $store->application($id));
+
+        $snapshot = $store->get($id);
+
+        self::assertNotNull($snapshot);
+        self::assertSame(self::FIELDS, array_keys($snapshot));
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function provideRecordedApplicationVersions(): array
+    {
+        return [
+            'the application module default' => [''],
+            'a release' => ['1.2.43'],
+        ];
+    }
+
+    public function testASnapshotWrittenWithoutAnApplicationVersionReadsAsNone(): void
+    {
+        $id = '20260101-000000-blog-a1b2c3d4';
+
+        $this->place($id, $this->description());
+
+        self::assertNull($this->store()->application($id));
+
+        $snapshot = $this->store()->get($id);
+
+        self::assertNotNull($snapshot);
+        self::assertSame(self::FIELDS, array_keys($snapshot));
+    }
+
+    public function testASnapshotThatIsNotThereReadsAsNoApplicationVersion(): void
+    {
+        $store = $this->store();
+        $id = '20260101-000000-blog-a1b2c3d4';
+
+        self::assertNull($store->application($id));
+        self::assertNull($store->get($id));
+        self::assertSame('No snapshot goes by this id.', $this->refusal(fn () => $store->directory($id))->getMessage());
+    }
+
+    #[DataProvider('provideApplicationVersionsThatAreNotText')]
+    public function testAnApplicationVersionThatIsNotTextReadsAsNone(mixed $version): void
+    {
+        $store = $this->store();
+        $id = $store->create($this->details('blog', ['application' => $version]));
+
+        self::assertNull($store->application($id));
+
+        $snapshot = $store->get($id);
+
+        self::assertNotNull($snapshot);
+        self::assertSame(self::FIELDS, array_keys($snapshot));
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function provideApplicationVersionsThatAreNotText(): array
+    {
+        return [
+            'a number' => [12],
+            'a list' => [['1.2.43']],
+            'a boolean' => [false],
+            'a null' => [null],
+        ];
+    }
+
     public function testTheDescriptionOfASnapshotIsDataThatNoBootCanRunAsCode(): void
     {
         $store = $this->store();

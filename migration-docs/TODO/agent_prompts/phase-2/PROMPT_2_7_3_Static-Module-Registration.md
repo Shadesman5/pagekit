@@ -16,7 +16,7 @@ One discovery path. The static source carries what registration reads before loa
 
 The entry point stays PHP. `main`, closures and the other load-time behavior cannot move into a data file. Load includes that file and merges it with the static record. Discovery does not.
 
-Registered still means the module is known. Enabled still means it is loaded. This step changes how a module becomes registered. It does not reopen the rules for an unsatisfied `require`.
+Registered still means the module is known. Enabled still means it is loaded. This step changes how a module becomes registered. It does not reopen the rules for an unsatisfied `require`. Those rules include the always-loaded closure of `system`: a module it reaches through `require` stays loadable when it is absent from `extensions`. Before that policy is set, a registered module is active. The archive install reads `require` from the same source discovery registers, and does not keep a second reader on `index.php`.
 
 Load, `main()` and lifecycle keep the existing fault barrier. Static discovery removes the registration hazard. It does not replace load isolation.
 
@@ -32,7 +32,9 @@ The shape of the static source is what a later packaging contract has to require
 
 **When classes load.** `AutoLoader` reads `autoload` inside `load()`, after `register()` has already included the file. On the blog, `events.boot` is a closure: `new PostPresenter` and `Comment::class` run when that event runs, not when the file is included. A class reference evaluated while the file is included needs the map already. `register()` does not apply it.
 
-**Graph.** `require` is on the registered module because the include already happened. `resolveModules()` reads it from that array at load. A package that is on disk but not enabled is registered today, and its `require` is visible without anyone loading it.
+**Graph.** `require` is on the registered module because the include already happened. `resolveModules()` reads it from that array at load. A package that is on disk but not enabled is registered today, and its `require` is visible without anyone loading it. Once `SystemModule::main` has called `setActivityPolicy`, a module is active when it is in `extensions` or is `site.theme`, or when it sits in the always-loaded closure of `system`. Before that call, every registered module is active. Treating "absent from `extensions`" as disabled refuses core modules that are not extensions.
+
+**Archive reader.** `PackageArchive` reads `require` from the literal `return` array in `index.php` without executing the file, the same way it reads `autoload`. Upload and `PackageManager::install()` refuse an unregistered name from that list before anything is written under `packages/`. A registered-but-disabled name is accepted on upload and on a fresh install; an update of a package whose module is already loaded also walks that list and refuses a disabled requirement or a cycle before the tree is replaced. That parser is the reader to retarget onto the static file, so the archive check and boot discovery read one source and there is no `index.php` fallback once the static file is required.
 
 ## Out of scope
 
@@ -50,3 +52,5 @@ The shape of the static source is what a later packaging contract has to require
 - First-party modules use that source: `packages/pagekit/*`, `app/modules/*`, `app/system`, `app/installer`, `app/package` and `app/console`. Nothing discovers a module by including every entry point.
 - An enabled package still loads through the existing fault barrier. Its entry point still carries the load-time PHP.
 - The forward-debt tag on `ModuleManager::register()` is gone.
+- The archive install reads `name`, `autoload` and `require` from the static file, the same file discovery registers. It does not keep a second reader on `index.php`.
+- An unsatisfied `require` still refuses under the same rules. A module in the always-loaded closure of `system` stays loadable when it is not in `extensions`.

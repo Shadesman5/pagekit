@@ -71,11 +71,11 @@ final class DatabaseRestorer
     private const LOCK_TIMEOUT = 0;
 
     /**
-     * Whether the server matches table names without regard to case, once it has
-     * been asked. Fixed when the server starts, so it cannot change under a
-     * restore that is already running.
+     * What {@see self::refuseWithoutPrefix()} tells an operator. One sentence, so
+     * a query that asks the same question cannot drift from the restore that
+     * throws it.
      */
-    private ?bool $folds = null;
+    private const NO_PREFIX = 'The tables of this installation carry no name prefix, so a restore cannot tell them from the rest of the database while it swaps them. Reinstalling with a table prefix - "pk_" is the default - is what makes a restore possible.';
 
     /**
      * The lock this restore is holding, or nothing where it holds none - which is
@@ -88,9 +88,12 @@ final class DatabaseRestorer
      */
     private readonly LoggerInterface $log;
 
+    private readonly TableNameFold $fold;
+
     public function __construct(private readonly Connection $connection, ?LoggerInterface $log = null)
     {
         $this->log = $log ?? new NullLogger();
+        $this->fold = new TableNameFold($connection);
     }
 
     /**
@@ -151,6 +154,125 @@ final class DatabaseRestorer
     }
 
     /**
+     * What a MySQL restore of this dump would refuse before it replaced a table.
+     *
+     * Empty on SQLite and where those checks would pass. The lock is released
+     * before this returns; leftover copies stay, and no table is replaced.
+     *
+     * @return list<string>
+     * @throws \RuntimeException where the dump cannot be read
+     */
+    public function refusals(string $file): array
+    {
+        if ($this->platform() !== DumpFormat::MYSQL) {
+            return [];
+        }
+
+        if ($this->prefix() === '') {
+            return [self::NO_PREFIX];
+        }
+
+        $dump = $this->inspect($file);
+
+        try {
+            $this->preflight($dump['names']);
+        } catch (\RuntimeException $e) {
+            return [$e->getMessage()];
+        } finally {
+            $this->release();
+        }
+
+        return [];
+    }
+
+    /**
+     * The `packages` object on the `system` row of `@system_config` in the dump.
+     *
+     * A missing table, row, or object is an empty map. A version is whatever
+     * JSON stored: a string when the installation wrote it, and anything else
+     * JSON can hold, which still has to be compared rather than dropped.
+     *
+     * @return array<string, mixed>
+     * @throws \RuntimeException where the dump cannot be read
+     */
+    public function packageVersions(string $file): array
+    {
+        $wanted = $this->fold->comparable($this->connection->replacePrefix('@system_config'));
+        /** @var list<string>|null $columns */
+        $columns = null;
+        $nameAt = false;
+        $valueAt = false;
+        $packages = [];
+        $found = false;
+
+        foreach ($this->read($file) as $record) {
+            if ($record['type'] === DumpFormat::TABLE) {
+                $columns = null;
+                $nameAt = false;
+                $valueAt = false;
+
+                if ($this->fold->comparable($record['name']) !== $wanted) {
+                    continue;
+                }
+
+                $columns = $record['columns'];
+                $nameAt = $this->columnIndex($columns, 'name');
+                $valueAt = $this->columnIndex($columns, 'value');
+
+                continue;
+            }
+
+            if ($columns === null || $found || !is_int($nameAt) || !is_int($valueAt)) {
+                continue;
+            }
+
+            $name = $record['values'][$nameAt][0];
+
+            if ($name !== 'system') {
+                continue;
+            }
+
+            $packages = $this->packagesObject($record['values'][$valueAt][0]);
+            $found = true;
+        }
+
+        return $packages;
+    }
+
+    /**
+     * The `packages` object on the live `system` row of `@system_config`.
+     *
+     * The same shape as {@see self::packageVersions()}. No such table is an
+     * empty map: the installation has no system config to differ from the dump.
+     *
+     * @return array<string, mixed>
+     */
+    public function installedPackages(): array
+    {
+        $wanted = $this->fold->comparable($this->connection->replacePrefix('@system_config'));
+        $table = null;
+
+        foreach ($this->connection->createSchemaManager()->listTableNames() as $name) {
+            if ($this->fold->comparable($name) === $wanted) {
+                $table = $name;
+
+                break;
+            }
+        }
+
+        if ($table === null) {
+            return [];
+        }
+
+        $value = $this->connection->fetchOne(
+            'SELECT value FROM '.$this->connection->getDatabasePlatform()->quoteIdentifier($table).' WHERE name = ?',
+            ['system'],
+        );
+
+        return $this->packagesObject($value === false ? null : $value);
+    }
+
+    /**
      * Refuses a MySQL restore of an installation whose tables carry no prefix.
      *
      * A restore there fills copies of the tables and swaps them in, and both
@@ -164,7 +286,65 @@ final class DatabaseRestorer
             return;
         }
 
-        throw new \RuntimeException('The tables of this installation carry no name prefix, so a restore cannot tell them from the rest of the database while it swaps them. Reinstalling with a table prefix - "pk_" is the default - is what makes a restore possible.');
+        throw new \RuntimeException(self::NO_PREFIX);
+    }
+
+    /**
+     * @param  list<string> $columns
+     * @return int|false    the index, matched without regard to case when the
+     *                     platform did not hand the name back as it was declared
+     */
+    private function columnIndex(array $columns, string $wanted): int|false
+    {
+        $index = array_search($wanted, $columns, true);
+
+        if ($index !== false) {
+            return $index;
+        }
+
+        foreach ($columns as $index => $column) {
+            if (strcasecmp($column, $wanted) === 0) {
+                return $index;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  mixed                  $value the `value` column: JSON text, or null when the row has none
+     * @return array<string, mixed>
+     */
+    private function packagesObject(mixed $value): array
+    {
+        if (!is_string($value) || $value === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $packages = $decoded['packages'] ?? null;
+
+        if (!is_array($packages)) {
+            return [];
+        }
+
+        $map = [];
+
+        foreach ($packages as $name => $version) {
+            // A numeric JSON key arrives as an int. The map is compared by module name.
+            $map[(string) $name] = $version;
+        }
+
+        return $map;
     }
 
     /**
@@ -321,22 +501,22 @@ final class DatabaseRestorer
 
         foreach ($dumped as $name) {
             foreach ([RestoreTableNames::shadow($name), RestoreTableNames::backup($name)] as $copy) {
-                $needed[$this->comparable($copy)] = [$name, $copy];
+                $needed[$this->fold->comparable($copy)] = [$name, $copy];
             }
         }
 
-        $prefix = $this->comparable($this->prefix());
+        $prefix = $this->prefix();
         $leftovers = [];
 
         foreach ($this->connection->createSchemaManager()->listTableNames() as $held) {
-            $comparable = $this->comparable($held);
+            $comparable = $this->fold->comparable($held);
             $live = RestoreTableNames::live($comparable);
 
             if ($live === null) {
                 continue;
             }
 
-            if (str_starts_with($live, $prefix)) {
+            if ($this->fold->prefixed($live, $prefix)) {
                 $leftovers[] = $held;
 
                 continue;
@@ -382,21 +562,21 @@ final class DatabaseRestorer
         $carried = [];
 
         foreach ($dumped as $name) {
-            $carried[$this->comparable($name)] = true;
+            $carried[$this->fold->comparable($name)] = true;
         }
 
         $going = [];
 
         foreach ($leftovers as $name) {
-            $going[$this->comparable($name)] = true;
+            $going[$this->fold->comparable($name)] = true;
         }
 
         $inbound = [];
 
         foreach ($this->references() as $reference) {
-            $child = $this->comparable($reference['child']);
+            $child = $this->fold->comparable($reference['child']);
 
-            if (!isset($carried[$this->comparable($reference['parent'])]) || isset($carried[$child]) || isset($going[$child])) {
+            if (!isset($carried[$this->fold->comparable($reference['parent'])]) || isset($carried[$child]) || isset($going[$child])) {
                 continue;
             }
 
@@ -591,7 +771,7 @@ final class DatabaseRestorer
         $held = [];
 
         foreach ($this->connection->createSchemaManager()->listTableNames() as $name) {
-            $held[$this->comparable($name)] = true;
+            $held[$this->fold->comparable($name)] = true;
         }
 
         $platform = $this->connection->getDatabasePlatform();
@@ -605,7 +785,7 @@ final class DatabaseRestorer
             // A dump can carry a table the installation no longer has - the
             // snapshot was taken before something dropped it - and then there is
             // nothing to set aside, only a name standing free for the copy.
-            if (isset($held[$this->comparable($live)])) {
+            if (isset($held[$this->fold->comparable($live)])) {
                 $aside = RestoreTableNames::backup($live);
 
                 // Before the copy that takes the name, so that the name it is going
@@ -1028,7 +1208,7 @@ final class DatabaseRestorer
 
         // A restore drops every table the dump names, so the dump does not get
         // to name one outside what the installation owns.
-        if (!str_starts_with($name, $prefix)) {
+        if (!$this->fold->prefixed($name, $prefix)) {
             throw new \RuntimeException(sprintf('The database dump names a table ("%s") that is not part of this installation.', $name));
         }
 
@@ -1166,39 +1346,5 @@ final class DatabaseRestorer
     private function prefix(): string
     {
         return $this->connection->getPrefix() ?? '';
-    }
-
-    /**
-     * A table name as a comparison against another one has to read it.
-     *
-     * Whether two names are the same table is the server's rule and not PHP's:
-     * asked to fold them, MySQL matches names without regard to case, and a
-     * comparison that did not fold would look straight past the table it was
-     * checking for - and then create, or drop, the wrong one.
-     */
-    private function comparable(string $name): string
-    {
-        return $this->foldsNames() ? mb_strtolower($name, 'UTF-8') : $name;
-    }
-
-    /**
-     * Whether the server matches table names without regard to case.
-     */
-    private function foldsNames(): bool
-    {
-        if ($this->folds === null) {
-            // Globally, because the variable has no session value, and through
-            // SHOW rather than as @@lower_case_table_names: the connection
-            // substitutes its table prefix for an @-led name outside quotes.
-            $row = $this->connection->fetchAssociative("SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'");
-            $value = $row === false ? null : ($row['Value'] ?? null);
-
-            // 1 stores names folded and 2 stores them as given but matches them
-            // folded. 0 - and a server that does not say - is a name matched as
-            // it is written.
-            $this->folds = in_array($value, ['1', '2', 1, 2], true);
-        }
-
-        return $this->folds;
     }
 }

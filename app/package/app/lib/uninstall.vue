@@ -29,6 +29,7 @@
             | trans
         }}
       </p>
+      <package-impact :impact="impact" :failed="impactFailed" />
     </div>
 
     <div v-else class="uk-modal-body">
@@ -73,7 +74,9 @@
       <a class="uk-button uk-button-text uk-margin-right" @click.prevent="close">{{
         'Cancel' | trans
       }}</a>
-      <a class="uk-button uk-button-danger" @click.prevent="confirm">{{ 'Remove' | trans }}</a>
+      <a v-if="canProceed" class="uk-button uk-button-danger" @click.prevent="confirm">{{
+        'Remove' | trans
+      }}</a>
     </div>
 
     <div v-else v-show="status != 'loading'" class="uk-modal-footer uk-text-right">
@@ -91,9 +94,15 @@
 </template>
 
 <script>
+import { canProceed as impactAllowsProceed, readImpact } from './impact-query';
 import Output from './output';
+import PackageImpact from './impact.vue';
 
 export default {
+  components: {
+    'package-impact': PackageImpact
+  },
+
   mixins: [Output],
 
   data() {
@@ -112,11 +121,17 @@ export default {
       // the next tick, so without this a second click lands on a button that is
       // already gone and starts the whole snapshot-and-remove pipeline a second
       // time against a package the first one is halfway through removing.
-      removing: false
+      removing: false,
+      impact: null,
+      impactFailed: false
     };
   },
 
   computed: {
+    canProceed() {
+      return impactAllowsProceed(this.impact);
+    },
+
     heading() {
       const pkg = { title: this.pkg.title, version: this.pkg.version };
 
@@ -132,12 +147,13 @@ export default {
       this.$set(this, 'pkg', pkg);
       this.$set(this, 'packages', packages);
       this.keepsSnapshots = Boolean(keepsSnapshots);
+      readImpact(this, pkg.name);
 
       this.open();
     },
 
     confirm() {
-      if (this.removing) {
+      if (this.removing || !this.canProceed) {
         return;
       }
 

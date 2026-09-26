@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Snapshot;
 
 use Pagekit\Application;
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Event\Event;
 use Pagekit\Package\Controller\SnapshotController;
 use Pagekit\Routing\Event\ConfigureRouteListener;
 use Pagekit\Routing\Loader\RoutesLoader;
+use Pagekit\Routing\Response as PagekitResponse;
 use Pagekit\Routing\Route;
 use Pagekit\Routing\Routes;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Session\Csrf\Event\CsrfListener;
 use Pagekit\Session\Csrf\Exception\CsrfException;
 use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;

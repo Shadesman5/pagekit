@@ -52,9 +52,26 @@ final class PackageModule extends Module
                 $app->get('file'),
                 $app->get('log'),
                 $app->get('path.packages'),
+                self::applicationVersion($app),
             ));
         }
 
         return null;
+    }
+
+    /**
+     * The running application version, or `''` where none is registered.
+     *
+     * `''` is the application module's own default, and a non-string is not guessed into one.
+     */
+    private static function applicationVersion(App $app): string
+    {
+        if (!$app->has('version')) {
+            return '';
+        }
+
+        $version = $app->get('version');
+
+        return is_string($version) ? $version : '';
     }
 }

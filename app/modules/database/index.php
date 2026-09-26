@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -35,6 +36,13 @@ $canonicalizeFilesystemPath = static function (string $path): string {
 $config = [
 
     'name' => 'database',
+
+    'require' => [
+
+        'filesystem',
+        'kernel',
+
+    ],
 
     'main' => function ($app) use ($canonicalizeFilesystemPath) {
 
@@ -78,25 +86,27 @@ $config = [
                     }
                 }
 
-                // DBAL 3.x: Always create debug middleware - it will collect queries when enabled
-                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') &&
-                    class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
+                // Whoever registered DBAL middlewares did it before the first connection.
+                // An absent service means this boot has none to apply.
+                $middlewares = $connectionParams['middlewares'] ?? [];
+                if (!is_array($middlewares)) {
+                    $middlewares = [];
+                }
 
-                    try {
-                        $stopwatch = null;
-                        $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
+                if ($app->has('db.middlewares')) {
+                    $held = $app->get('db.middlewares');
 
-                        $logger->enabled = true;
-
-                        $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
-
-                        $connectionParams['middlewares'] = [$middleware];
-
-                        $app->set('db.debug_middleware', $middleware);
-                        $app->set('db.debug_logger', $logger);
-                    } catch (\Exception $e) {
-                        // If middleware creation fails, continue without it
+                    if (is_array($held)) {
+                        foreach ($held as $candidate) {
+                            if ($candidate instanceof Middleware) {
+                                $middlewares[] = $candidate;
+                            }
+                        }
                     }
+                }
+
+                if ($middlewares !== []) {
+                    $connectionParams['middlewares'] = $middlewares;
                 }
 
                 // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
@@ -106,6 +116,10 @@ $config = [
                     $driver = $tempConnection->getDriver();
 
                     foreach ($connectionParams['middlewares'] as $middleware) {
+                        if (!$middleware instanceof Middleware) {
+                            continue;
+                        }
+
                         $driver = $middleware->wrap($driver);
                     }
 
@@ -142,9 +156,6 @@ $config = [
         });
 
         $app->set('db.events', fn ($app) => new PrefixEventDispatcher('model.', $app->get('events')));
-
-        // Note: db.debug_middleware is now created inline in the dbs factory above
-        // This ensures it's available when the connection is created
 
         // Override existing types
         Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');

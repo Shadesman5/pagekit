@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Installer\SelfUpdater;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\Response as PagekitResponse;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 use Symfony\Component\HttpFoundation\Session\Session;

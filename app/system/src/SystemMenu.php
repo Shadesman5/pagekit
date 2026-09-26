@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\System;
 
-use Pagekit\Application\UrlProvider;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 use Pagekit\Util\ArrObject;
 use Symfony\Component\HttpFoundation\Request;

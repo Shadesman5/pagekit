@@ -160,37 +160,37 @@ parameters:
 			message: '#^Possibly invalid array key type string\|null\.$#'
 			identifier: offsetAccess.invalidOffset
 			count: 1
-			path: app/modules/application/src/Event/Event.php
+			path: app/modules/kernel/src/Event/Event.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
-			path: app/modules/application/src/Tests/DbTestCase.php
+			path: app/modules/kernel/src/Tests/DbTestCase.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 2
-			path: app/modules/application/src/Tests/FtpTestCase.php
+			path: app/modules/kernel/src/Tests/FtpTestCase.php
 
 		-
 			message: '#^Comparison operation "\>\=" between 1 and 0 is always true\.$#'
 			identifier: greaterOrEqual.alwaysTrue
 			count: 1
-			path: app/modules/application/src/Util/Arr.php
+			path: app/modules/kernel/src/Util/Arr.php
 
 		-
 			message: '#^Possibly invalid array key type string\|null\.$#'
 			identifier: offsetAccess.invalidOffset
 			count: 3
-			path: app/modules/application/src/Util/Arr.php
+			path: app/modules/kernel/src/Util/Arr.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
-			path: app/modules/application/src/Util/Arr.php
+			path: app/modules/kernel/src/Util/Arr.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'

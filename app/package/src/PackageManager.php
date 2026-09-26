@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Package;
 
+use Pagekit\Config\Config;
+use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Path;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
@@ -59,7 +62,9 @@ class PackageManager
     /**
      * Puts an archive's package in place and installs it, or updates the package already there.
      *
-     * @throws \RuntimeException where the package cannot take the place its name gives it, or a step of the install fails
+     * @throws \Pagekit\Package\Archive\ArchiveRefusedException         the archive requires a module that is not registered
+     * @throws \Pagekit\Module\UnsatisfiedRequirementException       an update would enable a module whose requirement is disabled
+     * @throws \RuntimeException                                     the package cannot take the place its name gives it, a step of the install fails, or the requirements cycle
      */
     public function install(PackageArchive $archive): void
     {
@@ -90,6 +95,9 @@ class PackageManager
         $module = $previous?->get('module');
         $moduleLoaded = is_string($module) && $this->app->get('module')->get($module) !== null;
 
+        // Registration still holds the previous manifest. The archive's list is what this install would enable.
+        $this->assertArchiveRequirements($archive, $moduleLoaded ? $archive->module() : null);
+
         $this->replaceTree($archive, $target);
 
         $package = $packageFactory->get($name, true);
@@ -102,6 +110,32 @@ class PackageManager
             $this->enable($package, $previous);
         } else {
             $this->doInstall($package);
+        }
+    }
+
+    /**
+     * Refuses an archive whose requirements this installation will not accept.
+     *
+     * Every name has to be registered. When $activating is set, the archive's list is also
+     * walked the way an enable of that module would walk it, including a cycle.
+     *
+     * @throws \Pagekit\Package\Archive\ArchiveRefusedException   a requirement is not registered
+     * @throws \Pagekit\Module\UnsatisfiedRequirementException $activating names a module whose requirement is disabled
+     * @throws \RuntimeException                               $activating names a module whose requirements cycle
+     */
+    public function assertArchiveRequirements(PackageArchive $archive, ?string $activating = null): void
+    {
+        $require = $archive->require();
+        $modules = ($require === [] && $activating === null) ? null : $this->moduleManager();
+
+        foreach ($require as $name) {
+            if (!$modules instanceof ModuleManager || !$modules->isRegistered($name)) {
+                throw $archive->unknownRequirement($name);
+            }
+        }
+
+        if ($activating !== null && $modules instanceof ModuleManager) {
+            $modules->assertRequirementsUsing($activating, $require);
         }
     }
 
@@ -201,27 +235,38 @@ class PackageManager
      *
      * @param string|array<int, string> $uninstall
      *
-     * @throws \RuntimeException where no snapshot could be taken, in which case
-     *                          nothing was removed, or where a package's files
-     *                          could not be taken out of the live tree
+     * @throws RemovalBlockedException an enabled module still requires one of the packages
+     * @throws \RuntimeException        where a package is missing, where no snapshot could be taken, in which case
+     *                                 nothing was removed, or where a package's files
+     *                                 could not be taken out of the live tree
      */
     public function uninstall(string|array $uninstall): void
     {
         $packageFactory = $this->app->get('package');
+        $packages = [];
 
         foreach ((array) $uninstall as $name) {
             if (!$package = $packageFactory->get($name)) {
                 throw new \RuntimeException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
 
+            $packages[] = $package;
+        }
+
+        $runners = $this->lifecycles($packages);
+
+        // Every name, before the first snapshot: a later refusal must not leave an earlier package already taken out.
+        // migrations() runs on these runners so the hook below does not read the file again.
+        $this->assertRemovable($packages, $runners);
+
+        foreach ($packages as $i => $package) {
             // Before the package is switched off and long before its folder is
             // touched: everything below this line is what the snapshot exists to
             // reverse.
             $snapshot = $this->snapshot($package);
 
-            $this->disable($package);
-
-            $lifecycle = $this->getLifecycle($package);
+            $lifecycle = $this->runner($runners, $i);
+            $this->switchOff($package, $lifecycle);
 
             try {
                 $lifecycle->uninstall();
@@ -267,6 +312,13 @@ class PackageManager
             $applied = null;
             $cleared = null;
             $moduleName = $package->get('module');
+
+            // An update calls enable() without load(), so this walk is the one that
+            // refuses a requirement before config is written or a hook runs.
+            // The manifest value is untyped; only a string is a module name.
+            if (is_string($moduleName)) {
+                $this->assertPackageRequirements($moduleName);
+            }
 
             try {
                 $previousPackageConfig = $package;
@@ -395,6 +447,32 @@ class PackageManager
     }
 
     /**
+     * Throws when the registered module's requirements are not satisfied.
+     */
+    private function assertPackageRequirements(string $moduleName): void
+    {
+        if ($moduleName === '') {
+            return;
+        }
+
+        $this->moduleManager()?->assertRequirements($moduleName);
+    }
+
+    /**
+     * The module registry, when this installation has one.
+     */
+    private function moduleManager(): ?ModuleManager
+    {
+        if (!$this->app->has('module')) {
+            return null;
+        }
+
+        $modules = $this->app->get('module');
+
+        return $modules instanceof ModuleManager ? $modules : null;
+    }
+
+    /**
      * Rollback package enable on error.
      *
      * @param array<string, mixed> $originalState
@@ -427,7 +505,127 @@ class PackageManager
     }
 
     /**
+     * Blockers, orphans, and data risk for switching these packages off.
+     *
      * @param PackageInterface|array<int, PackageInterface> $packages
+     *
+     * @return array{blockers: list<string>, orphans: list<string>, dataRisk: array{migrations: bool, config: bool, nodes: list<string>, tables: list<string>}}
+     */
+    public function removalImpact(PackageInterface|array $packages): array
+    {
+        if (!is_array($packages)) {
+            $packages = [$packages];
+        }
+
+        return $this->impact(array_values($packages), null);
+    }
+
+    /**
+     * @param list<PackageInterface>     $packages
+     * @param list<LifecycleRunner>|null $runners the runners the hooks will use, so the lifecycle file is read once
+     *
+     * @return array{blockers: list<string>, orphans: list<string>, dataRisk: array{migrations: bool, config: bool, nodes: list<string>, tables: list<string>}}
+     */
+    private function impact(array $packages, ?array $runners): array
+    {
+        return (new PackageImpact(
+            $this->app,
+            $this->moduleManager(),
+            function (PackageInterface $package) use ($packages, $runners): ?MigrationSet {
+                $runner = null;
+
+                if ($runners !== null) {
+                    $index = array_search($package, $packages, true);
+
+                    if (is_int($index) && isset($runners[$index])) {
+                        $runner = $runners[$index];
+                    }
+                }
+
+                return $this->migrationSet($runner ?? $this->getLifecycle($package));
+            },
+        ))->query($packages);
+    }
+
+    /**
+     * The package's migrations, or null when the lifecycle exposes none.
+     *
+     * A file that cannot be read is not a set. Switching the package off still has to be possible.
+     */
+    private function migrationSet(LifecycleRunner $lifecycle): ?MigrationSet
+    {
+        try {
+            return $lifecycle->migrations();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param list<PackageInterface> $packages
+     *
+     * @return list<LifecycleRunner>
+     */
+    private function lifecycles(array $packages): array
+    {
+        $runners = [];
+
+        foreach ($packages as $package) {
+            $runners[] = $this->getLifecycle($package);
+        }
+
+        return $runners;
+    }
+
+    /**
+     * @param list<PackageInterface> $packages
+     * @param list<LifecycleRunner>  $runners
+     *
+     * @throws RemovalBlockedException an enabled module still requires one of them
+     */
+    private function assertRemovable(array $packages, array $runners): void
+    {
+        $blockers = $this->impact($packages, $runners)['blockers'];
+
+        if ($blockers === []) {
+            return;
+        }
+
+        throw new RemovalBlockedException($this->blockedMessage($packages, $blockers));
+    }
+
+    /**
+     * @param list<PackageInterface> $packages
+     * @param list<string>           $blockers
+     */
+    private function blockedMessage(array $packages, array $blockers): string
+    {
+        $names = [];
+
+        foreach ($packages as $package) {
+            $module = $package->get('module');
+            $names[] = is_string($module) && $module !== '' ? $module : $package->getName();
+        }
+
+        $names = array_values(array_unique($names));
+
+        if (count($blockers) === 1 && count($names) === 1) {
+            return __('"%blocker%" requires "%name%", so it cannot be switched off.', [
+                '%blocker%' => $blockers[0],
+                '%name%' => $names[0],
+            ]);
+        }
+
+        return __('"%blockers%" require "%names%", so nothing was switched off.', [
+            '%blockers%' => implode(', ', $blockers),
+            '%names%' => implode(', ', $names),
+        ]);
+    }
+
+    /**
+     * @param PackageInterface|array<int, PackageInterface> $packages
+     *
+     * @throws RemovalBlockedException an enabled module still requires one of them
      */
     public function disable(PackageInterface|array $packages): void
     {
@@ -435,27 +633,80 @@ class PackageManager
             $packages = [$packages];
         }
 
-        foreach ($packages as $package) {
-            $lifecycle = $this->getLifecycle($package);
+        $packages = array_values($packages);
+        $runners = $this->lifecycles($packages);
 
-            try {
-                $lifecycle->disable();
-            } catch (\Throwable $e) {
-                $this->reportHookFailure($package, 'disable', $e);
-            }
+        // Every package, before the first hook or the first pull from extensions.
+        $this->assertRemovable($packages, $runners);
 
-            if ($this->app->has('events')) {
-                $this->app->get('events')->trigger('package.disable', [$package]);
-            }
-
-            if ($package->getType() == 'pagekit-extension') {
-                $this->app->get('config')('system')->pull('extensions', $package->get('module'));
-            }
-
-            if (!$this->clearFailure($package)) {
-                $this->reportUnclearedFailure($package);
-            }
+        foreach ($packages as $i => $package) {
+            $this->switchOff($package, $this->runner($runners, $i));
         }
+    }
+
+    /**
+     * @param list<LifecycleRunner> $runners
+     */
+    private function runner(array $runners, int $index): LifecycleRunner
+    {
+        if (!isset($runners[$index])) {
+            throw new \RuntimeException('The lifecycle runner for this package was not built.');
+        }
+
+        return $runners[$index];
+    }
+
+    /**
+     * Switches one package off. The runner is the one the pre-flight already read.
+     */
+    private function switchOff(PackageInterface $package, LifecycleRunner $lifecycle): void
+    {
+        try {
+            $lifecycle->disable();
+        } catch (\Throwable $e) {
+            $this->reportHookFailure($package, 'disable', $e);
+        }
+
+        if ($this->app->has('events')) {
+            $this->app->get('events')->trigger('package.disable', [$package]);
+        }
+
+        if ($package->getType() == 'pagekit-extension') {
+            $this->app->get('config')('system')->pull('extensions', $package->get('module'));
+        }
+
+        $this->clearActiveTheme($package);
+
+        if (!$this->clearFailure($package)) {
+            $this->reportUnclearedFailure($package);
+        }
+    }
+
+    /**
+     * Drops site.theme when this package is the theme the site is using.
+     *
+     * enable() sets that value; leaving it would keep a theme that is no longer selected.
+     */
+    private function clearActiveTheme(PackageInterface $package): void
+    {
+        if ($package->getType() !== 'pagekit-theme' || !$this->app->has('config')) {
+            return;
+        }
+
+        $module = $package->get('module');
+        $configs = $this->app->get('config');
+
+        if (!is_string($module) || $module === '' || !$configs instanceof ConfigManager) {
+            return;
+        }
+
+        $system = $configs('system');
+
+        if (!$system instanceof Config || $system->get('site.theme') !== $module) {
+            return;
+        }
+
+        $system->remove('site.theme');
     }
 
     /**

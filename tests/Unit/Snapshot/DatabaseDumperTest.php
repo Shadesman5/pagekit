@@ -11,6 +11,7 @@ use Pagekit\Database\Connection;
 use Pagekit\Package\Snapshot\DatabaseDumper;
 use Pagekit\Package\Snapshot\DumpFormat;
 use Pagekit\Package\Snapshot\RestoreTableNames;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -42,6 +43,12 @@ final class DatabaseDumperTest extends TestCase
      * and disk holding every password hash on the site.
      */
     private const STAGING = '.part';
+
+    /**
+     * How a folding server is asked which way it matches table names. An @-led
+     * name is rewritten as the installation's prefix, so this is read by SHOW.
+     */
+    private const FOLD_QUERY = "SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'";
 
     /**
      * A column only the second table carries, which is where the database is
@@ -469,6 +476,168 @@ final class DatabaseDumperTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Which tables a prefix names
+    // ------------------------------------------------------------------
+
+    public function testADatabaseThatListsNoTableIsStillADump(): void
+    {
+        // Uninstall snapshots before it removes anything, and the database it
+        // opens may never have held a table. Refusing that would stop the
+        // removal with no file to put the installation back from.
+        $connection = $this->openDatabase();
+
+        $summary = (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['tables' => 0, 'rows' => 0], $summary);
+        self::assertSame(['db.dump'], $this->entries($this->workspace));
+
+        $records = $this->recordsIn($this->target());
+
+        self::assertCount(2, $records);
+        self::assertSame(DumpFormat::HEADER, $records[0]['type']);
+        self::assertSame(DumpFormat::END, $records[1]['type']);
+        self::assertSame(0, $records[1]['tables']);
+        self::assertSame(0, $records[1]['rows']);
+    }
+
+    public function testADatabaseWhoseOnlyTableLiesOutsideThePrefixLeavesNoDump(): void
+    {
+        // A database that has tables, none of them this installation's, is not
+        // an empty installation: writing that file would restore nothing and
+        // still be the snapshot a removal is allowed to proceed on.
+        $connection = $this->openDatabase();
+
+        $this->tableNamed($connection, 'other_items');
+
+        $this->assertNothingWasSelected($connection);
+    }
+
+    public function testATableThatCannotBelongToThePrefixIsRefusedWithoutAskingTheServer(): void
+    {
+        // Folded forms that still do not match are not this prefix on any
+        // server, so the refusal does not ask — including where the answer
+        // would have been that names fold.
+        $connection = $this->mysqlServer();
+        $connection->folding = '1';
+
+        $this->tableNamed($connection, 'other_items');
+
+        $this->assertNothingWasSelected($connection);
+
+        self::assertSame([], $connection->asked);
+    }
+
+    public function testSqliteMatchesAPrefixByItsBytes(): void
+    {
+        // SQLite has no lower_case_table_names. A case difference is another
+        // table, and finding that out must not run the statement MySQL is asked.
+        $connection = $this->openDatabase();
+
+        if (!$this->isSqlite($connection)) {
+            self::markTestSkipped('SQLite is the engine that must not ask how table names fold');
+        }
+
+        $this->tableNamed($connection, 'pk_items');
+        $this->tableNamed($connection, 'PK_meta');
+        $this->tableNamed($connection, 'other_items');
+
+        (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['pk_items'], $this->tablesIn($this->target()));
+    }
+
+    /**
+     * @return array<string, array{0: string|int|null, 1: bool}>
+     */
+    public static function provideWhetherACaseDifferenceIsTheSameTable(): array
+    {
+        return [
+            'names stored folded, answered as text' => ['1', true],
+            'names stored folded, answered as an integer' => [1, true],
+            'names matched folded but stored as given, answered as text' => ['2', true],
+            'names matched folded but stored as given, answered as an integer' => [2, true],
+            'names matched as they are written' => ['0', false],
+            'names matched as they are written, answered as an integer' => [0, false],
+            'an answer this does not treat as folding' => [3, false],
+            'an answer in words' => ['ON', false],
+            'an empty answer' => ['', false],
+            'a server that gives no row' => [null, false],
+        ];
+    }
+
+    /**
+     * @return array<string, array{0: string|int|null}>
+     */
+    public static function provideWhatTheServerMightAnswerAboutFolding(): array
+    {
+        $answers = [];
+
+        foreach (self::provideWhetherACaseDifferenceIsTheSameTable() as $case => [$answer]) {
+            $answers[$case] = [$answer];
+        }
+
+        return $answers;
+    }
+
+    #[DataProvider('provideWhatTheServerMightAnswerAboutFolding')]
+    public function testABytePrefixMatchesWithoutAskingTheServer(string|int|null $folding): void
+    {
+        // The same bytes are the same table whether or not the server folds.
+        // This comparison runs while the dump is read, before a lock, so a
+        // byte match must not ask.
+        $connection = $this->mysqlServer();
+        $connection->folding = $folding;
+
+        $this->tableNamed($connection, 'pk_items');
+        $this->tableNamed($connection, 'other_items');
+
+        (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['pk_items'], $this->tablesIn($this->target()));
+        self::assertSame([], $connection->asked);
+    }
+
+    #[DataProvider('provideWhetherACaseDifferenceIsTheSameTable')]
+    public function testAnUpperCasePrefixSelectsTheInstallationsTablesOnlyWhereTheServerFolds(string|int|null $folding, bool $folds): void
+    {
+        // An installation can be created with an upper-case prefix, and a
+        // folding server may list the tables it owns in the other case. A
+        // server that does not fold keeps the byte match and leaves the case
+        // difference out, after being asked once.
+        $connection = $this->mysqlServer('PK_');
+        $connection->folding = $folding;
+
+        $this->tableNamed($connection, 'PK_meta');
+        $this->tableNamed($connection, 'pk_items');
+        $this->tableNamed($connection, 'other_items');
+        $this->requireNamesKeptAsGiven($connection, 'PK_meta');
+
+        (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame($folds ? ['PK_meta', 'pk_items'] : ['PK_meta'], $this->tablesIn($this->target()));
+        self::assertSame([self::FOLD_QUERY], $connection->asked);
+        self::assertFileDoesNotExist($this->target().self::STAGING);
+    }
+
+    public function testAMarkerWrittenInAnotherCaseIsStillDumped(): void
+    {
+        // A restore writes its markers in one case. Folding that reading would
+        // drop a table that only looks like a marker from the dump of an
+        // installation that owns every table, including where names fold.
+        $connection = $this->mysqlServer('');
+        $connection->folding = '1';
+
+        $this->tableNamed($connection, 'items');
+        $this->tableNamed($connection, '_R_owned');
+        $this->requireNamesKeptAsGiven($connection, '_R_owned');
+
+        (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['_R_owned', 'items'], $this->tablesIn($this->target()));
+        self::assertSame([], $connection->asked);
+    }
+
+    // ------------------------------------------------------------------
     // The installation a dump is taken of
     // ------------------------------------------------------------------
 
@@ -564,6 +733,46 @@ final class DatabaseDumperTest extends TestCase
         $table->setPrimaryKey(['id']);
 
         $connection->createSchemaManager()->createTable($table);
+    }
+
+    private function mysqlServer(string $prefix = 'pk_'): ConnectionThatAnswersForAMysqlServer
+    {
+        $connection = $this->openDatabase($prefix, ConnectionThatAnswersForAMysqlServer::class);
+
+        self::assertInstanceOf(ConnectionThatAnswersForAMysqlServer::class, $connection);
+
+        return $connection;
+    }
+
+    /**
+     * Skips where the server cannot hold the name at all. A server that stores
+     * table names folded has no way to be handed one in another case.
+     */
+    private function requireNamesKeptAsGiven(Connection $connection, string $name): void
+    {
+        if (!in_array($name, $connection->createSchemaManager()->listTableNames(), true)) {
+            self::markTestSkipped(sprintf('This server stores table names folded, so it cannot hold a table called "%s"', $name));
+        }
+    }
+
+    private function assertNothingWasSelected(Connection $connection): void
+    {
+        try {
+            (new DatabaseDumper($connection))->dump($this->target());
+
+            self::fail('A dump that selected no table must not be reported as taken');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('Failed to dump the database', $e->getMessage());
+            self::assertStringNotContainsString('The dump selected no table.', $e->getMessage());
+
+            $previous = $e->getPrevious();
+
+            self::assertInstanceOf(\RuntimeException::class, $previous);
+            self::assertSame('The dump selected no table.', $previous->getMessage());
+            self::assertNull($previous->getPrevious());
+        }
+
+        self::assertSame([], $this->entries($this->workspace));
     }
 
     /**

@@ -32,13 +32,15 @@ Which tables a module owns is part of the data-risk answer. A package-scoped res
 
 The integrity API talks about modules that are registered and modules that are enabled, so a later change to how a module becomes registered does not reopen these rules.
 
+`application` is the composition root. It does not own the types other modules import. `kernel` owns `Event`, `Module`, `Container`, `Application`, `Util`. `UrlProvider` and `Response` live in `routing`. `#[Access]` lives in `routing`. `view/twig` is not a module. A `Pagekit\` autoload prefix belongs to one directory. An import is a `require` toward that module. A cycle is broken by moving the type. No alias, no forwarding subclass, no test exception for a parent import.
+
 ## Findings
 
 **Resolver.** `ModuleManager::resolveModules()` in `app/modules/application/src/Module/ModuleManager.php`: a name already on the unresolved stack throws `Circular requirement "%s > %s"`. A name present in `$this->registered` recurses. Any other name is ignored, and the depender is still stored in `$resolved`. `load()` throws `Undefined module: $name` only for the name it was asked to load.
 
 **Who is enabled.** System config `extensions` (a list) and `site.theme` (one module). `SystemModule` loads both. `PackageManager::enable()` and `disable()` push and pull `extensions`, and set or remove `site.theme`. `disable()` runs the package script, fires `package.disable`, and pulls the extension. The extensions and themes screens show name, toggle, version, folder, settings, permissions and uninstall.
 
-**Imports and manifests.** `app/package/index.php` requires `application`, `migration`, `system/intl` and `system/view`. `PackageController` and `SnapshotController` import `Pagekit\User\Attribute\Access`. No declared edge, direct or through another module's `require`, reaches `system/user`. The attribute is read at dispatch, so load order never fails on it. `system` requires both `package` and `system/user`. `system/user` declares no `require`, so `package` → `system/user` does not cycle. The package module's other `Pagekit\` imports sit on `application`, on `migration`, or on modules `application` itself requires (`filesystem`, `routing`, `database`, `log`). An edge reached that way is declared. `packages/pagekit/blog` and `packages/pagekit/theme-one` declare no `require`.
+**Imports and manifests.** Core modules import types their `require` lists do not reach. `#[Access]` sits in `system/user` while admin controllers, including package, import it. `system/user` imports captcha, mail and cache. `application` is both the composition root and the owner of `Event`, `Module` and `Application`, and `UrlProvider` imports routing. `view` requires `view/twig`, and `view/twig` imports `view`. Two modules claim `Pagekit\View\`. `system/settings` claims `Pagekit\System\`. The edge test maps a class to the module directory that contains its file and fails unless `require` reaches that module. `packages/pagekit/*` are outside the test; their call sites of a moved class still change.
 
 **Notice.** A boot-time refusal uses the durable failure record and the admin notice that already exist.
 
@@ -68,7 +70,7 @@ The integrity API talks about modules that are registered and modules that are e
 - An archive whose `require` names a module the installation does not have is refused before anything is written. The missing module is named. The panel upload and `php pagekit install <archive>` both hit that refusal.
 - Enable and disable from the console are settled: the same pre-flight as the panel, or the panel stays the only activation surface and the install command's help says so.
 - `requiredBy` answers who depends on a module, from the registered manifests, including the active theme.
-- A test reads every core module's `use Pagekit\…` imports, attribute classes included, against its manifest `require`, and fails when no declared edge reaches the import. `package` requires `system/user`.
+- A test reads every core module's `use Pagekit\…` imports, attribute classes included, against its manifest `require`, and fails when no declared edge reaches the module that contains the class file. A cycle is fixed by moving the type. `#[Access]` is a routing type. `kernel` owns the foundation. `application` is only the composition root.
 - Disable and uninstall pre-flight reports blockers, orphans and a data-risk hint. A blocking dependent prevents the change. The extensions and themes UI shows that result.
 - Restore pre-flight refuses, by name, when the recorded application version or a `packages.*` version differs. Metadata written from now on carries the application version. The MySQL refusals above are part of that answer, and they are known before a package file is written back. A refused restore leaves `packages/` unchanged.
 - Table selection and the check that a dumped table belongs to this installation fold the prefix the way `comparable()` does. A dump that selected no table is refused when it is taken.

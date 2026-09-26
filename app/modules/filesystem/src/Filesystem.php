@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Filesystem;
 
 use Pagekit\Filesystem\Adapter\AdapterInterface;
-use Pagekit\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class Filesystem
 {
@@ -23,16 +23,16 @@ class Filesystem
     /**
      * Gets file path URL.
      *
-     * @param int|bool $referenceType One of {@see UrlGenerator}'s reference type constants
-     *                                or `true` for {@see UrlGenerator::ABSOLUTE_URL} (legacy).
+     * @param int|bool $referenceType One of {@see UrlGeneratorInterface}'s reference type constants
+     *                                or `true` for {@see UrlGeneratorInterface::ABSOLUTE_URL} (legacy).
      */
-    public function getUrl(string $file, int|bool $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
+    public function getUrl(string $file, int|bool $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH): string|false
     {
         if (!$url = $this->getPathOption($file, 'url')) {
             return false;
         }
 
-        if ($referenceType === UrlGenerator::ABSOLUTE_PATH) {
+        if ($referenceType === UrlGeneratorInterface::ABSOLUTE_PATH) {
             $path = (string) parse_url($url, PHP_URL_PATH);
             if (strlen($path) > 1) {
                 $pos = strpos($url, $path);
@@ -40,7 +40,7 @@ class Filesystem
             } else {
                 $url = '/';
             }
-        } elseif ($referenceType === UrlGenerator::NETWORK_PATH) {
+        } elseif ($referenceType === UrlGeneratorInterface::NETWORK_PATH) {
             $pos = strpos($url, '//');
             $url = $pos !== false ? substr($url, $pos) : $url;
         }

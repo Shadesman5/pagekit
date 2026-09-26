@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Module\Module;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 
 /**

@@ -6,6 +6,7 @@ namespace Pagekit\System;
 
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
 use Pagekit\System\Extension\ExtensionLoader;
 use Symfony\Component\Finder\Finder;
 
@@ -19,6 +20,15 @@ class SystemModule extends Module
     public function main(App $app): mixed
     {
         $this->app = $app;
+
+        $modules = $app->get('module');
+
+        // Before an extension is loaded. Walking its require into a switched-off
+        // package would load that package for this request.
+        if ($modules instanceof ModuleManager) {
+            $modules->setActivityPolicy($this->activeModules(), $this->name);
+        }
+
         $app->set('system', $this);
         $app->set('isAdmin', false);
 
@@ -82,6 +92,30 @@ class SystemModule extends Module
         $app->set('theme', $themeModule);
 
         return null;
+    }
+
+    /**
+     * Extensions the site has switched on, and the active theme when one is set.
+     *
+     * @return list<string>
+     */
+    private function activeModules(): array
+    {
+        $enabled = [];
+
+        foreach ((array) $this->config('extensions') as $name) {
+            if (is_string($name) && $name !== '') {
+                $enabled[] = $name;
+            }
+        }
+
+        $theme = $this->config('site.theme');
+
+        if (is_string($theme) && $theme !== '') {
+            $enabled[] = $theme;
+        }
+
+        return $enabled;
     }
 
     /**

@@ -11,6 +11,13 @@ return [
 
     'name' => 'system/view',
 
+    'require' => [
+
+        'view',
+        'kernel',
+
+    ],
+
     'main' => function ($app) {
 
         $app->extend('twig', function ($twig) use ($app) {
@@ -37,12 +44,6 @@ return [
         });
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\View\\' => 'src',
-
-    ],
 
     'events' => [
 

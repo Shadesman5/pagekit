@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application\Response;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Blog\PostPresenter;
@@ -15,6 +13,8 @@ use Pagekit\Feed\FeedFactory;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Response;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Model\User;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;

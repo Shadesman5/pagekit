@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Package;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Filesystem\Path;
+use Pagekit\Routing\UrlProvider;
 
 /**
  * @implements \ArrayAccess<string, Package>

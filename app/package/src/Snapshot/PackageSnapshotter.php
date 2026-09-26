@@ -53,7 +53,8 @@ final class PackageSnapshotter
     public const REASON_UNINSTALL = 'uninstall';
 
     /**
-     * @param string $packages where runtime-installed packages live
+     * @param string $packages    where runtime-installed packages live
+     * @param string $application the running application version, recorded on a new snapshot
      */
     public function __construct(
         private readonly SnapshotStore $store,
@@ -62,6 +63,7 @@ final class PackageSnapshotter
         private readonly Filesystem $files,
         private readonly LoggerInterface $log,
         private readonly string $packages,
+        private readonly string $application = '',
     ) {
     }
 
@@ -156,6 +158,11 @@ final class PackageSnapshotter
      * installation over rather than by carrying on with it.
      *
      * @throws \InvalidArgumentException where no snapshot goes by this id
+     * @throws RestoreRefusedException   where a stored application version is not text
+     *                                  or differs, a `packages.*` entry does not match, or
+     *                                  a MySQL restore would refuse. A snapshot from before
+     *                                  the version was stored is not this refusal. Nothing
+     *                                  under packages/ has been changed
      * @throws \RuntimeException         where the snapshot is not one anything can be
      *                                  restored from, or the restore could not be applied
      */
@@ -181,6 +188,10 @@ final class PackageSnapshotter
         if ($trees === []) {
             throw new \RuntimeException(sprintf('Snapshot "%s" holds no package files, so there is nothing in it to put back.', $id));
         }
+
+        // A mismatch here is known before any package file is put back, so a
+        // refusal leaves packages/ as it was.
+        $this->assertRestorable($id, $dump);
 
         foreach ($trees as $tree) {
             $this->reinstate($id, $tree);
@@ -344,6 +355,148 @@ final class PackageSnapshotter
     }
 
     /**
+     * Refuses a restore whose stored application version is not text or
+     * differs, whose package versions do not match, or whose MySQL pre-flight
+     * would refuse.
+     *
+     * A snapshot from before an application version was stored is not one of
+     * those refusals, and neither is a dump that cannot be read: {@see self::restore()}
+     * reports that after the files are back.
+     *
+     * @throws RestoreRefusedException
+     */
+    private function assertRestorable(string $id, string $dump): void
+    {
+        $reasons = $this->applicationReasons($id);
+
+        try {
+            $dumped = $this->restorer->packageVersions($dump);
+        } catch (\RuntimeException) {
+            // The dump cannot be compared. The restore that follows reports why.
+            $dumped = null;
+        }
+
+        if ($dumped !== null) {
+            $reasons = array_merge($reasons, $this->packageReasons($id, $dumped));
+        }
+
+        try {
+            $mysql = $this->restorer->refusals($dump);
+        } catch (\RuntimeException) {
+            // A dump that cannot be read is not an operator refusal.
+            $mysql = [];
+        }
+
+        $reasons = array_merge($reasons, $mysql);
+
+        if ($reasons === []) {
+            return;
+        }
+
+        throw new RestoreRefusedException(__('Snapshot "%snapshot%" cannot be restored. %reasons%', [
+            '%snapshot%' => $id,
+            '%reasons%' => implode(' ', $reasons),
+        ]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function applicationReasons(string $id): array
+    {
+        $recorded = $this->store->application($id);
+
+        if ($recorded === null && !$this->store->applicationWasStored($id)) {
+            // Readable metadata with no version and no mark is a snapshot from
+            // before the field. The package map still ties it to this installation.
+            return [];
+        }
+
+        if ($recorded === null) {
+            // A non-text value, a removed key, or a file that cannot be read
+            // cannot be shown to match, and the dump would replace the schema.
+            return [__('It records no application version.')];
+        }
+
+        if ($recorded === $this->application) {
+            return [];
+        }
+
+        return [__('It was taken on application "%recorded%" and this installation runs "%running%".', [
+            '%recorded%' => $recorded,
+            '%running%' => $this->application,
+        ])];
+    }
+
+    /**
+     * @param  array<string, mixed> $dumped module => version, as the dump's system row stored it
+     * @return list<string>
+     */
+    private function packageReasons(string $id, array $dumped): array
+    {
+        $installed = $this->restorer->installedPackages();
+        $subjects = $this->archivedModules($id);
+        $names = array_keys($dumped + $installed);
+        sort($names, SORT_STRING);
+
+        $reasons = [];
+
+        foreach ($names as $name) {
+            $inDump = array_key_exists($name, $dumped);
+            $inLive = array_key_exists($name, $installed);
+
+            // The package this snapshot puts back is gone from the running map
+            // after the uninstall it was taken for. Which name that is comes from
+            // the archived manifest: the metadata module is a file in the store.
+            if ($inDump && !$inLive && in_array($name, $subjects, true)) {
+                continue;
+            }
+
+            if ($inDump && $inLive && $this->sameVersion($dumped[$name], $installed[$name])) {
+                continue;
+            }
+
+            if ($inDump && $inLive) {
+                $reasons[] = __('"%module%" is "%snapshot%" in the snapshot and "%installation%" in this installation.', [
+                    '%module%' => $name,
+                    '%snapshot%' => $this->shown($dumped[$name]),
+                    '%installation%' => $this->shown($installed[$name]),
+                ]);
+
+                continue;
+            }
+
+            $reasons[] = $inDump
+                ? __('"%module%" is in the snapshot and not in this installation.', ['%module%' => $name])
+                : __('"%module%" is in this installation and not in the snapshot.', ['%module%' => $name]);
+        }
+
+        return $reasons;
+    }
+
+    /**
+     * A `packages.*` value as the config JSON stored it. Only two strings are one version.
+     */
+    private function sameVersion(mixed $left, mixed $right): bool
+    {
+        return is_string($left) && is_string($right) && $left === $right;
+    }
+
+    /**
+     * @param mixed $version a `packages.*` value as the config JSON stored it
+     */
+    private function shown(mixed $version): string
+    {
+        if (is_string($version)) {
+            return $version;
+        }
+
+        $encoded = json_encode($version);
+
+        return is_string($encoded) ? $encoded : 'not a version';
+    }
+
+    /**
      * The snapshot an operation was asked to act on.
      *
      * @return Snapshot
@@ -360,6 +513,63 @@ final class PackageSnapshotter
         }
 
         return $snapshot;
+    }
+
+    /**
+     * Modules named by the archived manifests, not by the snapshot metadata.
+     *
+     * @return list<string>
+     */
+    private function archivedModules(string $id): array
+    {
+        $modules = [];
+
+        foreach ($this->archived($id) as $tree) {
+            $module = $this->moduleOf($this->store->filesDirectory($id).'/'.$tree.'/composer.json');
+
+            if ($module !== '') {
+                $modules[] = $module;
+            }
+        }
+
+        return $modules;
+    }
+
+    /**
+     * The module a manifest would be installed as, or '' when it names none.
+     *
+     * A string `module`, otherwise the basename of `name`: that is the key
+     * install writes under `packages.*`.
+     */
+    private function moduleOf(string $manifest): string
+    {
+        if (!is_file($manifest)) {
+            return '';
+        }
+
+        $content = @file_get_contents($manifest);
+
+        if ($content === false || trim($content) === '') {
+            return '';
+        }
+
+        try {
+            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return '';
+        }
+
+        if (!is_array($data)) {
+            return '';
+        }
+
+        if (isset($data['module'])) {
+            return is_string($data['module']) ? $data['module'] : '';
+        }
+
+        $name = $data['name'] ?? null;
+
+        return is_string($name) ? basename($name) : '';
     }
 
     /**
@@ -442,6 +652,9 @@ final class PackageSnapshotter
             'type' => $package->getType(),
             'version' => $this->text($package->get('version')),
             'reason' => $reason,
+            'application' => $this->application,
+            // Left beside the version so a metadata file that loses the key is not an older snapshot.
+            SnapshotStore::APPLICATION_STORED => true,
             'format' => DumpFormat::VERSION,
             'database' => $this->dumper->describe(),
         ];

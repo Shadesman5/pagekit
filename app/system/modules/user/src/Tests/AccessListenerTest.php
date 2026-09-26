@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Tests;
 
-use Pagekit\Application\Response;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\Event;
 use Pagekit\Kernel\Event\RequestEvent;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Generator\UrlGenerator;
+use Pagekit\Routing\Response;
 use Pagekit\Routing\Route;
-use Pagekit\User\Attribute\Access;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\User\Event\AccessListener;
 use Pagekit\User\Model\User;
 use PHPUnit\Framework\MockObject\MockObject;

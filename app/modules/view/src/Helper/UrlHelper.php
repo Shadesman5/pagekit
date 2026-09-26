@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\View\Helper;
 
-use Pagekit\Application\UrlProvider;
 use Pagekit\Routing\Generator\UrlGenerator;
+use Pagekit\Routing\UrlProvider;
 
 class UrlHelper extends Helper
 {
-    protected \Pagekit\Application\UrlProvider $provider;
+    protected \Pagekit\Routing\UrlProvider $provider;
 
     /**
      * Constructor.

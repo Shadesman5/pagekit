@@ -11,6 +11,14 @@ return [
 
     'name' => 'auth',
 
+    'require' => [
+
+        'cookie',
+        'database',
+        'kernel',
+
+    ],
+
     'main' => function ($app) {
 
         $app->set('auth', fn ($app) => new Auth($app->get('events'), $app->get('auth.handler')));

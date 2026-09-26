@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Snapshot;
 
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySQL80Platform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
@@ -45,10 +46,11 @@ class ConnectionThatAnswersForAMysqlServer extends Connection
 
     /**
      * What the server says when asked whether it matches table names without
-     * regard to case: "1" and "2" are the two settings that do, and null is a
-     * server that gives no answer at all.
+     * regard to case. "1" and "2", and the integers 1 and 2, are the answers
+     * that do: a driver that prepares on the server hands that number back as
+     * an integer. Null is a server that gives no row at all.
      */
-    public ?string $folding = '0';
+    public string|int|null $folding = '0';
 
     /**
      * Whether another session already holds the lock a restore of this
@@ -198,6 +200,26 @@ class ConnectionThatAnswersForAMysqlServer extends Connection
     protected function platformUnderneath(): AbstractPlatform
     {
         return parent::getDatabasePlatform();
+    }
+
+    /**
+     * A dump's read view asks MySQL for one isolation level before it starts.
+     * SQLite has no level to set; a run whose server is MySQL runs the statement.
+     *
+     * @param array<int|string, mixed> $params
+     * @param array<int|string, mixed> $types
+     */
+    public function executeStatement($sql, array $params = [], array $types = []): int
+    {
+        if (
+            is_string($sql)
+            && str_contains($sql, 'SET TRANSACTION ISOLATION LEVEL')
+            && !$this->platformUnderneath() instanceof AbstractMySQLPlatform
+        ) {
+            return 0;
+        }
+
+        return parent::executeStatement($sql, $params, $types);
     }
 
     /**

@@ -33,6 +33,6 @@ return [
 
     ],
 
-    'require' => ['application', 'migration'],
+    'require' => ['application', 'migration', 'installer', 'package'],
 
 ];

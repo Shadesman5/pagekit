@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Intl\Controller;
 
-use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Response as PagekitResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Translation\Translator;

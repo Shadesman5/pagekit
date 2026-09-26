@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Pagekit\Captcha;
 
 use Pagekit\Auth\Auth;
+use Pagekit\Auth\UserInterface;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Module\Module;
 use Pagekit\Routing\Route;
 use Pagekit\Routing\Router;
-use Pagekit\User\Model\User;
 use Pagekit\View\Asset\AssetManager;
 use Pagekit\View\Helper\DataHelper;
 use Symfony\Component\HttpFoundation\Request;
@@ -84,7 +84,7 @@ class CaptchaListener implements EventSubscriberInterface
         $user = $this->auth->getUser();
 
         if (!$this->captchaModule->config('recaptcha_enable')
-            || ($user instanceof User && $user->isAuthenticated())
+            || ($user instanceof UserInterface && $user->isAuthenticated())
             || !($routes = $request?->attributes->get('_captcha_routes'))
             || !($sitekey = $this->captchaModule->config('recaptcha_sitekey'))
         ) {
@@ -114,7 +114,7 @@ class CaptchaListener implements EventSubscriberInterface
         // Must match the same conditions as onData() to ensure $captcha exists
         // when the script runs
         if (!$this->captchaModule->config('recaptcha_enable')
-            || ($user instanceof User && $user->isAuthenticated())
+            || ($user instanceof UserInterface && $user->isAuthenticated())
             || !$request?->attributes->get('_captcha_routes')
             || !$this->captchaModule->config('recaptcha_sitekey')
         ) {
@@ -134,7 +134,7 @@ class CaptchaListener implements EventSubscriberInterface
 
         if (!$this->captchaModule->config('recaptcha_enable')
             || !($captcha = $request->attributes->get('_captcha_verify'))
-            || ($user instanceof User && $user->isAuthenticated())) {
+            || ($user instanceof UserInterface && $user->isAuthenticated())) {
             return;
         }
 

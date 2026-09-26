@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Theme;
 
-use Pagekit\Application\UrlProvider;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Util\ArrObject;
 use Pagekit\View\Engine\PhpEngineAdapter;
 use Pagekit\View\Helper\Helper;

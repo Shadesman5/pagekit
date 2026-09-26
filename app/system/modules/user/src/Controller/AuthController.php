@@ -6,15 +6,15 @@ namespace Pagekit\User\Controller;
 
 use function Pagekit\__;
 
-use Pagekit\Application\Response as PagekitResponse;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Response as PagekitResponse;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Session\Csrf\Exception\CsrfException;
 use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
 use Pagekit\Session\MessageBag;

@@ -7,12 +7,12 @@ namespace Pagekit\User\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\Exception;
-use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Mail\Mailer;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Routing\Router;
+use Pagekit\Routing\UrlProvider;
 use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
 use Pagekit\Session\MessageBag;
 use Pagekit\User\Model\User;

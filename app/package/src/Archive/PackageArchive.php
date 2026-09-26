@@ -6,6 +6,7 @@ namespace Pagekit\Package\Archive;
 
 use PhpParser\Error as SyntaxError;
 use PhpParser\Node;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Scalar\Int_;
@@ -43,6 +44,7 @@ final class PackageArchive
      * @param list<Entry>             $entries
      * @param array<array-key, mixed> $composer
      * @param array<string, string>   $autoload
+     * @param list<string>            $require
      */
     private function __construct(
         private readonly string $path,
@@ -53,6 +55,7 @@ final class PackageArchive
         private readonly string $version,
         private readonly string $title,
         private readonly array $autoload,
+        private readonly array $require,
     ) {
     }
 
@@ -76,6 +79,7 @@ final class PackageArchive
 
             $entries = self::entries($zip);
             $metadata = self::metadata($zip, $entries);
+            $manifest = self::manifest($zip, $entries, basename($metadata['name']));
 
             return new self(
                 $file,
@@ -85,7 +89,8 @@ final class PackageArchive
                 $metadata['type'],
                 $metadata['version'],
                 $metadata['title'],
-                self::manifest($zip, $entries, basename($metadata['name'])),
+                $manifest['autoload'],
+                $manifest['require'],
             );
         } finally {
             $zip->close();
@@ -127,6 +132,27 @@ final class PackageArchive
     public function autoload(): array
     {
         return $this->autoload;
+    }
+
+    /**
+     * Modules index.php requires, in the order the array literal yields them.
+     *
+     * @return list<string>
+     */
+    public function require(): array
+    {
+        return $this->require;
+    }
+
+    /**
+     * Refusal for a requirement this installation has not registered.
+     */
+    public function unknownRequirement(string $required): ArchiveRefusedException
+    {
+        return new ArchiveRefusedException(__('Module "%depender%" requires "%required%", which is not registered.', [
+            '%depender%' => $this->module(),
+            '%required%' => self::printable($required),
+        ]));
     }
 
     /**
@@ -338,11 +364,11 @@ final class PackageArchive
     }
 
     /**
-     * The autoload map index.php declares, read without running the file.
+     * The autoload map and requirement list index.php declares, read without running the file.
      *
      * @param list<Entry> $entries
      *
-     * @return array<string, string>
+     * @return array{autoload: array<string, string>, require: list<string>}
      *
      * @throws ArchiveRefusedException
      */
@@ -387,6 +413,7 @@ final class PackageArchive
 
         // A later key wins when PHP builds the array, and a spread or a computed key can be any
         // key, so only the literal keys after the last of those are certain.
+        /** @var array<string, Expr> $items */
         $items = [];
 
         foreach ($returned->items as $item) {
@@ -430,7 +457,64 @@ final class PackageArchive
             $autoload[$namespace] = $path;
         }
 
-        return $autoload;
+        return [
+            'autoload' => $autoload,
+            'require' => self::requirementList($items['require'] ?? null),
+        ];
+    }
+
+    /**
+     * Requirement names from a literal list. A missing key is an empty list.
+     *
+     * @return list<string>
+     *
+     * @throws ArchiveRefusedException
+     */
+    private static function requirementList(?Expr $declared): array
+    {
+        if ($declared === null) {
+            return [];
+        }
+
+        // The file is not executed. A spread or a non-string can name a module that is not written here.
+        if (!$declared instanceof Array_) {
+            throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'));
+        }
+
+        // "-0" stays a string key, so the name appended after it is integer 0.
+        // From PHP 8.3 a negative integer continues at n+1, so the name after "-4" is -3 and a later "0" does not replace it.
+        $values = [];
+
+        foreach ($declared->items as $item) {
+            $key = $item->key;
+
+            if ($item->unpack || !$item->value instanceof String_) {
+                throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'));
+            }
+
+            if ($key === null) {
+                try {
+                    $values[] = $item->value->value;
+                } catch (\Error $e) {
+                    // Past PHP_INT_MAX the literal throws, so there is no list to read.
+                    throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'), 0, $e);
+                }
+
+                continue;
+            }
+
+            if ($key instanceof String_) {
+                $index = $key->value;
+            } elseif ($key instanceof Int_) {
+                $index = $key->value;
+            } else {
+                throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'));
+            }
+
+            $values[$index] = $item->value->value;
+        }
+
+        return array_values($values);
     }
 
     /**

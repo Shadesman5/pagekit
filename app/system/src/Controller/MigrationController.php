@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Pagekit\System\Controller;
 
 use Pagekit\Application;
-use Pagekit\Application\Response;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Migration\MigrationService;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Routing\Attribute\Access;
 use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Response;
 use Pagekit\Routing\Router;
 use Pagekit\Session\MessageBag;
 use Pagekit\System\SystemModule;
-use Pagekit\User\Attribute\Access;
 
 #[Access('system: software updates', admin: true)]
 class MigrationController

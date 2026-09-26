@@ -6,9 +6,9 @@ namespace Pagekit\User\Model;
 
 use Pagekit\Auth\UserInterface;
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\DataModelTrait;
 use Pagekit\Database\ORM\SerializableModelInterface;
-use Pagekit\System\Model\DataModelTrait;
-use Pagekit\System\Validator\Constraints as PagekitAssert;
+use Pagekit\Database\Validator\Constraints\Unique;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -47,7 +47,7 @@ class User implements UserInterface, \JsonSerializable, SerializableModelInterfa
         pattern: '/^[a-zA-Z0-9._\-]+$/',
         message: 'validation.user.username_invalid'
     )]
-    #[PagekitAssert\Unique(
+    #[Unique(
         table: '@system_user',
         column: 'username',
         message: 'validation.user.username_not_available'
@@ -61,7 +61,7 @@ class User implements UserInterface, \JsonSerializable, SerializableModelInterfa
     #[ORM\Column]
     #[Assert\NotBlank(message: 'validation.user.email_required')]
     #[Assert\Email(message: 'validation.user.email_invalid')]
-    #[PagekitAssert\Unique(
+    #[Unique(
         table: '@system_user',
         column: 'email',
         message: 'validation.user.email_not_available'
