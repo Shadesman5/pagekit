@@ -340,6 +340,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   4. Keep the Step 2.7 fault barrier for the remaining load / `main()` / lifecycle windows — static discovery removes the registration window's PHP hazard, it does not replace load isolation
   5. Package contract alignment: whatever shape 2.7.3 settles becomes required input for Extension Packaging (**2.8**)
 - **Out of scope**: prebuilt JS/CSS author tooling and upload ZIP shape (**2.8**); marketplace signing (**5.6**); process-level sandboxing of enabled extension PHP (not Core / not 2.x debt — optional Phase 5 candidate after marketplace trust, see PHASE_5 §5.6 Future candidate)
+- **Names and homes**: Record each first-party module under the directory and the name it already has. The composition root stays `application`, the same key `config.php` uses, and `Pagekit\Application` stays in `kernel`. `system/view` stays the adapter beside `view`. Namespaces under `Pagekit\` stay until **4.7**. `debug` keeps its name. A directory changes when the module's tier changes (**5.0**), and that step rewrites the static manifest written here.
 - **Sequencing**: after 2.7 (+ preferably 2.7.2), before 2.8 — the packaging contract must not freeze `index.php`-as-discovery if this step is about to retire it
 - **Risk**: High — boot discovery rewrite touching every module manifest; parse-error class of failures finally becomes containable for inactive packages
 
