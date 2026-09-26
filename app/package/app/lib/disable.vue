@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import ImpactQuery from './impact-query';
+import { canProceed as impactAllowsProceed, readImpact } from './impact-query';
 import PackageImpact from './impact.vue';
 
 const { on } = UIkit.util;
@@ -39,18 +39,24 @@ export default {
     'package-impact': PackageImpact
   },
 
-  mixins: [ImpactQuery],
-
   data() {
     return {
       pkg: {},
       switching: false,
       onDismiss: null,
+      impact: null,
+      impactFailed: false,
       options: () => ({
         bgClose: false,
         escClose: false
       })
     };
+  },
+
+  computed: {
+    canProceed() {
+      return impactAllowsProceed(this.impact);
+    }
   },
 
   created() {
@@ -61,7 +67,7 @@ export default {
     ask(pkg, onDismiss) {
       this.$set(this, 'pkg', pkg);
       this.onDismiss = onDismiss;
-      this.readImpact(pkg.name);
+      readImpact(this, pkg.name);
       this.open();
     },
 

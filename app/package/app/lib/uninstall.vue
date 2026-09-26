@@ -94,7 +94,7 @@
 </template>
 
 <script>
-import ImpactQuery from './impact-query';
+import { canProceed as impactAllowsProceed, readImpact } from './impact-query';
 import Output from './output';
 import PackageImpact from './impact.vue';
 
@@ -103,7 +103,7 @@ export default {
     'package-impact': PackageImpact
   },
 
-  mixins: [Output, ImpactQuery],
+  mixins: [Output],
 
   data() {
     return {
@@ -121,11 +121,17 @@ export default {
       // the next tick, so without this a second click lands on a button that is
       // already gone and starts the whole snapshot-and-remove pipeline a second
       // time against a package the first one is halfway through removing.
-      removing: false
+      removing: false,
+      impact: null,
+      impactFailed: false
     };
   },
 
   computed: {
+    canProceed() {
+      return impactAllowsProceed(this.impact);
+    },
+
     heading() {
       const pkg = { title: this.pkg.title, version: this.pkg.version };
 
@@ -141,7 +147,7 @@ export default {
       this.$set(this, 'pkg', pkg);
       this.$set(this, 'packages', packages);
       this.keepsSnapshots = Boolean(keepsSnapshots);
-      this.readImpact(pkg.name);
+      readImpact(this, pkg.name);
 
       this.open();
     },

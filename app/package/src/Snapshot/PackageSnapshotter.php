@@ -158,9 +158,9 @@ final class PackageSnapshotter
      * installation over rather than by carrying on with it.
      *
      * @throws \InvalidArgumentException where no snapshot goes by this id
-     * @throws RestoreRefusedException   where the recorded application version or a
-     *                                  `packages.*` entry does not match, or a MySQL
-     *                                  restore would refuse. Nothing under packages/
+     * @throws RestoreRefusedException   where the recorded application version is missing
+     *                                  or differs, a `packages.*` entry does not match, or
+     *                                  a MySQL restore would refuse. Nothing under packages/
      *                                  has been changed
      * @throws \RuntimeException         where the snapshot is not one anything can be
      *                                  restored from, or the restore could not be applied
@@ -354,8 +354,9 @@ final class PackageSnapshotter
     }
 
     /**
-     * Refuses a restore whose recorded version, package versions, or MySQL
-     * pre-flight do not match this installation.
+     * Refuses a restore whose recorded application version is missing or
+     * differs, whose package versions do not match, or whose MySQL pre-flight
+     * would refuse.
      *
      * A dump that cannot be read is not one of those refusals: {@see self::restore()}
      * reports that after the files are back.
@@ -403,6 +404,8 @@ final class PackageSnapshotter
     {
         $recorded = $this->store->application($id);
 
+        // Null is a missing key and a value that is not text. Neither can be
+        // shown to match this installation, and the dump would still replace the schema.
         if ($recorded === null) {
             return [__('It records no application version.')];
         }
