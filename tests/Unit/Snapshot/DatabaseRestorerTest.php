@@ -2103,6 +2103,55 @@ final class DatabaseRestorerTest extends TestCase
         self::assertSame($snapshotted, $this->items($connection));
     }
 
+    public function testTheSystemRowIsReadWhenItsColumnsDifferOnlyByCase(): void
+    {
+        $connection = $this->installation();
+
+        $this->dumpConfig($connection, ['Name', 'Value'], [
+            ['locale', '{"packages":{"ghost":"9.0.0"}}'],
+            ['system', '{"packages":{"blog":"1.0.0"}}'],
+        ]);
+
+        self::assertSame(
+            ['blog' => '1.0.0'],
+            (new DatabaseRestorer($connection))->packageVersions($this->dump()),
+        );
+    }
+
+    public function testAConfigTableWithoutNameOrValueHoldsNoPackages(): void
+    {
+        $connection = $this->installation();
+
+        $this->dumpConfig($connection, ['id'], [[1]]);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->packageVersions($this->dump()));
+    }
+
+    #[DataProvider('systemRowsThatHoldNoPackages')]
+    public function testASystemRowThatHoldsNoPackagesObjectIsAnEmptyMap(mixed $value): void
+    {
+        $connection = $this->installation();
+
+        $this->dumpConfig($connection, ['name', 'value'], [['system', $value]]);
+
+        self::assertSame([], (new DatabaseRestorer($connection))->packageVersions($this->dump()));
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function systemRowsThatHoldNoPackages(): array
+    {
+        return [
+            'empty' => [''],
+            'not text' => [null],
+            'not json' => ['{'],
+            'not an object' => ['"blog"'],
+            'no packages object' => ['{"extensions":[]}'],
+            'packages that are not an object' => ['{"packages":"blog"}'],
+        ];
+    }
+
     // ------------------------------------------------------------------
     // The installation a dump is replayed into
     // ------------------------------------------------------------------
@@ -2638,6 +2687,33 @@ final class DatabaseRestorerTest extends TestCase
     private function dump(): string
     {
         return $this->workspace.'/db.dump';
+    }
+
+    /**
+     * @param list<string>       $columns
+     * @param list<list<mixed>>  $rows
+     */
+    private function dumpConfig(Connection $connection, array $columns, array $rows): void
+    {
+        $prefix = $connection->getPrefix() ?? '';
+        $table = $prefix.'system_config';
+        $records = [
+            self::header(['prefix' => $prefix]),
+            [
+                'type' => DumpFormat::TABLE,
+                'name' => $table,
+                'ddl' => [sprintf('CREATE TABLE %s (id INTEGER)', $table)],
+                'columns' => $columns,
+            ],
+        ];
+
+        foreach ($rows as $row) {
+            $records[] = ['type' => DumpFormat::ROW, 'values' => $row];
+        }
+
+        $records[] = ['type' => DumpFormat::END, 'tables' => 1, 'rows' => count($rows)];
+
+        $this->writeDump($connection, $records);
     }
 
     /**

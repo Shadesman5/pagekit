@@ -171,6 +171,40 @@ final class EnableCommandTest extends TestCase
         self::assertSame(['kept'], $site->system->get('extensions'));
     }
 
+    public function testEnableWithoutAModuleRegistryDoesNotRefuseARequirement(): void
+    {
+        $site = $this->open();
+        $site->app->remove('module');
+        $site->package('alpha', ['title' => 'Alpha']);
+
+        $tester = $this->enable($site, ['pagekit/alpha']);
+
+        self::assertSame(SymfonyCommand::SUCCESS, $tester->getStatusCode());
+        self::assertSame("\"Alpha\" enabled.\n", $tester->getDisplay(true));
+        self::assertSame(['kept', 'alpha'], $site->system->get('extensions'));
+        self::assertSame('1.0.0', $site->system->get('packages.alpha'));
+        self::assertSame('other', $site->system->get('site.theme'));
+    }
+
+    public function testEnableIgnoresAModuleServiceThatIsNotTheRegistry(): void
+    {
+        $site = $this->open();
+        $site->module('alpha', ['beta'], true);
+        $site->register();
+        $site->activate(['kept']);
+        $site->app->set('module', new \stdClass());
+        $site->package('alpha', ['title' => 'Alpha']);
+
+        $tester = $this->enable($site, ['pagekit/alpha']);
+
+        self::assertSame(SymfonyCommand::SUCCESS, $tester->getStatusCode());
+        self::assertSame("\"Alpha\" enabled.\n", $tester->getDisplay(true));
+        self::assertSame(['kept', 'alpha'], $site->system->get('extensions'));
+        self::assertSame('1.0.0', $site->system->get('packages.alpha'));
+        self::assertSame('other', $site->system->get('site.theme'));
+        self::assertFalse($site->ran('alpha'));
+    }
+
     /**
      * @param list<string> $extensions
      */

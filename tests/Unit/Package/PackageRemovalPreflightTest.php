@@ -130,6 +130,19 @@ final class PackageRemovalPreflightTest extends TestCase
         self::assertSame('theme', $system->get('site.theme'));
     }
 
+    public function testImpactOfAnUnknownPackageIsABadRequest(): void
+    {
+        [$app, $modules] = $this->site(['blog' => []], ['blog']);
+        $factory = $this->factory($this->package('blog'));
+        $controller = $this->controller($app, $factory, $modules);
+
+        $thrown = $this->refused(fn () => $controller->impactAction('pagekit/missing'));
+
+        self::assertInstanceOf(BadRequestHttpException::class, $thrown);
+        self::assertSame(400, $thrown->getStatusCode());
+        self::assertSame('Unable to find "pagekit/missing".', $thrown->getMessage());
+    }
+
     public function testOneDependerStopsDisableBeforeTheExtensionChanges(): void
     {
         $tree = $this->plant('blog');
@@ -288,6 +301,23 @@ final class PackageRemovalPreflightTest extends TestCase
         $this->manager($app)->disable($this->package('blog'));
 
         self::assertSame('blog', $system->get('site.theme'));
+        self::assertSame(['kept'], $system->get('extensions'));
+    }
+
+    public function testDisablingAThemeWhoseModuleIsNotANameLeavesTheActiveTheme(): void
+    {
+        [$app, , $system] = $this->site(
+            ['one' => []],
+            ['kept'],
+            ['site' => ['theme' => 7]],
+        );
+
+        $this->manager($app)->disable($this->package('one', [
+            'type' => 'pagekit-theme',
+            'module' => 7,
+        ]));
+
+        self::assertSame(7, $system->get('site.theme'));
         self::assertSame(['kept'], $system->get('extensions'));
     }
 
@@ -514,6 +544,64 @@ final class PackageRemovalPreflightTest extends TestCase
         $app->set('db', new \stdClass());
 
         self::assertSame([], $this->impact($app, $package)['dataRisk']['tables']);
+    }
+
+    public function testImpactNamesNothingEnabledWhenTheInstallationHasNoConfig(): void
+    {
+        [$app] = $this->site(
+            ['blog' => [], 'comments' => ['blog']],
+            ['blog', 'comments'],
+            ['site' => ['theme' => 'theme']],
+        );
+        $app->remove('config');
+
+        self::assertSame([
+            'blockers' => [],
+            'orphans' => [],
+            'dataRisk' => [
+                'migrations' => false,
+                'config' => false,
+                'nodes' => [],
+                'tables' => [],
+            ],
+        ], $this->impact($app, $this->package('blog')));
+    }
+
+    public function testImpactNamesNothingEnabledWhenConfigIsNotTheManager(): void
+    {
+        [$app] = $this->site(
+            ['blog' => [], 'comments' => ['blog']],
+            ['blog', 'comments'],
+            ['site' => ['theme' => 'theme']],
+        );
+        $app->set('config', new \stdClass());
+
+        self::assertSame([
+            'blockers' => [],
+            'orphans' => [],
+            'dataRisk' => [
+                'migrations' => false,
+                'config' => false,
+                'nodes' => [],
+                'tables' => [],
+            ],
+        ], $this->impact($app, $this->package('blog')));
+    }
+
+    public function testImpactNamesNothingEnabledWhenTheSystemRowIsNotConfig(): void
+    {
+        [$app] = $this->site(
+            ['blog' => [], 'comments' => ['blog']],
+            ['blog', 'comments'],
+        );
+        $app->set('config', new SystemlessConfig());
+
+        $impact = $this->impact($app, $this->package('blog'));
+
+        self::assertSame([], $impact['blockers']);
+        self::assertSame([], $impact['orphans']);
+        self::assertTrue($impact['dataRisk']['config']);
+        self::assertFalse($impact['dataRisk']['migrations']);
     }
 
     /**
@@ -863,5 +951,25 @@ final class RemovalConfig extends ConfigManager
     public function has(string $name): bool
     {
         return isset($this->rows[$name]);
+    }
+}
+
+/**
+ * A config service whose system row is not configuration.
+ */
+final class SystemlessConfig extends ConfigManager
+{
+    public function __construct()
+    {
+    }
+
+    public function __invoke(string $name): ?Config
+    {
+        return null;
+    }
+
+    public function has(string $name): bool
+    {
+        return $name === 'blog';
     }
 }

@@ -184,6 +184,37 @@ final class PackageEnableRequirementTest extends TestCase
         self::assertNull($modules->get('7'));
     }
 
+    public function testEnableOfAnEmptyModuleNameDoesNotWalkRequirements(): void
+    {
+        [$app, $system, $events, $modules] = $this->openPackage();
+        $directory = $this->workspace . '/modules/blank';
+
+        if (!mkdir($directory, 0755, true) && !is_dir($directory)) {
+            self::fail('The fixture module directory could not be created.');
+        }
+
+        $file = $directory . '/index.php';
+
+        if (file_put_contents($file, "<?php\n\ndeclare(strict_types=1);\n\nreturn ['name' => '', 'require' => ['missing']];\n") === false) {
+            self::fail('The fixture module could not be written.');
+        }
+
+        $modules->register([$file]);
+        $modules->setActivityPolicy([], 'system');
+
+        self::assertTrue($modules->isRegistered(''));
+
+        (new PackageManager($app, new NullOutput()))->enable($this->package(''));
+
+        self::assertSame(['kept', ''], $system->get('extensions'));
+        self::assertSame('1.0.0', $system->get('packages.'));
+        self::assertSame('other', $system->get('site.theme'));
+        self::assertSame(['package.enable'], $events->fired);
+        self::assertStringContainsString('enable', (string) file_get_contents($this->marker));
+        self::assertNull($modules->get(''));
+        self::assertTrue($modules->isRegistered(''));
+    }
+
     public function testEnableOfAModuleThatIsNotRegisteredDoesNotThrowUndefinedModule(): void
     {
         [$app, $system, $events, $modules] = $this->openPackage();

@@ -244,6 +244,16 @@ final class SnapshotStoreTest extends TestCase
         self::assertSame(self::FIELDS, array_keys($snapshot));
     }
 
+    public function testASnapshotThatIsNotThereReadsAsNoApplicationVersion(): void
+    {
+        $store = $this->store();
+        $id = '20260101-000000-blog-a1b2c3d4';
+
+        self::assertNull($store->application($id));
+        self::assertNull($store->get($id));
+        self::assertSame('No snapshot goes by this id.', $this->refusal(fn () => $store->directory($id))->getMessage());
+    }
+
     #[DataProvider('provideApplicationVersionsThatAreNotText')]
     public function testAnApplicationVersionThatIsNotTextReadsAsNone(mixed $version): void
     {

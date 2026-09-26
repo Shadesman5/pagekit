@@ -540,6 +540,57 @@ final class SnapshotRestoreTest extends TestCase
         self::assertSame([], $this->log->records);
     }
 
+    public function testAMysqlDumpThatCannotBeReadIsNotAnOperatorRefusal(): void
+    {
+        $id = $this->removedSnapshot();
+        $mysql = $this->mysqlConnection();
+
+        $this->replaceDump($id, $mysql, ['pk_items']);
+        $this->cutTheDumpShort($id);
+        $this->keepARow($mysql);
+
+        $failure = $this->refusal(fn () => $this->snapshotter($mysql)->restore($id));
+
+        self::assertNotInstanceOf(RestoreRefusedException::class, $failure);
+        self::assertStringContainsString('incomplete', $failure->getMessage());
+        self::assertFileExists($this->tree.'/composer.json');
+        $this->assertKept($mysql);
+        self::assertSame([$id], array_keys($this->store()->list()));
+    }
+
+    #[DataProvider('manifestsThatNameNoModule')]
+    public function testAnArchivedManifestThatNamesNoModuleDoesNotExemptOne(string $manifest): void
+    {
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+        file_put_contents(
+            $this->file($id, SnapshotStore::FILES_DIR).'/pagekit/test-ext/composer.json',
+            $manifest,
+        );
+
+        $failure = $this->refused(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString(
+            '"test-ext" is in the snapshot and not in this installation.',
+            $failure->getMessage(),
+        );
+        $this->assertFilesWereNotPutBack($id, $connection, self::REMOVED);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function manifestsThatNameNoModule(): array
+    {
+        return [
+            'empty' => [''],
+            'not json' => ['{'],
+            'not an object' => ['42'],
+        ];
+    }
+
     // ------------------------------------------------------------------
     // A restore that cannot be finished
     // ------------------------------------------------------------------

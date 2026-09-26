@@ -480,6 +480,168 @@ final class ModuleRequirementTest extends TestCase
         self::assertSame([], $manager->requiredBy('beta'));
     }
 
+    public function testANameIsReadTheSameWayThroughTheShortcut(): void
+    {
+        $manager = $this->manager();
+        $manager->register([$this->declareModule('alpha')]);
+
+        self::assertNull($manager('alpha'));
+
+        $manager->load('alpha');
+
+        self::assertSame($manager->get('alpha'), $manager('alpha'));
+        self::assertNull($manager('missing'));
+    }
+
+    public function testLoadedModulesAreWhatIterationYields(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('alpha'),
+            $this->declareModule('beta'),
+        ]);
+
+        self::assertSame([], iterator_to_array($manager));
+
+        $manager->load('alpha');
+
+        self::assertSame($manager->all(), iterator_to_array($manager));
+        self::assertSame(['alpha'], array_keys(iterator_to_array($manager)));
+    }
+
+    public function testALoaderAddedAfterLoadSeesTheBuiltModule(): void
+    {
+        $manager = $this->manager();
+        $manager->addLoader(function (mixed $module): mixed {
+            if (!is_array($module)) {
+                return $module;
+            }
+
+            $module['marker'] = 'from-pre';
+
+            return $module;
+        });
+        $manager->addLoader(function (mixed $module): mixed {
+            if (!$module instanceof Module || $module->get('marker') !== 'from-pre') {
+                return $module;
+            }
+
+            $module->options['after'] = 'built';
+
+            return $module;
+        }, true);
+        $manager->register([$this->declareModule('alpha')]);
+
+        $manager->load('alpha');
+
+        $loaded = $manager->get('alpha');
+
+        self::assertInstanceOf(Module::class, $loaded);
+        self::assertSame('from-pre', $loaded->get('marker'));
+        self::assertSame('built', $loaded->get('after'));
+    }
+
+    public function testAModuleWhoseNameIsNotTextThrowsUndefinedModule(): void
+    {
+        $manager = $this->manager();
+        $directory = $this->workspace . '/counted';
+
+        if (!mkdir($directory, 0755, true) && !is_dir($directory)) {
+            self::fail('The fixture module directory could not be created.');
+        }
+
+        $file = $directory . '/index.php';
+
+        if (file_put_contents($file, "<?php\n\ndeclare(strict_types=1);\n\nreturn ['name' => 42];\n") === false) {
+            self::fail('The fixture module could not be written.');
+        }
+
+        $manager->register([$file]);
+
+        try {
+            $manager->load('42');
+            self::fail('A module whose name is not text has to be refused.');
+        } catch (\RuntimeException $e) {
+            self::assertSame(\RuntimeException::class, $e::class);
+            self::assertSame('Undefined module: int', $e->getMessage());
+        }
+
+        self::assertNull($manager->get('42'));
+    }
+
+    public function testASharedRequirementIsLoadedOnce(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('alpha', ['beta', 'gamma']),
+            $this->declareModule('beta', ['shared']),
+            $this->declareModule('gamma', ['shared']),
+            $this->declareModule('shared'),
+        ]);
+        $manager->setActivityPolicy(['alpha', 'beta', 'gamma', 'shared'], 'system');
+
+        $manager->load('alpha');
+
+        self::assertSame(['shared', 'beta', 'gamma', 'alpha'], array_keys($manager->all()));
+        self::assertInstanceOf(Module::class, $manager->get('shared'));
+    }
+
+    public function testTheBootClosureStopsWhenAModuleIsReachedAgain(): void
+    {
+        // A requirement that is not a name is skipped; a module already in the closure is not walked again.
+        $manager = $this->manager();
+        $manager->register([
+            $this->writeModule('system', "['', 42, 'alpha']"),
+            $this->declareModule('alpha', ['system', 'user']),
+            $this->declareModule('user'),
+            $this->declareModule('blog', ['user']),
+        ]);
+        $manager->setActivityPolicy(['blog'], 'system');
+
+        self::assertTrue($manager->isAlwaysLoaded('system'));
+        self::assertTrue($manager->isAlwaysLoaded('alpha'));
+        self::assertTrue($manager->isAlwaysLoaded('user'));
+        self::assertFalse($manager->isAlwaysLoaded('blog'));
+
+        $manager->load('blog');
+
+        self::assertInstanceOf(Module::class, $manager->get('user'));
+        self::assertInstanceOf(Module::class, $manager->get('blog'));
+        self::assertNull($manager->get('alpha'));
+        self::assertNull($manager->get('system'));
+    }
+
+    public function testARequirementNamedTwiceInTheBootClosureIsWalkedOnce(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('system', ['shared', 'shared']),
+            $this->declareModule('shared', ['user']),
+            $this->declareModule('user'),
+            $this->declareModule('blog', ['user']),
+        ]);
+        $manager->setActivityPolicy(['blog'], 'system');
+
+        self::assertTrue($manager->isAlwaysLoaded('system'));
+        self::assertTrue($manager->isAlwaysLoaded('shared'));
+        self::assertTrue($manager->isAlwaysLoaded('user'));
+        self::assertFalse($manager->isAlwaysLoaded('blog'));
+        self::assertSame(['system'], $manager->requiredBy('shared'));
+        self::assertSame(['shared', 'blog'], $manager->requiredBy('user'));
+    }
+
+    public function testRequiredByIgnoresARequirementThatIsNotAModuleName(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->writeModule('alpha', "['', 42, 'shared']"),
+            $this->declareModule('shared'),
+        ]);
+
+        self::assertSame(['alpha'], $manager->requiredBy('shared'));
+        self::assertSame([], $manager->requiredBy(''));
+    }
+
     private function manager(): ModuleManager
     {
         return new ModuleManager(new Application());
