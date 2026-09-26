@@ -6,10 +6,10 @@
 **Branch:** `feature/module-dependency-integrity`
 **ROADMAP Step:** 2.7.2 (Module Dependency Integrity)
 **GitHub Issue:** [#268](https://github.com/Shadesman5/pagekit/issues/268)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#304](https://github.com/Shadesman5/pagekit/pull/304)
+**Status:** ✅ Complete
 **Started:** 2026-09-25 00:56
-**Completed:** _TBD_
+**Completed:** 2026-09-26 01:03
 
 ---
 
@@ -25,7 +25,7 @@ Disable and uninstall ask one query before anything changes. Blockers stop the c
 
 The extensions status toggle and the uninstall confirm ask that query before they offer Disable or Remove. `php pagekit enable` and `php pagekit disable` call the same manager. `php pagekit install` still does not enable.
 
-Restore asks before any package file is put back. A missing or different application version refuses by the snapshot id. A `packages.*` name that differs, or that sits on only one side, is named. The module the archived manifest names may be gone from the live map: that is the package the uninstall removed. A MySQL restore that would refuse does so with that sentence, and the lock is released before files change. The panel shows that message. Any other throwable stays the fixed line. The dump format is unchanged.
+Restore asks before any package file is put back. A different application version refuses by the snapshot id. A readable snapshot from before that field, with neither `application` nor `applicationStored`, is not that refusal. A `packages.*` name that differs, or that sits on only one side, is named. The module the archived manifest names may be gone from the live map: that is the package the uninstall removed. A MySQL restore that would refuse does so with that sentence, and the lock is released before files change. The panel shows that message. Any other throwable stays the fixed line. The dump format is unchanged.
 
 The installer boot does not create `pagekit.db`. `view.scripts` asks `hasAccess` only after `config.file` exists.
 
@@ -300,9 +300,9 @@ The extensions status toggle and the uninstall confirm read the impact route bef
 |---|---|
 | `app/package/app/lib/impact-query.js` (new) | Posts to the impact route. `canProceed` is true only when `blockers`, `orphans`, and `dataRisk` have the expected shape and `blockers` is empty. A failed read or any other shape sets `impactFailed` and leaves the button out. |
 | `app/package/app/lib/impact.vue` (new) | One sentence each for blockers, orphans, and data risk, including the empty data-risk line. Tables are named and said to be left as they are. |
-| `app/package/app/lib/disable.vue` (new) | The status-toggle confirm. Disable renders only when `canProceed`. |
+| `app/package/app/lib/disable.vue` (new) | The status-toggle confirm. Imports `canProceed` and `readImpact` from `impact-query.js`. Disable renders only when `canProceed`. |
 | `app/package/app/lib/package.js` | `disable()` opens that confirm. `commitDisable` is the switch-off. `enable` still notifies `response.data.error`. |
-| `app/package/app/lib/uninstall.vue` | The confirm shows the same impact. Remove renders only when `canProceed`. |
+| `app/package/app/lib/uninstall.vue` | The confirm shows the same impact and imports those helpers. Remove renders only when `canProceed`. |
 | `app/console/src/Commands/EnableCommand.php` (new) | Loads a registered module, then `enable()`. Prints a requirement refusal and returns failure. Other throwables propagate. No `--force`. Success prints the title, or the package name. |
 | `app/console/src/Commands/DisableCommand.php` (new) | Calls `disable()` on the resolved packages. Prints `RemovalBlockedException` and returns failure. Other throwables propagate. No `--force`. |
 | `app/console/src/Commands/InstallCommand.php` | Description and help say install runs the lifecycle and does not enable; activation is `php pagekit enable`. `execute()` does not call `enable()`. |
@@ -320,20 +320,20 @@ Gates: production verifier FAIL (comment length in `impact-query.js`) then PASS 
 
 ### Restore pre-flight before files return (Checklist Step 10)
 
-`restore()` asks before `reinstate()`. A missing application version, or one that differs from the running one, refuses by the snapshot id. Every `packages.*` name whose version differs, or that is present on only one side, is named. The module the archived `composer.json` names (`module` when that is a string, otherwise the basename of `name`) may be in the dump and absent live. A differing version of that module still refuses. The map is the `packages` object on the `system` row of the dumped `@system_config`, not a new header field. `DumpFormat::VERSION` is unchanged.
+`restore()` asks before `reinstate()`. A different application version refuses by the snapshot id. A readable metadata file with neither `application` nor `applicationStored` is a snapshot from before the field and is not that refusal; the `packages.*` check still runs. A non-text value, a key removed while `applicationStored` remains, and metadata that cannot be read still refuse with `It records no application version.` New metadata writes the version and `applicationStored`. Every `packages.*` name whose version differs, or that is present on only one side, is named. The module the archived `composer.json` names (`module` when that is a string, otherwise the basename of `name`) may be in the dump and absent live. A differing version of that module still refuses. The map is the `packages` object on the `system` row of the dumped `@system_config`, not a new header field. `DumpFormat::VERSION` is unchanged.
 
 A MySQL restore that would refuse — no table prefix, a copy name past 64 characters, a reserved `_r_` / `_b_` name, an inbound foreign key, the lock — is that same exception. `refusals()` runs those checks, releases the lock, and does not drop leftover copies or replace tables. `restore()` checks again when it later runs. A dump that cannot be read is not this refusal: an incomplete dump is still reported after the files are back.
 
 `RestoreRefusedException` extends `RuntimeException`. The panel `message` is that sentence. Any other throwable stays the fixed line and the log. A refusal leaves `packages/` as it was.
 
-The version on a new snapshot is the `version` service when it is a string, otherwise `''`. A snapshot written without the key reads as none. `''` is a recorded version. The listing from `get()` does not carry the key.
+The version on a new snapshot is the `version` service when it is a string, otherwise `''`. `application()` is null when the key is absent or not a string. `''` is a recorded version. The listing from `get()` does not carry the key. Whether that null refuses is `applicationWasStored()`.
 
 | File | Change |
 |---|---|
 | `app/package/src/Snapshot/RestoreRefusedException.php` (new) | Extends `RuntimeException`. The operator sentence. |
-| `app/package/src/Snapshot/SnapshotStore.php` | `application()` is the recorded string, or null when metadata has no string `application`. `get()` does not carry the key. |
+| `app/package/src/Snapshot/SnapshotStore.php` | `application()` is the recorded string, or null when metadata has no string `application`. `applicationWasStored()` is false only for readable metadata that has neither key. `get()` does not carry them. |
 | `app/package/src/Snapshot/DatabaseRestorer.php` | `packageVersions()` is the dump's `packages` object. `installedPackages()` is the live one. `refusals()` is the first MySQL sentence `restore()` would throw. The lock is released. Leftover copies stay. |
-| `app/package/src/Snapshot/PackageSnapshotter.php` | `details()` records the application version. `restore()` calls `assertRestorable` before `reinstate()`. A version or `packages.*` mismatch throws `RestoreRefusedException`. A dump that cannot be read is not that refusal. The exempted name comes from the archived manifest. |
+| `app/package/src/Snapshot/PackageSnapshotter.php` | `details()` records the application version and `applicationStored`. `restore()` calls `assertRestorable` before `reinstate()`. A different version, a non-text or removed version, unreadable metadata, or a `packages.*` mismatch throws `RestoreRefusedException`. Readable metadata with neither key is not that version refusal. A dump that cannot be read is not that refusal. The exempted name comes from the archived manifest. |
 | `app/package/src/PackageModule.php` | The snapshotter is built with the `version` service when that value is a string, otherwise `''`. |
 | `app/package/src/Controller/SnapshotController.php` | `RestoreRefusedException` is returned in `message`. Any other throwable stays the fixed line and the log. |
 | `app/package/app/views/snapshots.js` | `failed()` notifies `data.message`. The comment that the real reason is only in the log is gone. |
@@ -344,7 +344,7 @@ The version on a new snapshot is the `version` service when it is a string, othe
 |---|---|
 | `tests/Unit/Snapshot/PackageSnapshotterTest.php` | A new snapshot records the application version it was built with. One built with no version records `''`. |
 | `tests/Unit/Snapshot/SnapshotStoreTest.php` | A recorded string, including `''`, is read back and stays off the listing. Metadata with no string `application` reads as null. |
-| `tests/Unit/Snapshot/SnapshotRestoreTest.php` | A different, missing, or non-text application version refuses by the snapshot id before files return. The archived manifest names the module that may be missing live; a non-string `module` does not exempt the package name. A one-sided name, and a version that differs even for the module being restored, is named and `packages/` stays. A MySQL refusal (no prefix, a name that will not fit, the lock, an inbound foreign key) refuses before files change. A dump that names a reserved table is not an operator refusal. A dump that cannot be applied leaves the files back and the database unchanged. |
+| `tests/Unit/Snapshot/SnapshotRestoreTest.php` | A different application version, a non-text value, a removed key, and unreadable metadata refuse by the snapshot id before files return. Readable metadata with neither `application` nor `applicationStored` does not. The archived manifest names the module that may be missing live; a non-string `module` does not exempt the package name. A one-sided name, and a version that differs even for the module being restored, is named and `packages/` stays. A MySQL refusal (no prefix, a name that will not fit, the lock, an inbound foreign key) refuses before files change. A dump that names a reserved table is not an operator refusal. A dump that cannot be applied leaves the files back and the database unchanged. |
 | `tests/Unit/Snapshot/DatabaseRestorerTest.php` | `refusals()` returns the sentence `restore()` would throw for a missing prefix, a copy MySQL cannot hold, a restore already running, an inbound reference, and a reserved name. The lock is given back. Leftover copies stay. SQLite reports nothing. |
 | `tests/Unit/Snapshot/SnapshotControllerTest.php` | An operator refusal and a MySQL refusal are the `message` the panel shows. An unrelated throwable still says to see the error log. |
 | `tests/Unit/Snapshot/SnapshotServiceWiringTest.php` | A `version` service that is not text is recorded as `''` and that snapshot still restores. A different application version refuses before the package files return. |
@@ -362,6 +362,34 @@ Gates: production verifier PASS; production tester FAIL then PASS after one retr
 No test files.
 
 Gates: Bugbot clean; Security clean; E2E FAIL (installer boot created `pagekit.db`); review fix; PHPUnit + PHPStan PASS; Bugbot clean; Security clean; E2E PASS.
+
+### PR review (Finalize)
+
+Bugbot review [5323700963](https://github.com/Shadesman5/pagekit/pull/304#pullrequestreview-5323700963) found two issues. `disable.vue` and `uninstall.vue` had grown an `ImpactQuery` mixin; that mixin is gone, and both import `canProceed` and `readImpact` from `impact-query.js`. Restore treated every missing application string as a refusal. Returning no reason for every null failed `SnapshotRestoreTest` (`The restore was expected to be refused.`). The refusal stays for a non-text value, a removed key, and unreadable metadata. A readable metadata file with neither `application` nor `applicationStored` is an older snapshot and is not that refusal. Follow-up review [5323890005](https://github.com/Shadesman5/pagekit/pull/304#pullrequestreview-5323890005) found no new issues.
+
+`Cursor Security Agent: Security Reviewer` on `9a53b3f2` concluded success.
+
+### Infection diff (Finalize)
+
+| File | Change |
+|---|---|
+| `.github/workflows/infection.yml` | The diff command passes `--ignore-msi-with-no-mutations`. `infection.json.dist` does not. `nightly.yml` does not pass the flag. |
+
+The first PR head failed because the in-scope diff was imports, attributes, and an interface signature, so no mutants were generated. A nightly full run that generates no mutants still fails. The re-run passed.
+
+### Coverage gaps (Finalize)
+
+Tests only. Each case is a branch the patch left uncovered.
+
+| File | Change |
+|---|---|
+| `tests/Unit/Module/ModuleRequirementTest.php` | Name lookup, iteration, a loader added after load, a non-text module name, a shared requirement loaded once, and the boot closure walked once. |
+| `tests/Unit/Package/PackageEnableRequirementTest.php` | An empty module name does not walk requirements. |
+| `tests/Unit/Package/PackageRemovalPreflightTest.php` | Impact of an unknown package, a theme whose module is not a name, and an installation whose config is missing or not the manager. |
+| `tests/Unit/Console/EnableCommandTest.php` | Enable when the module service is absent, or is not the registry. |
+| `tests/Unit/Snapshot/DatabaseRestorerTest.php` | A system row whose columns differ only by case, a config table without name or value, and a system row that holds no packages object. |
+| `tests/Unit/Snapshot/SnapshotRestoreTest.php` | A MySQL dump that cannot be read is not an operator refusal. An archived manifest that names no module exempts none. |
+| `tests/Unit/Snapshot/SnapshotStoreTest.php` | A snapshot that is not there reads as no application version. |
 
 ---
 
@@ -408,10 +436,12 @@ Gates: Bugbot clean; Security clean; E2E FAIL (installer boot created `pagekit.d
 - **Install help says activation is separate.** `getDescription()` is `Install places the package and runs the install lifecycle. Activation is php pagekit enable.` `getHelp()` adds `It does not enable the package.` `execute()` does not call `enable()`, so a successful install leaves the new module out of `extensions`.
 - **A missing `blockers` key is not an empty list.** Remove and Disable render only when `blockers`, `orphans`, and `dataRisk` are present (`migrations` and `config` booleans, `nodes` and `tables` arrays) and `blockers` is empty. A failed read or any other shape leaves the button out. Each result is one sentence, including `No migrations, saved settings, node types, or tables were found.` Tables are named and said to be left as they are. `enable` still notifies `response.data.error`.
 - **The exempted module is the archived manifest.** A name in the dump and absent live is skipped only when the archived `composer.json` names it: `module` when that is a string, otherwise the basename of `name`, the same rule as `PackageFactory::load`. The metadata `module` was rejected: rewriting that file to `../../escaped` left the dump's real module unexempted, and restore refused before `reinstate()`. The archive directory name was rejected: `packages.*` is keyed by the manifest module. A differing version, including that module's, still refuses, as does every other one-sided name. Restore after uninstall returns the package and the database when the application version matches and every other `packages.*` entry matches, including when metadata `module` is not the archived one. A module the archive does not name that is only on one side is named in `RestoreRefusedException`, and `packages/` is unchanged.
-- **A missing version is not a blank one.** `application()` is null when metadata has no string `application`. Putting the key on the array `get()` returns was rejected: that array is the listing, and a missing version must not be stored as `''` or copied from the running installation. A snapshot written without the key yields null and `restore()` refuses by the snapshot id before `reinstate()`. `""` is a recorded version and matches a snapshotter built with `""`.
+- **An older snapshot is not a missing version.** `application()` is null when metadata has no string `application`. `get()` does not carry the key. A readable file with neither `application` nor `applicationStored` is a snapshot from before the field and is not a refusal; the `packages.*` check still runs. Returning no reason for every null was rejected: a non-text value, a key removed from a snapshot this writer stored (`applicationStored` remains), and metadata that cannot be read still refuse with `It records no application version.`, because the dump would replace the schema. `""` is a recorded version and matches a snapshotter built with `""`. A different string names both versions.
 - **The recorded version defaults to `''`.** That includes a `version` service that is absent or not a string. A required constructor argument was rejected: existing construction passes six arguments, and `''` is the application module's own default. A snapshotter not given a version records `""` and restores a snapshot it just took when packages agree. A recorded `"1.2.43"` refuses against `""` before `reinstate()`.
 - **An unreadable dump is not an operator refusal.** A `RuntimeException` from reading the dump is left to `restore()` after the files are back. Refusing in the pre-flight was rejected: an incomplete dump is still that later path. A truncated dump leaves the package files restored, the database unchanged, and the message containing `incomplete`. A version or `packages.*` mismatch throws `RestoreRefusedException` and leaves `packages/` unchanged. `refusals()` returns the first MySQL sentence `restore()` would throw, releases the lock, and does not drop leftover copies.
 - **`hasAccess` waits for `config.php`.** `view.scripts` skips `hasAccess('user: manage users')` unless `config.file` exists. Removing `system/user` from `debug`'s require was rejected: `AuthDataCollector` imports `User`, `Role`, and `UserRepository`. Catching the missing table was rejected: SQLite creates `pagekit.db` when the connection opens, before the exception. Booting the installer with no `config.php` does not create `pagekit.db`. Once that file exists, `widget-user` is still registered only when the current user has `user: manage users`.
+- **The impact query is a module, not a mixin.** `disable.vue` and `uninstall.vue` import `canProceed` and `readImpact` from `impact-query.js`. A mixin on those two components was removed in review.
+- **A diff with no mutants is not a failed covered-MSI gate.** `--ignore-msi-with-no-mutations` is on the infection-diff command only. Putting that option in `infection.json.dist` was rejected: a nightly full run that generates no mutants must still fail. A diff of imports, attributes, or interface signatures exits 0. A diff that produces mutants still has to meet the covered-MSI minimum. `nightly.yml` does not pass the flag.
 
 ---
 
@@ -435,7 +465,7 @@ Disabling or uninstalling a package that an enabled module still requires fails 
 
 The extensions status toggle asks before a package is switched off. Disable and Remove appear only when the impact answer has no blockers. A failed read or any other payload leaves both out. `php pagekit enable` and `php pagekit disable` call `PackageManager` and have no `--force`. A requirement refusal and a blocked disable are printed and exit 1. An unknown package and a circular requirement still throw. `php pagekit install` still does not enable; its help says activation is `php pagekit enable`.
 
-Restoring a snapshot whose recorded application version is missing or differs, or whose `packages.*` map does not match, fails before any package file is put back. The message names the snapshot and each module. A MySQL restore that would refuse (no prefix, a copy past 64 characters, a reserved name, an inbound foreign key, another restore holding the lock) fails the same way, and `packages/` is unchanged. The panel shows that message. Any other failure stays the fixed line. A snapshot taken after uninstall can still come back when the application version matches and the only missing live module is the one the archived manifest names.
+Restoring a snapshot whose recorded application version differs, or whose `packages.*` map does not match, fails before any package file is put back. A readable snapshot from before the version field, with neither `application` nor `applicationStored`, is not refused for that field. A non-text version, a key removed while `applicationStored` remains, or metadata that cannot be read, is. The message names the snapshot and each module. A MySQL restore that would refuse (no prefix, a copy past 64 characters, a reserved name, an inbound foreign key, another restore holding the lock) fails the same way, and `packages/` is unchanged. The panel shows that message. Any other failure stays the fixed line. A snapshot taken after uninstall can still come back when the application version matches and the only missing live module is the one the archived manifest names.
 
 ---
 
@@ -459,7 +489,7 @@ Uninstall of two packages where one still requires the other is refused entirely
 
 A failed impact read hides Disable and Remove. The server still refuses a switch-off those buttons never offered.
 
-A snapshot written with no application version is refused by name. `''` matches only a snapshotter built with `''`.
+A non-text application version, a removed `application` key, or unreadable metadata is refused by name. A readable snapshot from before the field is not. `''` matches only a snapshotter built with `''`.
 
 `refusals()` releases the lock before `restore()` acquires it again. Another restore can take the lock in between; `restore()` checks again and does not clear leftover copies on the query.
 
@@ -483,7 +513,7 @@ A blocker is refused before the package is switched off and before a snapshot is
 
 Disable and Remove stay out unless the impact answer has an empty blockers list. The enable notify still shows the named requirement refusal.
 
-A refused restore writes nothing under `packages/`. The panel shows the operator sentence. An unrelated failure stays the fixed line; the exception is in the log. The query releases the lock and does not replace a table.
+A refused restore writes nothing under `packages/`. The panel shows the operator sentence. An unrelated failure stays the fixed line; the exception is in the log. The query releases the lock and does not replace a table. A readable snapshot from before the application-version field can still be restored when the package map matches. A non-text version, a removed key, or unreadable metadata still refuses before any file is put back.
 
 Before `config.php` exists, `view.scripts` does not query roles, and `widget-user` stays unregistered. After that file exists, registration still requires `user: manage users`.
 
@@ -520,14 +550,28 @@ Restore has one refusal type. There is no flag that skips the version or the `pa
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry. Step 10: production tester FAIL then PASS after one retry. Step 11: Bugbot clean; Security clean; E2E FAIL (installer boot created `pagekit.db`: `debug` requires `system/user`, `hasAccess` queried `pk_system_role`); review fix skipped `hasAccess` until `config.file` exists; PHPUnit + PHPStan PASS; Bugbot clean; Security clean; E2E PASS.
+| Gate | Result |
+|---|---|
+| CI — PHP Tests | ✅ success — [run 36206425193](https://github.com/Shadesman5/pagekit/actions/runs/36206425193) on `9a53b3f2` |
+| CI — Infection | ✅ success — [run 36206425220](https://github.com/Shadesman5/pagekit/actions/runs/36206425220) |
+| CI — Frontend | ✅ success — [run 36206425236](https://github.com/Shadesman5/pagekit/actions/runs/36206425236) |
+| Pull request | [#304](https://github.com/Shadesman5/pagekit/pull/304) |
+| Coverage gap pass | ran |
+| Cursor Bugbot (PR) | findings fixed — [review 5323700963](https://github.com/Shadesman5/pagekit/pull/304#pullrequestreview-5323700963); follow-up [5323890005](https://github.com/Shadesman5/pagekit/pull/304#pullrequestreview-5323890005) found no new issues |
+| Cursor Security Reviewer (PR) | ✅ clean — success on `9a53b3f2` |
+| E2E | PASS |
+
+**CI head:** `9a53b3f2b98ecd76a56c11eef5a8e2382cc582f8`
+
+**Metrics (CI-owned):** [PR #304 quality-report comment](https://github.com/Shadesman5/pagekit/pull/304#issuecomment-5840986333) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** `Arr::pull` writes the reindexed list back after `unset`. `enableAction` restores the previous error and exception handlers. Plan refine: Steps 2–11 tightened (existing `kernel`, console on the manager seam); Step 1 unchanged; no PHASE amendment. Step 3: none. Step 4: production verifier FAIL (docblocks) then PASS; test verifier FAIL (the login double never ran login; ownership docblock) then PASS. The login check is `hasAccess`; `isAuthenticated` is what captcha calls. Step 5: none. Step 6: none. Step 7: PHPUnit + PHPStan FAIL then PASS after a production retry. Step 8: none. Step 9: production verifier FAIL (comment length in `impact-query.js`) then PASS after a production retry. Step 10: production tester FAIL then PASS after one retry. Step 11: Bugbot clean; Security clean; E2E FAIL (installer boot created `pagekit.db`: `debug` requires `system/user`, `hasAccess` queried `pk_system_role`); review fix skipped `hasAccess` until `config.file` exists; PHPUnit + PHPStan PASS; Bugbot clean; Security clean; E2E PASS. Finalize — coverage-gap pass ran. infection-diff failed once on a diff that generated no mutants (imports, attributes, and an interface signature); `--ignore-msi-with-no-mutations` is on the diff command only; the re-run passed. Bugbot: mixin removed; an older snapshot is not the missing-version refusal. Security success on `9a53b3f2`. E2E PASS.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -536,7 +580,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -546,7 +590,7 @@ _TBD / None_
 - **Step 2.8** — author contract states the unregistered-`require` refusal (PHASE §2.8).
 - **Step 5.0** — automatic orphan removal and install-reason bookkeeping; a package-scoped restore; a purge that drops the tables the pre-flight names (PHASE §5.0).
 - **Non-goals:** which characters an install prefix may contain; marketplace (5.6).
-- **Bridges:** none planned for the remaining checklist.
+- **Bridges:** none.
 
 ---
 
@@ -563,7 +607,7 @@ _TBD / None_
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -572,7 +616,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -581,7 +625,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -590,7 +634,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -599,22 +643,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_2_Module-Dependency-Integrity_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_2_Module-Dependency-Integrity_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_2_Module-Dependency-Integrity.md`
 - Predecessor: Step 2.7.1c — Runtime Composer Removal
 - Successor: Step 2.7.3 — Static Module Registration
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
