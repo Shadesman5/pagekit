@@ -56,6 +56,8 @@ Pagekit already has a single module model: an uploaded package and a core system
 
 **Classification rule**: a module is core when the CMS cannot boot and serve a page without it — not when it merely feels essential. Decide each module against that question, or the tier list turns into a matter of taste.
 
+Core modules stay under `app/system`. They are not moved into `app/modules/` beside the kernel tier. A module changes directory when it changes tier: an optional candidate leaves `system`'s require list as a core-extension, and that is when its directory moves.
+
 **A sub-extension is not a separate kind of thing** — it is an extension that declares a parent. Two declarations already cover it and no third resolver is needed: Composer `require` states what must exist on disk and carries the version constraints, the module manifest `require` states what must be loaded first, and `extra.parent` adds the parent link. Do not invent version resolution in the manifest.
 
 ### Automatic dependency handling
