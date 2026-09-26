@@ -284,3 +284,39 @@ public function handle(LogRecord $record): bool
 **Rule:** A collector, profiler, debug bar or tracer reads the stream; it never answers for it. In a handler chain the return value is the routing decision, so an observer reports the record as not handled and the sink still receives it. A message that sends the reader to the error log is a promise only the sink can keep, and the observer being switched on is exactly the case in which nobody checks the file.
 
 **Fix:** In scope — the observer passes the record on; pin it with a test that registers observer and sink together and asserts the sink received the record.
+
+---
+
+## AP-18 — A new field read as if every old record were corrupt
+
+```php
+// metadata written before this key existed; the reader refuses it
+$version = $meta['application'] ?? null;
+
+if (!is_string($version)) {
+    throw new RestoreRefusedException('It records no application version.');
+}
+```
+
+**Found in review:** Readable metadata with neither the new key nor the mark written beside it is a record from before the field. Folding that absence into the refusal rejected every record the old writer left, and treating every null as intact let a removed key through.
+
+**Rule:** A field added to an existing artefact has three states: never written, written (including empty), and damaged. Never written is the previous format and follows the previous rules. Folding it into damaged refuses every record the old writer left. Reading every null as intact lets a damaged record through.
+
+**Fix:** In scope — distinguish the three states and pin the pre-field artefact with a test.
+
+---
+
+## AP-19 — A require opens the database before an installation exists
+
+```php
+// the requiring module's boot subscribes this listener; installer boot has no config.php
+if ($app->get('user')->hasAccess('user: manage users')) {
+    // the role query opens the default SQLite file before the missing table throws
+}
+```
+
+**Found in review:** The require that lets one module import another's class also runs that module's listeners on installer boot. The permission check reads the role table, and the default SQLite driver creates the database file when the connection opens, so the directory is no longer clean by the time the missing table throws.
+
+**Rule:** A `require` executes the required module's boot in every consumer, including the installer. Opening the default SQLite connection writes the database file before any query result comes back. A lookup that needs the database waits until the installation exists. Catching the missing table leaves the file in place.
+
+**Fix:** In scope — skip the lookup until the installation exists. Escalate if the only remaining exit drops a require the import edge demands and the class has to change modules.
