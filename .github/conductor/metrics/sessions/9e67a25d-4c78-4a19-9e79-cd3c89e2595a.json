@@ -42,20 +42,51 @@
       "tokensSource": "cursor-api",
       "result": "",
       "outcome": "success"
+    },
+    {
+      "phaseKey": "36274678028-1-PLAN (retry 1)",
+      "type": "PLAN",
+      "attempt": 1,
+      "batchSteps": null,
+      "startedAt": "2026-09-26T22:00:17.020Z",
+      "durationMs": 53611,
+      "agent": {
+        "id": "bc-9609aa2c-c28a-43c1-ab39-3d267c4f64be",
+        "runId": "run-be4efecd-6250-43ba-add4-7be85a65daf2",
+        "url": "https://cursor.com/agents/bc-9609aa2c-c28a-43c1-ab39-3d267c4f64be",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 36274678028,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/36274678028",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 31471,
+        "output": 2173,
+        "cacheRead": 101888,
+        "cacheWrite": 0,
+        "total": 135532
+      },
+      "tokensSource": "cursor-api",
+      "result": "ESCALATE (snapshot): environment build 7f3cf52f36bd1259c4ff24bcb9443444264e72c0 does not contain origin/develop e1c7a6ed3cdf7d2f0361925b1349ea0093b71b3e",
+      "outcome": "snapshot-wait"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 34080,
-      "output": 1796,
-      "cacheRead": 99072,
+      "input": 65551,
+      "output": 3969,
+      "cacheRead": 200960,
       "cacheWrite": 0,
-      "total": 134948
+      "total": 270480
     },
-    "durationMs": 136553,
-    "phaseCount": 1,
+    "durationMs": 190164,
+    "phaseCount": 2,
     "escalations": 0,
     "ghaJobs": 1,
-    "cloudAgents": 1
+    "cloudAgents": 2
   }
 }
