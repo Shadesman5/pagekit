@@ -607,7 +607,14 @@ None.
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-None.
+- **Enabling a theme does not ask the removal pre-flight.** `PackageManager::enable()` of a `pagekit-theme` sets `site.theme` and does not call `removalImpact` on the theme that value replaces. The themes page has no disable control; Enable on another theme is how the panel leaves the active one. An enabled extension whose `require` names the outgoing theme is not a blocker of that switch: the next boot throws `UnsatisfiedRequirementException` and `ExtensionLoader` auto-disables the extension. `php pagekit disable` on the theme does run the pre-flight. → **5.0.2**
+- **A call that includes an enabled depender is refused as a whole.** `PackageImpact::blockers()` counts an enabled `requiredBy` depender even when that depender is in the same `disable()` or `uninstall()` call. `assertRemovable` throws `RemovalBlockedException` after every name is resolved and before any snapshot or hook, so both packages stay. A cascade has to switch the depender off in its own call first. There is no override. → **5.0.2**
+- **A module in `system`'s `require` stays active without being enabled.** The always-loaded closure is the boot module plus every registered module reachable through `require`. After `setActivityPolicy`, `isActive` is true for that closure even when the name is absent from `extensions`, and `PackageImpact::orphans()` skips those names. Moving an optional system module into the activation registry without taking it out of `app/system/index.php`'s `require` does not make `disable()` stop it loading. → **5.0**
+- **Discovery that treats "not in extensions" as disabled drops the closure.** `setActivityPolicy` is given `extensions` plus a non-empty `site.theme`; the closure is computed from `system`'s `require` after that. Before the policy, every registered module is active, which is what lets `load('system')` walk core requirements. A registration rewrite that redefines active as the enabled list alone refuses those core modules. → **2.7.3**
+- **A quiet restore pre-flight does not mean the dump will apply.** `assertRestorable` refuses a bad application version, a `packages.*` mismatch, and `DatabaseRestorer::refusals()`. A readable metadata file with neither `application` nor `applicationStored` is not a version refusal. A dump that cannot be read is not that refusal: `restore()` puts the package files back and then reports an incomplete dump, or a dump that holds no tables, and the database stays as it was. `refusals()` releases the lock and does not drop leftover copies. → **2.9**
+- **The snapshot listing does not carry the application version.** `SnapshotStore::get()` and `list()` omit `application` and `applicationStored`. `application()` is the recorded string or null; `applicationWasStored()` is false only for readable metadata that has neither key. The panel returns `RestoreRefusedException`'s message and keeps the fixed line for any other throwable. A list or console surface that reads only the listing cannot tell an older snapshot from a missing version. → **4.4**
+- **Upload accepts a disabled requirement; an update of a loaded package does not.** `uploadAction` calls `assertArchiveRequirements` without the activation walk, so a registered-but-disabled name is still written. `install()` runs that walk only when the installed module is already loaded, and then refuses a disabled requirement or a cycle before `replaceTree`. A fresh install still unpacks a disabled requirement; `enable()` refuses it later. → **2.8**
+- **The disabled-requirement sentence is not a catalogue literal.** `UnsatisfiedRequirementException::messageId()` returns `Module "%depender%" requires "%required%", which is registered but disabled.`, and `enableAction` and `EnableCommand` pass that return value into `__()`. The extractor records only a string-literal argument of `__()` or `$trans()`. The not-registered twin is a literal in `PackageArchive::unknownRequirement()`; the disabled sentence is not, so a regenerated catalogue still leaves it in English in every locale. → **3.3.6**
 
 ---
 
@@ -634,7 +641,7 @@ None.
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-None.
+- README documents `php pagekit enable` / `disable`, the impact gate on Disable and Remove, and the restore refusal for a different application version or a package list that does not match.
 
 ---
 
@@ -643,7 +650,7 @@ None.
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-None.
+- **Theme switch.** `PackageManager::enable()` calls `assertPackageRequirements` on the package being enabled. For `pagekit-theme` it then sets `site.theme` to that module. It does not call `removalImpact`, `disable`, or the outgoing theme's disable hook. `app/package/views/themes.php` renders Enable and Delete only when the theme is not enabled, so the active theme has neither; `package.js` `enable()` posts to the enable route, and `disable()` (the extensions status toggle) is what opens `disable.vue`. `PackageImpact::blockers()` counts an enabled `requiredBy` depender, including a name that is only `site.theme`, for packages passed to `disable` / `uninstall` / `removalImpact`. On the next boot `ExtensionLoader::loadModule` catches the throw from `ModuleManager::load`: an extension (`TYPE_EXTENSION`) is pulled out of `extensions` and the sentence is stored; a theme is recorded and left on. `DisableCommand` calls `PackageManager::disable()`, which does run the pre-flight. Blocking the switch would refuse `enable()` of a theme when `requiredBy` of the current `site.theme` still names an enabled module. Leaving it means that extension is auto-disabled on the next boot, which is what runs today.
 
 ---
 
