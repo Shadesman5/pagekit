@@ -56,11 +56,33 @@
         "cacheWrite": 0,
         "total": 134948
       },
-      "tokensSource": "cursor-api",
+      "tokensSource": "cursor-dashboard-csv",
       "result": "",
       "outcome": "success",
       "completedAt": "2026-09-26T21:58:53.076Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
+        "input": 34080,
+        "output": 1796,
+        "cacheRead": 99072,
+        "cacheWrite": 0,
+        "total": 134948
+      },
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 34080,
+            "output": 1796,
+            "cacheRead": 99072,
+            "cacheWrite": 0,
+            "total": 134948
+          }
+        }
+      ]
     },
     {
       "phaseKey": "36274678028-1-PLAN (retry 1)",
@@ -106,11 +128,33 @@
         "cacheWrite": 0,
         "total": 135532
       },
-      "tokensSource": "cursor-api",
+      "tokensSource": "cursor-dashboard-csv",
       "result": "ESCALATE (snapshot): environment build 7f3cf52f36bd1259c4ff24bcb9443444264e72c0 does not contain origin/develop e1c7a6ed3cdf7d2f0361925b1349ea0093b71b3e",
       "outcome": "snapshot-wait",
       "completedAt": "2026-09-26T22:00:55.548Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
+        "input": 31471,
+        "output": 2173,
+        "cacheRead": 101888,
+        "cacheWrite": 0,
+        "total": 135532
+      },
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 31471,
+            "output": 2173,
+            "cacheRead": 101888,
+            "cacheWrite": 0,
+            "total": 135532
+          }
+        }
+      ]
     },
     {
       "phaseKey": "36276518014-1-EXECUTE 1",
@@ -152,17 +196,52 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 2370311,
+        "output": 572514,
+        "cacheRead": 45278464,
+        "cacheWrite": 0,
+        "total": 48221289
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [1]. Last commit: 888ef82eb246ac512a122aa5048ee9b1f31448a3.",
+      "outcome": "success",
+      "completedAt": "2026-09-27T00:12:31.023Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 124678,
         "output": 11171,
         "cacheRead": 1294336,
         "cacheWrite": 0,
         "total": 1430185
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [1]. Last commit: 888ef82eb246ac512a122aa5048ee9b1f31448a3.",
-      "outcome": "success",
-      "completedAt": "2026-09-27T00:12:31.023Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 124678,
+            "output": 11171,
+            "cacheRead": 1294336,
+            "cacheWrite": 0,
+            "total": 1430185
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "grok 4.7 xhigh fast",
+          "model": "grok-4.7-xhigh-fast",
+          "events": 15,
+          "tokens": {
+            "input": 2245633,
+            "output": 561343,
+            "cacheRead": 43984128,
+            "cacheWrite": 0,
+            "total": 46791104
+          }
+        }
+      ]
     },
     {
       "phaseKey": "36281806885-1-EXECUTE 2",
@@ -204,17 +283,52 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 1634038,
+        "output": 361996,
+        "cacheRead": 18265984,
+        "cacheWrite": 0,
+        "total": 20262018
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [2]. Last commit: e4f8837e9561c3a45bbf535fe571d9581e23b219.",
+      "outcome": "success",
+      "completedAt": "2026-09-27T01:15:51.226Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 130498,
         "output": 9305,
         "cacheRead": 1009152,
         "cacheWrite": 0,
         "total": 1148955
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [2]. Last commit: e4f8837e9561c3a45bbf535fe571d9581e23b219.",
-      "outcome": "success",
-      "completedAt": "2026-09-27T01:15:51.226Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 130498,
+            "output": 9305,
+            "cacheRead": 1009152,
+            "cacheWrite": 0,
+            "total": 1148955
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "grok 4.7 xhigh fast",
+          "model": "grok-4.7-xhigh-fast",
+          "events": 11,
+          "tokens": {
+            "input": 1503540,
+            "output": 352691,
+            "cacheRead": 17256832,
+            "cacheWrite": 0,
+            "total": 19113063
+          }
+        }
+      ]
     },
     {
       "phaseKey": "manual-bc-b154c353-4238-47e2-8cc9-9661e1555a1a-EXECUTE",
@@ -246,21 +360,43 @@
       },
       "github": null,
       "tokens": {
+        "input": 414531,
+        "output": 42500,
+        "cacheRead": 7885312,
+        "cacheWrite": 0,
+        "total": 8342343
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Imported post-hoc (cursor.com/agents UI / Automations)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Import via import-manual-agents.mjs · Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "v1": true,
+      "startedAt": "2026-09-27T04:10:27.133Z",
+      "durationMs": 659617,
+      "completedAt": "2026-09-27T04:21:27.955Z",
+      "orchestratorTokens": {
         "input": 277230,
         "output": 35724,
         "cacheRead": 7319040,
         "cacheWrite": 0,
         "total": 7631994
       },
-      "tokensSource": "cursor-api-v1",
-      "result": "Imported post-hoc (cursor.com/agents UI / Automations)",
-      "outcome": "success",
-      "manualImport": true,
-      "notes": "Import via import-manual-agents.mjs · Timing from Cursor API (single agent run)",
-      "v1": true,
-      "startedAt": "2026-09-27T04:10:27.133Z",
-      "durationMs": 659617,
-      "completedAt": "2026-09-27T04:21:27.955Z"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-xhigh-fast",
+          "events": 3,
+          "tokens": {
+            "input": 414531,
+            "output": 42500,
+            "cacheRead": 7885312,
+            "cacheWrite": 0,
+            "total": 8342343
+          }
+        }
+      ]
     },
     {
       "phaseKey": "36295152738-1-FINALIZE",
@@ -300,26 +436,75 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 2194371,
+        "output": 300945,
+        "cacheRead": 26224357,
+        "cacheWrite": 0,
+        "total": 28719673
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Finalized. PR: #306. Version: 1.2.45. Ticket archived to done/.",
+      "outcome": "success",
+      "completedAt": "2026-09-27T05:48:33.176Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 199563,
         "output": 27828,
         "cacheRead": 4372736,
         "cacheWrite": 0,
         "total": 4600127
       },
-      "tokensSource": "cursor-api",
-      "result": "Finalized. PR: #306. Version: 1.2.45. Ticket archived to done/.",
-      "outcome": "success",
-      "completedAt": "2026-09-27T05:48:33.176Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 199563,
+            "output": 27828,
+            "cacheRead": 4372736,
+            "cacheWrite": 0,
+            "total": 4600127
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "grok 4.7 xhigh fast",
+          "model": "grok-4.7-xhigh-fast",
+          "events": 5,
+          "tokens": {
+            "input": 1235462,
+            "output": 205715,
+            "cacheRead": 18051456,
+            "cacheWrite": 0,
+            "total": 19492633
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 759346,
+            "output": 67402,
+            "cacheRead": 3800165,
+            "cacheWrite": 0,
+            "total": 4626913
+          },
+          "agentId": "bc-73b90dac-cc06-4285-b0ee-869cb8eaa621"
+        }
+      ]
     }
   ],
   "totals": {
     "tokens": {
-      "input": 797520,
-      "output": 87997,
-      "cacheRead": 14196224,
+      "input": 6678802,
+      "output": 1281924,
+      "cacheRead": 97855077,
       "cacheWrite": 0,
-      "total": 15081741
+      "total": 105815803
     },
     "durationMs": 14478936,
     "phaseCount": 6,
@@ -332,5 +517,11 @@
     "at": "2026-09-27T04:21:42.701Z",
     "source": "import-manual-agents.mjs",
     "note": "Post-hoc V1 UI / Automations import (parent agent usage)"
+  },
+  "csvImport": {
+    "at": "2026-09-27T06:09:36.185Z",
+    "source": "import-usage-csv.mjs",
+    "events": 83,
+    "phasesUpdated": 7
   }
 }
