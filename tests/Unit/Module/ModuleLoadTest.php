@@ -401,6 +401,32 @@ final class ModuleLoadTest extends TestCase
         self::assertSame([], $manager->getRegistrationFailures());
     }
 
+    public function testAModuleRecordWithoutAPathIsNotStored(): void
+    {
+        $manager = $this->manager();
+
+        // register() always writes a string path. A record without one has to fail the load.
+        (new \ReflectionProperty(ModuleManager::class, 'registered'))->setValue($manager, [
+            'orphan' => [
+                'name' => 'orphan',
+                'require' => [],
+            ],
+        ]);
+
+        try {
+            $manager->load('orphan');
+            self::fail('A module without a path has to be refused.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame(\RuntimeException::class, $exception::class);
+            self::assertSame('Module "orphan" has no path.', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        }
+
+        self::assertTrue($manager->isRegistered('orphan'));
+        self::assertNull($manager->get('orphan'));
+        self::assertSame([], $manager->getRegistrationFailures());
+    }
+
     private function manager(): ModuleManager
     {
         return new ModuleManager(new Application());

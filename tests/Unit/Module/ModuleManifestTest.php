@@ -7,6 +7,8 @@ namespace Pagekit\Tests\Unit\Module;
 use Pagekit\Module\ModuleManifest;
 use Pagekit\Module\ModuleManifestException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -157,6 +159,48 @@ final class ModuleManifestTest extends TestCase
         $this->assertField($json, $field);
     }
 
+    public function testANodesValueThatIsNotAJsonTypeNamesTheField(): void
+    {
+        $value = new \ReflectionMethod(ModuleManifest::class, 'value');
+        $alien = new class () {
+        };
+
+        try {
+            $value->invoke(null, ['post' => $alien]);
+            self::fail('A nodes value of an unknown type has to be refused.');
+        } catch (\Throwable $exception) {
+            self::assertSame(ModuleManifestException::class, $exception::class);
+            self::assertSame('Module manifest field "nodes" is invalid.', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testANodesResultThatIsNotAnArrayNamesTheField(): void
+    {
+        if (class_exists(ModuleManifest::class, false)) {
+            self::fail('The manifest decoder is already loaded.');
+        }
+
+        // Every JSON object decodes to an array. Reporting that array as a non-array is what reaches this guard.
+        $this->reportNodesArrayAsNotAnArray();
+
+        try {
+            ModuleManifest::decode('{"name":"a","nodes":{"__force_nodes":true}}');
+            self::fail('A nodes value that is not an array has to be refused.');
+        } catch (\Throwable $exception) {
+            self::assertSame(ModuleManifestException::class, $exception::class);
+            self::assertSame('Module manifest field "nodes" is invalid.', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        }
+
+        $module = ModuleManifest::decode('{"name":"a","nodes":{"post":{"label":"Post"}}}');
+
+        self::assertIsArray($module);
+        self::assertSame(['post' => ['label' => 'Post']], $module['nodes']);
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -216,5 +260,21 @@ final class ModuleManifestTest extends TestCase
             self::assertNull($exception->getPrevious());
             self::assertInstanceOf(\RuntimeException::class, $exception);
         }
+    }
+
+    private function reportNodesArrayAsNotAnArray(): void
+    {
+        eval(<<<'PHP'
+            namespace Pagekit\Module;
+
+            function is_array(mixed $value): bool
+            {
+                if (\is_array($value) && \array_key_exists('__force_nodes', $value)) {
+                    return false;
+                }
+
+                return \is_array($value);
+            }
+            PHP);
     }
 }

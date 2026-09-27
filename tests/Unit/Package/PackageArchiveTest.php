@@ -8,6 +8,8 @@ use Pagekit\Module\ModuleManifestException;
 use Pagekit\Package\Archive\ArchiveRefusedException;
 use Pagekit\Package\Archive\PackageArchive;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use ZipArchive;
 
@@ -1508,6 +1510,113 @@ final class PackageArchiveTest extends TestCase
         $this->assertWorkspaceHoldsOnly($path);
     }
 
+    public function testAnUnrecognizedManifestFailureIsReportedAsUnparsed(): void
+    {
+        $manifest = new ModuleManifestException('The module manifest could not be read.');
+        $exception = (new \ReflectionMethod(PackageArchive::class, 'refusedManifest'))->invoke(null, $manifest, 'demo');
+
+        self::assertInstanceOf(ArchiveRefusedException::class, $exception);
+        self::assertSame(
+            'The archive\'s module.json cannot be parsed: The module manifest could not be read.',
+            $exception->getMessage(),
+        );
+        self::assertSame($manifest, $exception->getPrevious());
+        self::assertStringNotContainsString('is not a JSON object', $exception->getMessage());
+    }
+
+    public function testAManifestFieldWithoutItsOwnSentenceIsStillNamed(): void
+    {
+        $manifest = new ModuleManifestException('Module manifest field "title" is invalid.');
+        $exception = (new \ReflectionMethod(PackageArchive::class, 'refusedManifest'))->invoke(null, $manifest, 'demo');
+
+        self::assertInstanceOf(ArchiveRefusedException::class, $exception);
+        self::assertSame(
+            'The archive\'s module.json gives no \'title\' the install can register.',
+            $exception->getMessage(),
+        );
+        self::assertSame($manifest, $exception->getPrevious());
+    }
+
+    public function testAnAutoloadPathThatIsNotAStringIsRefusedBeforeTheFolderCheck(): void
+    {
+        try {
+            (new \ReflectionMethod(PackageArchive::class, 'autoloadPaths'))->invoke(null, [], ['N' => 1]);
+            self::fail('A non-string autoload path has to be refused.');
+        } catch (\Throwable $exception) {
+            self::assertSame(ArchiveRefusedException::class, $exception::class);
+            self::assertSame(
+                'The archive\'s module.json gives no \'autoload\' array of string literals.',
+                $exception->getMessage(),
+            );
+            self::assertStringNotContainsString('not a folder', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        }
+    }
+
+    public function testARequirementThatIsNotAStringIsRefusedAsTheField(): void
+    {
+        try {
+            (new \ReflectionMethod(PackageArchive::class, 'requirements'))->invoke(null, [42]);
+            self::fail('A non-string requirement has to be refused.');
+        } catch (\Throwable $exception) {
+            self::assertSame(ArchiveRefusedException::class, $exception::class);
+            self::assertSame(
+                'The archive\'s module.json gives no \'require\' array of string literals.',
+                $exception->getMessage(),
+            );
+            self::assertNull($exception->getPrevious());
+        }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testADecodedAutoloadOrRequireThatIsNotAnArrayIsRefused(): void
+    {
+        if (class_exists(PackageArchive::class, false) || function_exists('Pagekit\\Package\\Archive\\is_array')) {
+            self::fail('The archive reader is already loaded.');
+        }
+
+        // decode() only returns arrays for autoload and require. Reporting these two as non-arrays is what reaches the guards.
+        $this->reportDecodedListsAsNotArrays();
+
+        $autoloadJson = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "__not_array": "missing"
+                }
+            }
+
+            JSON;
+        $requireJson = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "require": ["__not_list"]
+            }
+
+            JSON;
+
+        $autoloadZip = $this->archive($this->package([], $autoloadJson));
+        $autoload = $this->refused($autoloadZip);
+        unlink($autoloadZip);
+
+        $require = $this->refused($this->archive($this->package([], $requireJson)));
+
+        self::assertSame(
+            'The archive\'s module.json gives no \'autoload\' array of string literals.',
+            $autoload->getMessage(),
+        );
+        self::assertNull($autoload->getPrevious());
+        self::assertStringNotContainsString('missing', $autoload->getMessage());
+        self::assertSame(
+            'The archive\'s module.json gives no \'require\' array of string literals.',
+            $require->getMessage(),
+        );
+        self::assertNull($require->getPrevious());
+        self::assertStringNotContainsString('__not_list', $require->getMessage());
+    }
+
     /**
      * @param array<string, mixed>  $composer
      * @param string|null           $manifest module.json body
@@ -1958,6 +2067,26 @@ final class PackageArchiveTest extends TestCase
     {
         $relative = strtr(substr($fixture, strlen($this->workspace) + 1), '\\', '/');
         self::assertSame([$relative], $this->workspaceEntries());
+    }
+
+    private function reportDecodedListsAsNotArrays(): void
+    {
+        eval(<<<'PHP'
+            namespace Pagekit\Package\Archive;
+
+            function is_array(mixed $value): bool
+            {
+                if (\is_array($value) && \array_key_exists('__not_array', $value)) {
+                    return false;
+                }
+
+                if (\is_array($value) && $value === ['__not_list']) {
+                    return false;
+                }
+
+                return \is_array($value);
+            }
+            PHP);
     }
 
     private function removeTree(string $path): void

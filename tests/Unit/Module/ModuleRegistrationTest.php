@@ -9,6 +9,8 @@ use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Module\ModuleManifest;
 use Pagekit\Module\ModuleManifestException;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 final class ModuleRegistrationTest extends TestCase
@@ -348,6 +350,63 @@ final class ModuleRegistrationTest extends TestCase
         self::assertInstanceOf(Module::class, $manager->get('fixture-next'));
     }
 
+    public function testAManifestWhoseSizeCannotBeReadIsRefused(): void
+    {
+        $exception = $this->readFailure('pkmanifest://nostat');
+
+        self::assertSame('The module manifest could not be read.', $exception->getMessage());
+        self::assertNull($exception->getPrevious());
+    }
+
+    public function testAManifestThatCannotBeOpenedIsRefused(): void
+    {
+        $exception = $this->readFailure('pkmanifest://closed');
+
+        self::assertSame('The module manifest could not be read.', $exception->getMessage());
+        self::assertNull($exception->getPrevious());
+    }
+
+    public function testAManifestReadPastTheClaimedSizeIsRefusedBeforeItIsDecoded(): void
+    {
+        $exception = $this->readFailure('pkmanifest://huge');
+
+        self::assertSame(
+            sprintf('The module manifest exceeds %d bytes.', ModuleManifest::MAX_BYTES),
+            $exception->getMessage(),
+        );
+        self::assertNull($exception->getPrevious());
+        self::assertStringNotContainsString('Syntax error', $exception->getMessage());
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testADecodedNameThatIsNotAStringIsSkipped(): void
+    {
+        if (class_exists(ModuleManifest::class, false)) {
+            self::fail('The manifest decoder is already loaded.');
+        }
+
+        // decode() refuses a non-string or blank name itself. This stand-in returns one so the sweep's skip is what leaves it unregistered.
+        $this->installNonStringNameDecoder();
+
+        $manager = $this->manager();
+        $number = $this->plant('number', "{\"name\":\"counted\",\"probe\":\"number\"}\n");
+        $blank = $this->plant('blank', "{\"name\":\"counted\",\"probe\":\"blank\"}\n");
+        $neighbor = $this->plant('neighbor', "{\"name\":\"neighbor\"}\n");
+
+        $manager->register([$number, $blank, $neighbor]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertFalse($manager->isRegistered('42'));
+        self::assertFalse($manager->isRegistered(''));
+        self::assertFalse($manager->isRegistered('counted'));
+        self::assertTrue($manager->isRegistered('neighbor'));
+
+        $manager->load('neighbor');
+
+        self::assertInstanceOf(Module::class, $manager->get('neighbor'));
+    }
+
     /**
      * A manager as the boot builds it, against an application that has nothing
      * registered in it yet.
@@ -463,5 +522,167 @@ final class ModuleRegistrationTest extends TestCase
         }
 
         rmdir($path);
+    }
+
+    private function readFailure(string $path): ModuleManifestException
+    {
+        $manager = $this->manager();
+        $method = new \ReflectionMethod(ModuleManager::class, 'readManifest');
+
+        try {
+            self::assertTrue(stream_wrapper_register('pkmanifest', ManifestByteStream::class));
+            $this->withoutStreamWarning(static function () use ($method, $manager, $path): void {
+                $method->invoke($manager, $path);
+            });
+        } catch (ModuleManifestException $exception) {
+            return $exception;
+        } finally {
+            if (in_array('pkmanifest', stream_get_wrappers(), true)) {
+                stream_wrapper_unregister('pkmanifest');
+            }
+        }
+
+        self::fail('The manifest has to be refused.');
+    }
+
+    /**
+     * fopen and filesize warn on the failure the reader turns into an exception.
+     */
+    private function withoutStreamWarning(callable $run): void
+    {
+        $previous = set_error_handler(static function (int $severity, string $message, string $file, int $line) use (&$previous): bool {
+            if ($severity === E_WARNING && (str_contains($message, 'stat failed') || str_contains($message, 'Failed to open stream'))) {
+                return true;
+            }
+
+            if (is_callable($previous)) {
+                return (bool) $previous($severity, $message, $file, $line);
+            }
+
+            return false;
+        });
+
+        try {
+            $run();
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    private function installNonStringNameDecoder(): void
+    {
+        eval(<<<'PHP'
+            namespace Pagekit\Module;
+
+            final class ModuleManifest
+            {
+                public const FILE = 'module.json';
+
+                public const ENTRY = 'index.php';
+
+                public const MAX_BYTES = 1048576;
+
+                public static function decode(string $json): ?array
+                {
+                    $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+                    if (!is_array($data)) {
+                        throw new ModuleManifestException('Module manifest must be a JSON object.');
+                    }
+
+                    if (($data['probe'] ?? null) === 'number') {
+                        return ['name' => 42, 'require' => []];
+                    }
+
+                    if (($data['probe'] ?? null) === 'blank') {
+                        return ['name' => '', 'require' => []];
+                    }
+
+                    $name = $data['name'] ?? null;
+
+                    if (!is_string($name) || $name === '') {
+                        return null;
+                    }
+
+                    return ['name' => $name, 'require' => []];
+                }
+            }
+            PHP);
+    }
+}
+
+/**
+ * A manifest path whose stat, open, or read a real file will not stage.
+ */
+final class ManifestByteStream
+{
+    public $context;
+
+    private string $rest = '';
+
+    public function stream_open(string $path, string $mode, int $options, ?string &$opened_path): bool
+    {
+        if (str_contains($path, 'closed')) {
+            return false;
+        }
+
+        $this->rest = str_repeat('x', ModuleManifest::MAX_BYTES + 1);
+
+        return true;
+    }
+
+    public function stream_read(int $count): string
+    {
+        $chunk = substr($this->rest, 0, $count);
+        $this->rest = substr($this->rest, strlen($chunk));
+
+        return $chunk;
+    }
+
+    public function stream_eof(): bool
+    {
+        return $this->rest === '';
+    }
+
+    /**
+     * @return array{dev: int, ino: int, mode: int, nlink: int, uid: int, gid: int, rdev: int, size: int, atime: int, mtime: int, ctime: int, blksize: int, blocks: int}
+     */
+    public function stream_stat(): array
+    {
+        return self::statArray();
+    }
+
+    /**
+     * @return array{dev: int, ino: int, mode: int, nlink: int, uid: int, gid: int, rdev: int, size: int, atime: int, mtime: int, ctime: int, blksize: int, blocks: int}|false
+     */
+    public function url_stat(string $path, int $flags): array|false
+    {
+        if (str_contains($path, 'nostat')) {
+            return false;
+        }
+
+        return self::statArray();
+    }
+
+    /**
+     * @return array{dev: int, ino: int, mode: int, nlink: int, uid: int, gid: int, rdev: int, size: int, atime: int, mtime: int, ctime: int, blksize: int, blocks: int}
+     */
+    private static function statArray(): array
+    {
+        return [
+            'dev' => 0,
+            'ino' => 0,
+            'mode' => 0100644,
+            'nlink' => 1,
+            'uid' => 0,
+            'gid' => 0,
+            'rdev' => 0,
+            'size' => 1,
+            'atime' => 0,
+            'mtime' => 0,
+            'ctime' => 0,
+            'blksize' => 0,
+            'blocks' => 0,
+        ];
     }
 }
