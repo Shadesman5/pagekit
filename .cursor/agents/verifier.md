@@ -1,6 +1,6 @@
 ---
 name: verifier
-model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]
+model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=false]
 description: Quality Auditor for Pagekit modernization. Audits Refactorer output for No Mercy compliance and ROADMAP traceability. Use proactively after Refactorer completes a step.
 ---
 
