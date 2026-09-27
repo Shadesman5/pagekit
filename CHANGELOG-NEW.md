@@ -5,11 +5,12 @@
 ### 💥 Breaking Changes
 
 - **A module registers from `module.json`, and discovery does not run `index.php`** — `name`, `require`, `include`, `autoload`, and `nodes` are read from that file. `index.php` runs only when the module is loaded, and those keys are written back from the registered record, so the entry point cannot change them. A missing `name` or `""` is skipped. A field of the wrong type is a registration failure for that path and does not stop the next module. (Closes #266)
-- **An archive must carry `module.json`; `index.php` is not opened** — `name` is the part of the Composer name after the slash. `autoload` must be present (`{}` is accepted) and each path must be a folder in the archive. `require` omitted is none. A missing file, a file over 1 MiB, invalid JSON, a document that is not an object, or a field of the wrong type is refused before anything is written. A registration record that exists only as a PHP array in `index.php` is refused.
+- **An archive must carry `module.json`; `index.php` is not opened** — `name` is the part of the Composer name after the slash. `autoload` must be present (`{}` is accepted) and each path must be a folder in the archive. `require` omitted is none. A missing file, a file over 1 MiB, invalid JSON, a document that is not an object, or a field of the wrong type is refused before anything is written. An `include` that does not stay inside the package is refused the same way. A registration record that exists only as a PHP array in `index.php` is refused.
 
 ### 🔒 Security
 
 - **An on-disk package is not executed to discover it** — `register()` does not include `index.php`. A path segment that starts with `.` is not registered. A `module.json` over 1 MiB is not decoded.
+- **An included manifest does not replace a name already registered** — an include that leaves the module (absolute, an empty base, `..`, or a glob that matches a parent segment) is not applied. A glob match whose realpath is outside the module is not registered. `system`'s relative `modules/*/module.json` still registers a child whose name is free, and a later caller-supplied manifest still replaces an earlier caller-supplied name. An archive `include` that does not stay inside the package is refused before anything is written.
 
 ---
 

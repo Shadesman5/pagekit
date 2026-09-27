@@ -9,7 +9,7 @@
 **Pull Request:** [#306](https://github.com/Shadesman5/pagekit/pull/306)
 **Status:** ✅ Complete
 **Started:** 2026-09-26 22:29
-**Completed:** 2026-09-27 05:36
+**Completed:** 2026-09-27 09:16
 
 ---
 
@@ -17,7 +17,9 @@
 
 Discovery reads `module.json` and does not execute `index.php`. `load()` applies the PSR-4 map from that record, includes `path/index.php` when the file exists, and writes `name`, `require`, `include`, `autoload`, `nodes`, and `path` back from the record. Defaults (`main`, `type`, `class`, `config`) are applied in that merge and are not stored at registration.
 
-`PackageArchive` reads `name`, `autoload`, and `require` from the same file and does not open `index.php`. A missing `module.json` or a manifest exception is `ArchiveRefusedException` before anything is written.
+`PackageArchive` reads `name`, `autoload`, and `require` from the same file and does not open `index.php`. A missing `module.json` or a manifest exception is `ArchiveRefusedException` before anything is written. An `include` that does not stay inside the package is refused the same way.
+
+An included manifest does not replace a name already registered. An include that leaves the module is not applied. A later caller-supplied manifest still replaces an earlier caller-supplied name, and `system`'s relative `modules/*/module.json` still registers a child whose name is free.
 
 First-party modules carry those registration keys in `module.json`. Blog and theme-one still repeat `name` and `autoload` in `index.php`. `load()` writes those keys back from the registered record.
 
@@ -95,6 +97,21 @@ No production or test files changed. Bugbot and the Security review found nothin
 
 Gates: Bugbot clean (no bugs); Security clean (no findings); E2E PASS. No fix-loops.
 
+### Include confinement (Finalize)
+
+A security review on the prior head reported a HIGH: an include could replace a name already registered, and a pattern could leave the module. The fix keeps an include inside the module that declared it.
+
+An include pass leaves names already stored. Within that pass the last manifest for a free name wins, and only that manifest's `include` is followed. A pattern that leaves the module (absolute, empty base, `..`, or a glob that matches a parent segment) is not applied and does not stop the sweep. A glob match whose `realpath` is outside the including module is not registered. `system`'s relative `modules/*/module.json` still registers a free child. A later caller-supplied manifest still replaces an earlier caller-supplied name. `PackageArchive` refuses an include that does not stay inside the package before anything is written, and before the autoload folder check.
+
+| File | Change |
+|---|---|
+| `app/modules/kernel/src/Module/ModuleManager.php` | Include passes protect names already stored. A leaving pattern is not globbed. A match whose `realpath` is outside the module is not registered. |
+| `app/modules/kernel/src/Module/ModuleManifest.php` | `includeStaysInModule()` refuses an empty pattern, NUL, an absolute or drive path, a `..` segment, and a glob segment that matches `..`. |
+| `app/package/src/Archive/PackageArchive.php` | An `include` that fails that check is `ArchiveRefusedException` naming the pattern, before a write. |
+| `tests/Unit/Module/ModuleManifestTest.php`, `tests/Unit/Module/ModuleRegistrationTest.php`, `tests/Unit/Package/PackageArchiveTest.php` | Cover the include-confinement invariants. |
+
+Gates: production verifier PASS; PHPUnit + PHPStan PASS; E2E PASS. Bugbot clean. The security review on `4221729f` completed with conclusion success and posted no new finding.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -107,6 +124,9 @@ Gates: Bugbot clean (no bugs); Security clean (no findings); E2E PASS. No fix-lo
 - **The decoder exception wins, and only the decoded map is checked.** Walking folders or raw text first was rejected. A bad `require` or `include` is named, and a missing autoload folder in the same document is not. A repeated JSON key is the one `json_decode` keeps. An autoload key PHP stored as an int is cast to a string prefix and then checked as a folder. It is not an autoload-field refusal.
 - **`PackageZip` always writes `module.json`.** The fourth argument stays the `index.php` entry point. Parsing that entry point into `module.json` was rejected. A caller-supplied `module.json` replaces the default entry. A default zip opens with `module()` equal to the composer basename, `autoload()` `[]`, and `require()` `[]`.
 - **Blog and theme-one still repeat `name` and `autoload` in `index.php`.** Those literals stayed while the archive still parsed `index.php`, because the shipped-archive tests zip those two trees. The archive now reads `module.json` and does not open `index.php`. The literals are still in the two entry points. `load()` writes the keys back from the registered record.
+- **An included manifest does not replace a name already registered.** First-wins on every include was rejected: package globs run before `system`, and would keep `system/view`. Dropping `include` under `packages/` was rejected: a later caller-supplied manifest still replaces an earlier one and still registers its free children. Within one include pass the last free name wins, and only that include is followed. A later pass does not replace that child.
+- **A pattern that leaves the module is not globbed, and `register()` does not throw.** An absolute path, an empty base, NUL, or a `..` segment — including a glob segment that matches `..` (`.*`, `..*`, `.?`, `.[.]`) — resolves to the base. A segment that does not start with `.` cannot match `..`, so `*` stays. Returning the original path was rejected. The next caller-supplied module still registers, and the pattern adds no failure row. A glob match is registered only when its `realpath` stays inside the including module, so a symlink whose target is outside occupies no name.
+- **The archive refuses an include that does not stay inside the package before anything is written.** The sentence names the pattern. A pattern with no matching entry is still accepted. Reading nested names at open was rejected: `modules/*/module.json` is valid with no children, and a nested `name` of `system` is stopped when the include is applied. `include` of `""` stays the non-empty-strings sentence. The check runs before the autoload folder check.
 
 ---
 
@@ -116,6 +136,8 @@ An extension or theme archive must include `module.json` at the package root. `n
 
 On boot, `register()` reads `module.json` and does not execute `index.php`. `load()` runs `index.php` when that file exists, then restores `name`, `require`, `include`, `autoload`, `nodes`, and `path` from the registered record.
 
+An `include` that does not stay inside the package is refused. An included manifest does not replace a module the caller already registered. `system`'s `modules/*/module.json` still registers children whose names are free.
+
 ---
 
 ## ⚠️ Risks & Rollout Notes
@@ -123,6 +145,7 @@ On boot, `register()` reads `module.json` and does not execute `index.php`. `loa
 - A zip whose `name` and `autoload` live only in `index.php` is refused, and that package does not register.
 - A module that is loaded still executes `index.php`. The extension fault barrier still covers that window. Discovery of a package that is only on disk does not execute it.
 - Blog and theme-one still contain `name` and `autoload` in `index.php`. Discovery and the archive read `module.json`.
+- A package `include` cannot replace `system` or any name the boot already registered. A relative include still registers a child whose name is free.
 
 ---
 
@@ -138,11 +161,13 @@ Invalid JSON, a non-object, or a bad field is stored under that path and the swe
 
 The entry point of a module that is being loaded still runs. There is no process sandbox.
 
+An included manifest does not replace a name already registered. An include that leaves the module (absolute, empty base, `..`, or a glob that matches a parent segment) is not applied and does not stop the sweep. A glob match whose `realpath` is outside the module, including through a symlink, is not registered. `PackageArchive` refuses an include that does not stay inside the package before anything is written.
+
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-`register()` reads `module.json` through `ModuleManifest` and does not include `index.php`. There is no fallback to the entry point and no second decoder. The Step 2.7.3 TODO and the include `try` are gone. `PackageArchive` uses that same reader and no longer parses PHP. `nikic/php-parser` stays for the console visitor and the import-edge test.
+`register()` reads `module.json` through `ModuleManifest` and does not include `index.php`. There is no fallback to the entry point and no second decoder. The Step 2.7.3 TODO and the include `try` are gone. `PackageArchive` uses that same reader and no longer parses PHP. `nikic/php-parser` stays for the console visitor and the import-edge test. An include that leaves the module is not applied; there is no second path that still registers it.
 
 ---
 
@@ -153,21 +178,21 @@ The entry point of a module that is being loaded still runs. There is no process
 
 | Gate | Result |
 |---|---|
-| CI — PHP Tests | ✅ success — [run 36296661841](https://github.com/Shadesman5/pagekit/actions/runs/36296661841) on `f60f5ba2` |
-| CI — Frontend | ✅ success — [run 36296661845](https://github.com/Shadesman5/pagekit/actions/runs/36296661845) |
-| CI — Infection | ✅ success — [run 36296661839](https://github.com/Shadesman5/pagekit/actions/runs/36296661839) |
+| CI — PHP Tests | ✅ success — [run 36307598183](https://github.com/Shadesman5/pagekit/actions/runs/36307598183) on `4221729f` |
+| CI — Frontend | ✅ success — [run 36307598108](https://github.com/Shadesman5/pagekit/actions/runs/36307598108) |
+| CI — Infection | ✅ success — [run 36307598137](https://github.com/Shadesman5/pagekit/actions/runs/36307598137) |
 | CI — e2e-smoke, e2e-merge | skipped by repository policy |
 | Pull request | [#306](https://github.com/Shadesman5/pagekit/pull/306) |
 | Coverage gap pass | ran — `tests/Unit/Module/ModuleLoadTest.php`, `tests/Unit/Module/ModuleManifestTest.php`, `tests/Unit/Module/ModuleRegistrationTest.php`, `tests/Unit/Package/PackageArchiveTest.php` |
 | Cursor Bugbot (PR) | ✅ clean |
-| Cursor Security Reviewer (PR) | ✅ clean |
+| Cursor Security Reviewer (PR) | findings fixed — review on `4221729f` success, no new finding |
 | E2E | PASS |
 
-**CI head:** `f60f5ba2fcb0e374dade89afb2fa9a8f10998dba`
+**CI head:** `4221729fd02731b7d6293f9d6e307a6114e9f75e`
 
 **Metrics (CI-owned):** [PR #306 quality-report comment](https://github.com/Shadesman5/pagekit/pull/306#issuecomment-5852718031) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
 
-**Notable deviations:** Step 1: none. Step 2: production verifier FAIL (mixed parameters and integer autoload keys), then FAIL (fixtures still wrote registration fields into `index.php`), then PASS. Step 3: Bugbot clean; Security clean; E2E PASS; no fix-loops. Finalize: CI green on `f60f5ba2`; `e2e-smoke` and `e2e-merge` skipped by repository policy; coverage-gap pass ran; Bugbot clean; Security clean; E2E PASS. No finalize fix-loop.
+**Notable deviations:** Step 1: none. Step 2: production verifier FAIL (mixed parameters and integer autoload keys), then FAIL (fixtures still wrote registration fields into `index.php`), then PASS. Step 3: Bugbot clean; Security clean; E2E PASS; no fix-loops. Finalize: Security HIGH on `ModuleManager.php` include last-wins. Production fix, verifier PASS, PHPUnit+PHPStan PASS, E2E PASS. Tests cover the Step 3 invariants. CI green on `4221729f`; `e2e-smoke` and `e2e-merge` skipped by repository policy; coverage-gap pass ran; Bugbot clean; the security review on this head posted no new finding.
 
 ---
 
@@ -241,7 +266,7 @@ None.
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-- README's archive checklist names `module.json` (`name`, `autoload`, `require`) and says the archive check does not open `index.php`.
+- README's archive checklist names `module.json` (`name`, `autoload`, `require`, `include`) and says an `include` that leaves the package is refused. The archive check does not open `index.php`.
 
 ---
 
