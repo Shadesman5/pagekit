@@ -4,18 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Package\Archive;
 
-use PhpParser\Error as SyntaxError;
-use PhpParser\Node;
-use PhpParser\Node\Expr;
-use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\FunctionLike;
-use PhpParser\Node\Scalar\Int_;
-use PhpParser\Node\Scalar\String_;
-use PhpParser\Node\Stmt\ClassLike;
-use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\Node\Stmt\Return_;
-use PhpParser\NodeFinder;
-use PhpParser\ParserFactory;
+use Pagekit\Module\ModuleManifest;
+use Pagekit\Module\ModuleManifestException;
 
 /**
  * A package ZIP that passed every check the install relies on.
@@ -35,16 +25,16 @@ final class PackageArchive
     /** What all entries together may declare they unpack to. */
     public const MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024;
 
-    /** composer.json and index.php are read into memory whole, so they get a bound of their own. */
+    /** composer.json is read whole. module.json is held to ModuleManifest::MAX_BYTES. */
     private const MANIFEST_MAX_BYTES = 1024 * 1024;
 
     private const CHUNK_BYTES = 64 * 1024;
 
     /**
-     * @param list<Entry>             $entries
-     * @param array<array-key, mixed> $composer
-     * @param array<string, string>   $autoload
-     * @param list<string>            $require
+     * @param list<Entry>              $entries
+     * @param array<array-key, mixed>  $composer
+     * @param array<array-key, string> $autoload
+     * @param list<string>             $require
      */
     private function __construct(
         private readonly string $path,
@@ -103,7 +93,7 @@ final class PackageArchive
         return $this->name;
     }
 
-    /** The module index.php registers, which is the last part of the package name. */
+    /** The last part of the package name, which module.json has to give as its name. */
     public function module(): string
     {
         return basename($this->name);
@@ -125,9 +115,9 @@ final class PackageArchive
     }
 
     /**
-     * What index.php autoloads, keyed by namespace prefix.
+     * What module.json autoloads, keyed by namespace prefix.
      *
-     * @return array<string, string> folders relative to the package root
+     * @return array<array-key, string> folders relative to the package root
      */
     public function autoload(): array
     {
@@ -135,7 +125,7 @@ final class PackageArchive
     }
 
     /**
-     * Modules index.php requires, in the order the array literal yields them.
+     * Modules module.json requires, in JSON array order.
      *
      * @return list<string>
      */
@@ -364,157 +354,170 @@ final class PackageArchive
     }
 
     /**
-     * The autoload map and requirement list index.php declares, read without running the file.
+     * Name, autoload, and require from module.json. The entry point is not opened.
      *
      * @param list<Entry> $entries
      *
-     * @return array{autoload: array<string, string>, require: list<string>}
+     * @return array{autoload: array<array-key, string>, require: list<string>}
      *
      * @throws ArchiveRefusedException
      */
     private static function manifest(\ZipArchive $zip, array $entries, string $module): array
     {
-        $code = self::read($zip, $entries, 'index.php');
+        $json = self::read($zip, $entries, ModuleManifest::FILE, ModuleManifest::MAX_BYTES);
 
         try {
-            $statements = (new ParserFactory())->createForHostVersion()->parse($code) ?? [];
-        } catch (SyntaxError $e) {
-            throw new ArchiveRefusedException(__('The archive\'s index.php cannot be parsed: %error%', ['%error%' => self::printable($e->getMessage())]), 0, $e);
+            $decoded = ModuleManifest::decode($json);
+        } catch (ModuleManifestException $exception) {
+            throw self::refusedManifest($exception, $module);
         }
 
-        // A condition or a goto can make PHP return from a statement other than the one read below,
-        // so the file may hold only one return outside its function and class bodies.
-        $finder = new NodeFinder();
-        $bodies = $finder->find($statements, fn (Node $node): bool => $node instanceof FunctionLike || $node instanceof ClassLike);
-        $nested = $finder->findInstanceOf($bodies, Return_::class);
-        $returns = array_filter($finder->findInstanceOf($statements, Return_::class), fn (Return_ $return): bool => !in_array($return, $nested, true));
-
-        if (count($returns) > 1) {
-            throw new ArchiveRefusedException(__('The archive\'s index.php has more than one return statement outside its functions and classes.'));
+        // Discovery may skip a document with no name. An install can only place this package under the composer basename.
+        if ($decoded === null || ($decoded['name'] ?? null) !== $module) {
+            throw new ArchiveRefusedException(self::fieldMessage('name', $module));
         }
 
-        $returned = null;
-
-        foreach ($statements as $statement) {
-            // Code under a namespace still runs at file scope. A `namespace X;` node may carry null
-            // stmts, and the code after it then follows as siblings this outer loop reaches.
-            foreach ($statement instanceof Namespace_ ? (array) $statement->stmts : [$statement] as $inner) {
-                if ($inner instanceof Return_) {
-                    $returned = $inner->expr;
-
-                    break 2;
-                }
-            }
+        // An empty object is how an archive says it has no map; omitting the key is not that.
+        if (!array_key_exists('autoload', $decoded)) {
+            throw new ArchiveRefusedException(self::fieldMessage('autoload', $module));
         }
 
-        if (!($returned instanceof Array_)) {
-            throw new ArchiveRefusedException(__('The archive\'s index.php does not return an array literal at its top level.'));
+        $autoload = $decoded['autoload'];
+        $require = $decoded['require'] ?? [];
+
+        if (!is_array($autoload)) {
+            throw new ArchiveRefusedException(self::fieldMessage('autoload'));
         }
 
-        // A later key wins when PHP builds the array, and a spread or a computed key can be any
-        // key, so only the literal keys after the last of those are certain.
-        /** @var array<string, Expr> $items */
-        $items = [];
-
-        foreach ($returned->items as $item) {
-            if ($item->key instanceof String_) {
-                $items[$item->key->value] = $item->value;
-            } elseif ($item->unpack || ($item->key !== null && !($item->key instanceof Int_))) {
-                $items = [];
-            }
-        }
-
-        $name = $items['name'] ?? null;
-
-        if (!($name instanceof String_) || $name->value !== $module) {
-            throw new ArchiveRefusedException(__('The archive\'s index.php has to give \'name\' => \'%module%\' as a string literal.', ['%module%' => $module]));
-        }
-
-        $declared = $items['autoload'] ?? null;
-
-        if (!($declared instanceof Array_)) {
-            throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'autoload\' array of string literals.'));
-        }
-
-        $autoload = [];
-
-        foreach ($declared->items as $item) {
-            if (!($item->key instanceof String_) || !($item->value instanceof String_)) {
-                throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'autoload\' array of string literals.'));
-            }
-
-            $namespace = $item->key->value;
-            $path = $item->value->value;
-            $folder = self::relative(strtr($path, '\\', '/'));
-
-            if ($folder === null || !self::folder($entries, $folder)) {
-                throw new ArchiveRefusedException(__('The archive\'s index.php autoloads "%namespace%" from "%path%", which is not a folder in the archive.', [
-                    '%namespace%' => self::printable($namespace),
-                    '%path%' => self::printable($path),
-                ]));
-            }
-
-            $autoload[$namespace] = $path;
+        if (!is_array($require)) {
+            throw new ArchiveRefusedException(self::fieldMessage('require'));
         }
 
         return [
-            'autoload' => $autoload,
-            'require' => self::requirementList($items['require'] ?? null),
+            'autoload' => self::autoloadPaths($entries, $autoload),
+            'require' => self::requirements($require),
         ];
     }
 
     /**
-     * Requirement names from a literal list. A missing key is an empty list.
+     * Operator sentence for a decoder refusal. A JSON parser failure is the previous exception.
+     */
+    private static function refusedManifest(ModuleManifestException $exception, string $module): ArchiveRefusedException
+    {
+        $previous = $exception->getPrevious();
+
+        if ($previous instanceof \JsonException) {
+            return new ArchiveRefusedException(__('The archive\'s module.json cannot be parsed: %error%', ['%error%' => self::printable($previous->getMessage())]), 0, $exception);
+        }
+
+        $field = self::manifestField($exception);
+
+        if ($field !== null) {
+            return new ArchiveRefusedException(self::fieldMessage($field, $module), 0, $exception);
+        }
+
+        if ($exception->getMessage() === 'Module manifest must be a JSON object.') {
+            return new ArchiveRefusedException(__('The archive\'s module.json is not a JSON object.'), 0, $exception);
+        }
+
+        return new ArchiveRefusedException(__('The archive\'s module.json cannot be parsed: %error%', ['%error%' => self::printable($exception->getMessage())]), 0, $exception);
+    }
+
+    /**
+     * The field the decoder named, when its message is that fixed sentence.
+     */
+    private static function manifestField(ModuleManifestException $exception): ?string
+    {
+        if (preg_match('/\AModule manifest field "([a-z]+)" is invalid\.\z/', $exception->getMessage(), $match) !== 1) {
+            return null;
+        }
+
+        return $match[1];
+    }
+
+    private static function fieldMessage(string $field, string $module = ''): string
+    {
+        if ($field === 'name') {
+            return __('The archive\'s module.json has to give \'name\' => \'%module%\' as a string literal.', ['%module%' => $module]);
+        }
+
+        if ($field === 'autoload') {
+            return __('The archive\'s module.json gives no \'autoload\' array of string literals.');
+        }
+
+        if ($field === 'require') {
+            return __('The archive\'s module.json gives no \'require\' array of string literals.');
+        }
+
+        if ($field === 'include') {
+            return __('The archive\'s module.json gives no \'include\' of non-empty strings.');
+        }
+
+        if ($field === 'nodes') {
+            return __('The archive\'s module.json gives no \'nodes\' object.');
+        }
+
+        return __('The archive\'s module.json gives no \'%field%\' the install can register.', ['%field%' => $field]);
+    }
+
+    /**
+     * Folders the autoload map names. The stored path is the manifest string, not the normalized folder.
+     *
+     * @param list<Entry>              $entries
+     * @param array<array-key, mixed>  $declared
+     *
+     * @return array<array-key, string>
+     *
+     * @throws ArchiveRefusedException
+     */
+    private static function autoloadPaths(array $entries, array $declared): array
+    {
+        $autoload = [];
+
+        foreach ($declared as $namespace => $path) {
+            if (!is_string($path)) {
+                throw new ArchiveRefusedException(self::fieldMessage('autoload'));
+            }
+
+            // A decimal-integer JSON key is an int array key after decode, and discovery already accepted it, so the folder check uses that integer's decimal spelling.
+            $prefix = is_string($namespace) ? $namespace : (string) $namespace;
+            $folder = self::relative(strtr($path, '\\', '/'));
+
+            if ($folder === null || !self::folder($entries, $folder)) {
+                throw new ArchiveRefusedException(__('The archive\'s module.json autoloads "%namespace%" from "%path%", which is not a folder in the archive.', [
+                    '%namespace%' => self::printable($prefix),
+                    '%path%' => self::printable($path),
+                ]));
+            }
+
+            $autoload[$prefix] = $path;
+        }
+
+        return $autoload;
+    }
+
+    /**
+     * List order. A JSON object is refused by the decoder, so keys are not read.
+     *
+     * @param array<array-key, mixed> $declared
      *
      * @return list<string>
      *
      * @throws ArchiveRefusedException
      */
-    private static function requirementList(?Expr $declared): array
+    private static function requirements(array $declared): array
     {
-        if ($declared === null) {
-            return [];
-        }
+        $require = [];
 
-        // The file is not executed. A spread or a non-string can name a module that is not written here.
-        if (!$declared instanceof Array_) {
-            throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'));
-        }
-
-        // "-0" stays a string key, so the name appended after it is integer 0.
-        // From PHP 8.3 a negative integer continues at n+1, so the name after "-4" is -3 and a later "0" does not replace it.
-        $values = [];
-
-        foreach ($declared->items as $item) {
-            $key = $item->key;
-
-            if ($item->unpack || !$item->value instanceof String_) {
-                throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'));
+        foreach ($declared as $name) {
+            if (!is_string($name)) {
+                throw new ArchiveRefusedException(self::fieldMessage('require'));
             }
 
-            if ($key === null) {
-                try {
-                    $values[] = $item->value->value;
-                } catch (\Error $e) {
-                    // Past PHP_INT_MAX the literal throws, so there is no list to read.
-                    throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'), 0, $e);
-                }
-
-                continue;
-            }
-
-            if ($key instanceof String_) {
-                $index = $key->value;
-            } elseif ($key instanceof Int_) {
-                $index = $key->value;
-            } else {
-                throw new ArchiveRefusedException(__('The archive\'s index.php gives no \'require\' array of string literals.'));
-            }
-
-            $values[$index] = $item->value->value;
+            $require[] = $name;
         }
 
-        return array_values($values);
+        return $require;
     }
 
     /**
@@ -524,7 +527,7 @@ final class PackageArchive
      *
      * @throws ArchiveRefusedException
      */
-    private static function read(\ZipArchive $zip, array $entries, string $file): string
+    private static function read(\ZipArchive $zip, array $entries, string $file, int $maxBytes = self::MANIFEST_MAX_BYTES): string
     {
         $index = self::file($entries, $file);
 
@@ -532,7 +535,7 @@ final class PackageArchive
             throw new ArchiveRefusedException(__('The archive has no %file% at its top level.', ['%file%' => $file]));
         }
 
-        if ($entries[$index]['size'] > self::MANIFEST_MAX_BYTES) {
+        if ($entries[$index]['size'] > $maxBytes) {
             throw new ArchiveRefusedException(__('The archive\'s %file% is too large.', ['%file%' => $file]));
         }
 

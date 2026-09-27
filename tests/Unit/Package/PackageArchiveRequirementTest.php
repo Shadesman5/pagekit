@@ -93,7 +93,7 @@ final class PackageArchiveRequirementTest extends TestCase
     {
         $before = $this->entries($this->packages);
 
-        $exception = $this->refusal($this->archive("['missing']"));
+        $exception = $this->refusal($this->archive(['missing']));
 
         self::assertInstanceOf(ArchiveRefusedException::class, $exception);
         self::assertSame(
@@ -111,15 +111,8 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->modules()->setActivityPolicy(['demo'], 'system');
         $this->modules()->load('demo');
         $before = $this->entries($this->packages);
-        $require = <<<'PHP'
-            [
-                'comments',
-                'missing',
-                'also-missing',
-            ]
-            PHP;
 
-        $exception = $this->refusal($this->archive($require));
+        $exception = $this->refusal($this->archive(['comments', 'missing', 'also-missing']));
 
         self::assertInstanceOf(ArchiveRefusedException::class, $exception);
         self::assertSame(
@@ -135,7 +128,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $before = $this->entries($this->packages);
         $required = "missing\x01name";
 
-        $exception = $this->refusal($this->archive('[' . var_export($required, true) . ']'));
+        $exception = $this->refusal($this->archive([$required]));
 
         self::assertInstanceOf(ArchiveRefusedException::class, $exception);
         self::assertSame(
@@ -151,14 +144,8 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->register('comments');
         $this->register('captcha');
         $this->modules()->setActivityPolicy([], 'system');
-        $require = <<<'PHP'
-            [
-                'comments',
-                'captcha',
-            ]
-            PHP;
 
-        $this->manager()->install($this->archive($require));
+        $this->manager()->install($this->archive(['comments', 'captcha']));
 
         self::assertGreaterThan(0, $this->files->directories);
         self::assertSame('new', (string) file_get_contents($this->packages . '/pagekit/demo/fresh.txt'));
@@ -182,7 +169,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->modules()->load('demo');
         $before = $this->entries($this->packages);
 
-        $exception = $this->refusal($this->archive("['comments']"));
+        $exception = $this->refusal($this->archive(['comments']));
 
         self::assertInstanceOf(UnsatisfiedRequirementException::class, $exception);
         self::assertTrue($exception->registered);
@@ -209,7 +196,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->modules()->load('legacy-demo');
         $before = $this->entries($this->packages);
 
-        $exception = $this->refusal($this->archive("['comments']"));
+        $exception = $this->refusal($this->archive(['comments']));
 
         self::assertInstanceOf(UnsatisfiedRequirementException::class, $exception);
         self::assertSame('demo', $exception->depender);
@@ -235,7 +222,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->modules()->load('demo');
         $before = $this->entries($this->packages);
 
-        $exception = $this->refusal($this->archive("['beta']"));
+        $exception = $this->refusal($this->archive(['beta']));
 
         self::assertSame(\RuntimeException::class, $exception::class);
         self::assertSame('Circular requirement "beta > demo" detected.', $exception->getMessage());
@@ -256,7 +243,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->modules()->setActivityPolicy(['demo', 'comments'], 'system');
         $this->modules()->load('demo');
 
-        $this->manager()->install($this->archive("['comments']"));
+        $this->manager()->install($this->archive(['comments']));
 
         self::assertGreaterThan(0, $this->files->directories);
         self::assertSame('new', (string) file_get_contents($this->packages . '/pagekit/demo/fresh.txt'));
@@ -273,7 +260,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->app->set('module', new \stdClass());
         $before = $this->entries($this->packages);
 
-        $exception = $this->refusal($this->archive("['missing']"));
+        $exception = $this->refusal($this->archive(['missing']));
 
         self::assertInstanceOf(ArchiveRefusedException::class, $exception);
         self::assertSame(
@@ -292,7 +279,7 @@ final class PackageArchiveRequirementTest extends TestCase
             throw new \RuntimeException('module service was read');
         });
 
-        $archive = $this->archive('[]');
+        $archive = $this->archive([]);
         self::assertSame([], $archive->require());
 
         try {
@@ -313,7 +300,7 @@ final class PackageArchiveRequirementTest extends TestCase
 
     public function testUploadOfAnUnregisteredRequirementIsABadRequestBeforeTheFileIsStaged(): void
     {
-        $incoming = $this->uploaded($this->zip("['missing']"));
+        $incoming = $this->uploaded($this->zip(['missing']));
 
         $exception = $this->refusedUpload($incoming);
 
@@ -333,7 +320,7 @@ final class PackageArchiveRequirementTest extends TestCase
     {
         $this->register('comments');
         $this->modules()->setActivityPolicy([], 'system');
-        $incoming = $this->uploaded($this->zip("['comments']"));
+        $incoming = $this->uploaded($this->zip(['comments']));
 
         $result = $this->controller($this->requestWith($incoming))->uploadAction('extension');
 
@@ -398,12 +385,18 @@ final class PackageArchiveRequirementTest extends TestCase
         file_put_contents($tree . '/marker.txt', 'old');
     }
 
-    private function archive(string $require): PackageArchive
+    /**
+     * @param list<string> $require
+     */
+    private function archive(array $require): PackageArchive
     {
         return PackageArchive::open($this->zip($require));
     }
 
-    private function zip(string $require): string
+    /**
+     * @param list<string> $require
+     */
+    private function zip(array $require): string
     {
         $path = $this->workspace . '/incoming-' . bin2hex(random_bytes(3)) . '.zip';
         PackageZip::write($path, [
@@ -413,14 +406,24 @@ final class PackageArchiveRequirementTest extends TestCase
             'title' => 'Demo',
         ], [
             'fresh.txt' => 'new',
-        ], $this->index($require));
+            'module.json' => $this->manifest($require),
+        ]);
 
         return $path;
     }
 
-    private function index(string $require): string
+    /**
+     * @param list<string> $require
+     */
+    private function manifest(array $require): string
     {
-        return "<?php\n\nreturn [\n    'name' => 'demo',\n    'autoload' => [],\n    'require' => " . $require . ",\n];\n";
+        $json = json_encode([
+            'name' => 'demo',
+            'autoload' => new \stdClass(),
+            'require' => array_values($require),
+        ], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return $json . "\n";
     }
 
     private function refusal(PackageArchive $archive): \Throwable

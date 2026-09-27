@@ -8,6 +8,8 @@ use ZipArchive;
 
 /**
  * Builds a package ZIP the archive checks accept.
+ *
+ * Registration is module.json. $index is only the entry point, and $files replaces an entry of the same name.
  */
 final class PackageZip
 {
@@ -30,10 +32,10 @@ final class PackageZip
             'title' => 'Demo',
         ], $composer);
 
-        $module = basename($name);
         $entries = [
             'composer.json' => json_encode($document, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            'index.php' => $index ?? "<?php\n\nreturn [\n    'name' => '{$module}',\n    'autoload' => [],\n];\n",
+            'module.json' => self::registration(basename($name)),
+            'index.php' => $index ?? "<?php\n\nreturn [];\n",
         ];
 
         foreach ($files as $entry => $contents) {
@@ -61,5 +63,18 @@ final class PackageZip
         if ($zip->close() !== true) {
             throw new \RuntimeException('Could not close the fixture archive.');
         }
+    }
+
+    /**
+     * name plus an empty autoload object. require is omitted, which the archive reads as none.
+     */
+    private static function registration(string $module): string
+    {
+        $json = json_encode(
+            ['name' => $module, 'autoload' => new \stdClass()],
+            JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        return $json."\n";
     }
 }

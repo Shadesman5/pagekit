@@ -58,6 +58,33 @@ Field readers keep native `string|array`, `array`, and scalar-or-structure param
 
 Gates: production verifier PASS; production tester PASS; test-writer done; test-files verifier PASS; coverage tester PASS. No deviations.
 
+### Archive reads `module.json` (Checklist Step 2)
+
+`PackageArchive` reads `name`, `autoload`, and `require` through `ModuleManifest` and does not open `index.php`. A missing `module.json` or a `ModuleManifestException` is `ArchiveRefusedException`. Those sentences name `module.json`.
+
+A `JsonException` previous keeps the existing `cannot be parsed` sentence and includes that JSON error, so a non-UTF-8 document never reaches a path quote. A document that is not an object says the archive's `module.json` is not a JSON object. The invalid field is read from the manifest exception's sentence. `include` is `gives no 'include' of non-empty strings` and `nodes` is `gives no 'nodes' object`. `name`, `autoload`, and `require` keep their own sentences.
+
+The decoder exception is the refusal, so a bad `require` or `include` wins over an autoload path, and only the decoded map is checked. A repeated JSON key is the one `json_decode` keeps. An autoload key PHP stored as an int is cast to a string prefix and then checked as a folder. The decoder already accepted that map, so the key is not an autoload-field refusal. A path that is not a folder is still `not a folder`.
+
+`PackageZip` always writes `module.json` (`name` is the composer basename, `autoload` is `{}`, `require` omitted) unless the caller replaces that entry. The fourth argument stays the `index.php` entry point. A default zip opens with `module()` equal to that basename, `autoload()` `[]`, and `require()` `[]`. A caller-supplied `module.json` of `{"name":"demo"}` is refused naming `autoload`, and the entry point is not consulted.
+
+Archive fixtures describe `module.json`. Cases that only exercised PHP array syntax in `index.php` (spreads, computed keys, namespace returns, size and presence) are gone.
+
+| File | Change |
+|---|---|
+| `app/package/src/Archive/PackageArchive.php` | Reads `module.json` through `ModuleManifest` and does not open `index.php`. A parse error, a non-object, or a bad field is `ArchiveRefusedException`. An int autoload key is a string prefix, then a folder check. |
+
+#### Tests (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageZip.php` | Always writes `module.json` (`name`, empty `autoload`, `require` omitted) unless `$files` replaces that entry. The fourth argument stays the `index.php` entry point. |
+| `tests/Unit/Package/PackageArchiveTest.php` | Fixtures describe `module.json`. A zip with registration fields only in `index.php` is refused naming `module.json`. A repeated autoload key keeps the path `json_decode` keeps. A bad `require` is named and does not mention a missing autoload folder in the same document. |
+| `tests/Unit/Package/PackageArchiveRequirementTest.php` | Requirement fixtures put the registration fields in `module.json`. |
+| `tests/Unit/Package/PackageUploadBoundaryTest.php` | Upload-boundary fixtures put the registration fields in `module.json`. |
+
+Gates: production verifier FAIL (mixed parameters and integer autoload keys), production retry, production verifier FAIL (fixtures still wrote registration fields into `index.php`), production retry, production verifier PASS, production tester PASS, test-writer done, test verifier PASS, tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)

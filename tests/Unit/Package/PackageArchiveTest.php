@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Package;
 
+use Pagekit\Module\ModuleManifestException;
 use Pagekit\Package\Archive\ArchiveRefusedException;
 use Pagekit\Package\Archive\PackageArchive;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,27 +16,25 @@ use ZipArchive;
  */
 final class PackageArchiveTest extends TestCase
 {
-    private const EXTENSION_INDEX = <<<'PHP'
-        <?php
+    private const EXTENSION_MANIFEST = <<<'JSON'
+        {
+            "name": "demo",
+            "autoload": {
+                "Pagekit\\Demo\\": "src"
+            }
+        }
 
-        return [
-            'name' => 'demo',
-            'autoload' => [
-                'Pagekit\\Demo\\' => 'src',
-            ],
-        ];
+        JSON;
 
-        PHP;
+    private const BARE_MANIFEST = <<<'JSON'
+        {
+            "name": "demo",
+            "autoload": {}
+        }
 
-    private const BARE_INDEX = <<<'PHP'
-        <?php
+        JSON;
 
-        return [
-            'name' => 'demo',
-            'autoload' => [],
-        ];
-
-        PHP;
+    private const ENTRY_POINT = "<?php\n\nreturn [];\n";
 
     private string $workspace;
 
@@ -75,22 +74,20 @@ final class PackageArchiveTest extends TestCase
 
     public function testAValidThemeMayAutoloadNothing(): void
     {
-        $index = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "theme-one",
+                "autoload": {}
+            }
 
-            return [
-                'name' => 'theme-one',
-                'autoload' => [],
-            ];
-
-            PHP;
+            JSON;
 
         $archive = $this->openPackage([
             'name' => 'pagekit/theme-one',
             'type' => 'pagekit-theme',
             'version' => '1.0.1',
             'title' => 'One',
-        ], $index);
+        ], $manifest);
 
         self::assertSame('pagekit/theme-one', $archive->name());
         self::assertSame('theme-one', $archive->module());
@@ -103,14 +100,14 @@ final class PackageArchiveTest extends TestCase
 
     public function testATitleKeepsSurroundingSpace(): void
     {
-        $archive = $this->openPackage(['title' => ' Demo '], self::BARE_INDEX);
+        $archive = $this->openPackage(['title' => ' Demo '], self::BARE_MANIFEST);
 
         self::assertSame(' Demo ', $archive->title());
     }
 
     public function testComposerJsonMayStartWithWhitespace(): void
     {
-        $files = $this->package([], self::BARE_INDEX);
+        $files = $this->package([], self::BARE_MANIFEST);
         $files['composer.json'] = "\n\n".$files['composer.json'];
 
         $archive = $this->openFiles($files);
@@ -125,7 +122,6 @@ final class PackageArchiveTest extends TestCase
 
         $archive = PackageArchive::open($path);
 
-        // Closures in the shipped manifest return early; those returns are not the module record.
         self::assertSame('pagekit/blog', $archive->name());
         self::assertSame('blog', $archive->module());
         self::assertSame('1.0.7', $archive->version());
@@ -184,6 +180,7 @@ final class PackageArchiveTest extends TestCase
                     'out/composer.json',
                     'out/docs',
                     'out/index.php',
+                    'out/module.json',
                     'out/src',
                     'out/src/Demo.php',
                     'package.zip',
@@ -191,12 +188,14 @@ final class PackageArchiveTest extends TestCase
                 $this->workspaceEntries(),
             );
             self::assertSame($files['composer.json'], file_get_contents($destination.'/composer.json'));
+            self::assertSame($files['module.json'], file_get_contents($destination.'/module.json'));
             self::assertSame($files['index.php'], file_get_contents($destination.'/index.php'));
             self::assertSame($demo, file_get_contents($destination.'/src/Demo.php'));
             self::assertSame(0700, $this->mode($destination));
             self::assertSame(0700, $this->mode($destination.'/src'));
             self::assertSame(0700, $this->mode($destination.'/docs'));
             self::assertSame(0600, $this->mode($destination.'/composer.json'));
+            self::assertSame(0600, $this->mode($destination.'/module.json'));
             self::assertSame(0600, $this->mode($destination.'/index.php'));
             self::assertSame(0600, $this->mode($destination.'/src/Demo.php'));
         } finally {
@@ -296,7 +295,7 @@ final class PackageArchiveTest extends TestCase
         $message = $this->assertPackageRefused(
             ['version' => "1.0+\x00build"],
             'build metadata',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
         );
 
         self::assertStringContainsString('1.0+?build', $message);
@@ -426,7 +425,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testAJsonListIsNotAComposerObject(): void
     {
-        $files = $this->package([], self::BARE_INDEX);
+        $files = $this->package([], self::BARE_MANIFEST);
         $files['composer.json'] = '['.$files['composer.json'].']';
 
         $this->assertRefused($this->archive($files), 'not a JSON object');
@@ -435,7 +434,7 @@ final class PackageArchiveTest extends TestCase
     #[DataProvider('invalidPackageNames')]
     public function testAnInvalidPackageNameIsRefused(string $name): void
     {
-        $this->assertPackageRefused(['name' => $name], 'no valid "name"', self::BARE_INDEX);
+        $this->assertPackageRefused(['name' => $name], 'no valid "name"', self::BARE_MANIFEST);
     }
 
     /**
@@ -454,7 +453,7 @@ final class PackageArchiveTest extends TestCase
     #[DataProvider('invalidPackageTypes')]
     public function testAnInvalidPackageTypeIsRefused(string $type): void
     {
-        $this->assertPackageRefused(['type' => $type], 'pagekit-extension', self::BARE_INDEX);
+        $this->assertPackageRefused(['type' => $type], 'pagekit-extension', self::BARE_MANIFEST);
     }
 
     /**
@@ -469,7 +468,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testBuildMetadataInTheVersionIsRefused(): void
     {
-        $message = $this->assertPackageRefused(['version' => '1.0+build'], 'build metadata', self::BARE_INDEX);
+        $message = $this->assertPackageRefused(['version' => '1.0+build'], 'build metadata', self::BARE_MANIFEST);
 
         self::assertStringContainsString('1.0+build', $message);
         self::assertStringContainsString('+', $message);
@@ -478,7 +477,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testAMissingVersionIsRefused(): void
     {
-        $files = $this->package([], self::BARE_INDEX);
+        $files = $this->package([], self::BARE_MANIFEST);
         $document = json_decode($files['composer.json'], true, 512, JSON_THROW_ON_ERROR);
         self::assertIsArray($document);
         unset($document['version']);
@@ -490,7 +489,7 @@ final class PackageArchiveTest extends TestCase
     #[DataProvider('versionsOutsideTheSnapshotAlphabet')]
     public function testAVersionOutsideTheSnapshotAlphabetIsRefused(mixed $version): void
     {
-        $message = $this->assertPackageRefused(['version' => $version], 'no valid "version"', self::BARE_INDEX);
+        $message = $this->assertPackageRefused(['version' => $version], 'no valid "version"', self::BARE_MANIFEST);
         self::assertStringNotContainsString('build metadata', $message);
     }
 
@@ -507,7 +506,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testAMissingTitleIsRefused(): void
     {
-        $files = $this->package([], self::BARE_INDEX);
+        $files = $this->package([], self::BARE_MANIFEST);
         $document = json_decode($files['composer.json'], true, 512, JSON_THROW_ON_ERROR);
         self::assertIsArray($document);
         unset($document['title']);
@@ -519,7 +518,7 @@ final class PackageArchiveTest extends TestCase
     #[DataProvider('blankTitles')]
     public function testABlankTitleIsRefused(string $title): void
     {
-        $this->assertPackageRefused(['title' => $title], '"title"', self::BARE_INDEX);
+        $this->assertPackageRefused(['title' => $title], '"title"', self::BARE_MANIFEST);
     }
 
     /**
@@ -536,7 +535,7 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused(
             ['extra' => ['scripts' => 'scripts.php']],
             'extra.scripts',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
         );
     }
 
@@ -545,21 +544,21 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused(
             ['extra' => ['scripts' => 'src']],
             'extra.scripts',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
             ['src/' => '', 'src/Demo.php' => "<?php\n"],
         );
     }
 
     public function testAnEmptyScriptsStringIsIgnored(): void
     {
-        $archive = $this->openPackage(['extra' => ['scripts' => '']], self::BARE_INDEX);
+        $archive = $this->openPackage(['extra' => ['scripts' => '']], self::BARE_MANIFEST);
 
         self::assertSame('', $archive->composer()['extra']['scripts']);
     }
 
     public function testAnEmptyScriptsListIsIgnored(): void
     {
-        $archive = $this->openPackage(['extra' => ['scripts' => []]], self::BARE_INDEX);
+        $archive = $this->openPackage(['extra' => ['scripts' => []]], self::BARE_MANIFEST);
 
         self::assertSame([], $archive->composer()['extra']['scripts']);
     }
@@ -570,7 +569,7 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused(
             ['extra' => ['scripts' => $scripts]],
             'extra.scripts',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
         );
     }
 
@@ -586,7 +585,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testAStringExtraBlockIsNotAScriptsList(): void
     {
-        $archive = $this->openPackage(['extra' => 'scripts.php'], self::BARE_INDEX);
+        $archive = $this->openPackage(['extra' => 'scripts.php'], self::BARE_MANIFEST);
 
         self::assertSame('scripts.php', $archive->composer()['extra']);
     }
@@ -595,7 +594,7 @@ final class PackageArchiveTest extends TestCase
     {
         $archive = $this->openPackage(
             ['extra' => ['scripts' => 'dir//./scripts.php']],
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
             ['dir/scripts.php' => "<?php\n"],
         );
 
@@ -607,7 +606,7 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused(
             ['extra' => ['scripts' => 'nested/../scripts.php']],
             'extra.scripts',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
             ['scripts.php' => "<?php\n"],
         );
     }
@@ -617,7 +616,7 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused(
             ['extra' => ['scripts' => '/scripts.php']],
             'extra.scripts',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
             ['scripts.php' => "<?php\n"],
         );
     }
@@ -627,7 +626,7 @@ final class PackageArchiveTest extends TestCase
         $this->assertPackageRefused(
             ['extra' => ['scripts' => 'src\\file.php']],
             'extra.scripts',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
             ['src/file.php' => "<?php\n"],
         );
     }
@@ -642,496 +641,389 @@ final class PackageArchiveTest extends TestCase
 
     public function testComposerJsonAtAMegabyteIsStillRead(): void
     {
-        $files = $this->package([], self::BARE_INDEX, ['composer.json' => str_repeat('x', 1024 * 1024)]);
+        $files = $this->package([], self::BARE_MANIFEST, ['composer.json' => str_repeat('x', 1024 * 1024)]);
 
         $message = $this->assertRefused($this->archive($files), 'not a JSON object');
         self::assertStringNotContainsString('too large', $message);
     }
 
-    public function testAMissingIndexIsRefused(): void
+    public function testAMissingModuleJsonIsRefused(): void
     {
         $files = $this->package();
-        unset($files['index.php']);
+        unset($files['module.json']);
+        $files['index.php'] = <<<'PHP'
+            <?php
+
+            return [
+                'name' => 'demo',
+                'autoload' => [
+                    'Pagekit\\Demo\\' => 'src',
+                ],
+            ];
+
+            PHP;
 
         $message = $this->assertRefused($this->archive($files), 'top level');
-        self::assertStringContainsString('index.php', $message);
+        self::assertStringContainsString('module.json', $message);
+        self::assertStringNotContainsString('index.php', $message);
     }
 
-    public function testIndexPhpAboveAMegabyteIsRefused(): void
+    public function testModuleJsonAboveAMegabyteIsRefused(): void
     {
         $message = $this->assertPackageRefused([], 'too large', str_repeat('x', (1024 * 1024) + 1));
-        self::assertStringContainsString('index.php', $message);
+        self::assertStringContainsString('module.json', $message);
+        self::assertStringNotContainsString('index.php', $message);
     }
 
-    public function testIndexPhpAtAMegabyteIsStillRead(): void
+    public function testModuleJsonAtAMegabyteIsStillRead(): void
     {
-        $index = rtrim(self::BARE_INDEX)."\n";
-        $index .= str_repeat(' ', (1024 * 1024) - strlen($index));
-        self::assertSame(1024 * 1024, strlen($index));
+        $manifest = rtrim(self::BARE_MANIFEST)."\n";
+        $manifest .= str_repeat(' ', (1024 * 1024) - strlen($manifest));
+        self::assertSame(1024 * 1024, strlen($manifest));
 
-        $archive = $this->openPackage([], $index);
+        $archive = $this->openPackage([], $manifest);
 
         self::assertSame('demo', $archive->module());
     }
 
-    public function testAnUnparseableIndexIsRefused(): void
+    public function testAnUnparseableModuleJsonIsRefused(): void
     {
-        $this->assertPackageRefused([], 'cannot be parsed', "<?php\nreturn [\n");
+        $exception = $this->refused($this->archive($this->package([], '{')));
+        $manifest = $exception->getPrevious();
+
+        self::assertInstanceOf(ModuleManifestException::class, $manifest);
+        $json = $manifest->getPrevious();
+        self::assertInstanceOf(\JsonException::class, $json);
+        self::assertStringContainsString('cannot be parsed', $exception->getMessage());
+        self::assertStringContainsString($json->getMessage(), $exception->getMessage());
     }
 
-    public function testAnIndexWithNoTopLevelReturnIsRefused(): void
+    public function testAJsonListIsNotAModuleObject(): void
     {
-        $this->assertPackageRefused([], 'array literal', "<?php\n\$value = 1;\n");
+        $exception = $this->refused($this->archive($this->package([], '[1]')));
+        $manifest = $exception->getPrevious();
+
+        self::assertInstanceOf(ModuleManifestException::class, $manifest);
+        self::assertNull($manifest->getPrevious());
+        self::assertStringContainsString('is not a JSON object', $exception->getMessage());
+        self::assertStringNotContainsString('cannot be parsed', $exception->getMessage());
     }
 
-    public function testAReturnOnlyInsideAnIfIsRefused(): void
+    public function testTheLastNameWins(): void
     {
-        $source = <<<'PHP'
-            <?php
-
-            if (true) {
-                return [
-                    'name' => 'demo',
-                    'autoload' => [],
-                ];
-            }
-
-            PHP;
-
-        $message = $this->assertPackageRefused([], 'array literal', $source);
-        self::assertStringNotContainsString('more than one return', $message);
-    }
-
-    public function testAReturnOnlyInsideADeclareBlockIsRefused(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            declare(ticks=1) {
-                return [
-                    'name' => 'demo',
-                    'autoload' => [],
-                ];
-            }
-
-            PHP;
-
-        $message = $this->assertPackageRefused([], 'array literal', $source);
-        self::assertStringNotContainsString('more than one return', $message);
-    }
-
-    public function testAReturnOnlyInsideATryIsRefused(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            try {
-                return [
-                    'name' => 'demo',
-                    'autoload' => [],
-                ];
-            } catch (\Throwable $error) {
-            }
-
-            PHP;
-
-        $message = $this->assertPackageRefused([], 'array literal', $source);
-        self::assertStringNotContainsString('more than one return', $message);
-    }
-
-    public function testASecondTopLevelReturnIsRefused(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            return [
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            return [
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        $this->assertPackageRefused([], 'more than one return', $source);
-    }
-
-    public function testReturnsInsideFunctionsAndClassesDoNotCount(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            $fn = function () {
-                return 1;
-            };
-
-            class Demo
+        $manifest = <<<'JSON'
             {
-                public function run(): int
-                {
-                    return 2;
-                }
+                "name": "other",
+                "name": "demo",
+                "autoload": {}
             }
 
-            $object = new class {
-                public function run(): int
-                {
-                    return 3;
-                }
-            };
+            JSON;
 
-            return [
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame('demo', $archive->module());
-        self::assertSame([], $archive->autoload());
-    }
-
-    public function testTheManifestReturnIsReadAfterASemicolonNamespace(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            namespace Pagekit\Demo;
-
-            return [
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        // A semicolon namespace keeps the return as a sibling of the namespace node.
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame('demo', $archive->module());
-    }
-
-    public function testTheManifestReturnIsReadUnderANamespaceBlock(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            namespace Pagekit\Demo {
-                return [
-                    'name' => 'demo',
-                    'autoload' => [],
-                ];
-            }
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame('demo', $archive->module());
-    }
-
-    public function testTheLastLiteralNameWins(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            return [
-                'name' => 'other',
-                0 => 'skipped',
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
+        $archive = $this->openPackage([], $manifest);
 
         self::assertSame('demo', $archive->module());
     }
 
     public function testAnEarlierNameDoesNotWin(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "name": "other",
+                "autoload": {}
+            }
 
-            return [
-                'name' => 'demo',
-                'name' => 'other',
-                'autoload' => [],
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], "'name'", $source);
+        $message = $this->assertPackageRefused([], "'name'", $manifest);
+        self::assertStringContainsString('demo', $message);
     }
 
-    public function testAComputedNameIsRefused(): void
+    public function testANonStringNameIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": 1,
+                "autoload": {}
+            }
 
-            return [
-                'name' => 'de' . 'mo',
-                'autoload' => [],
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], "'name'", $source);
+        $this->assertPackageRefused([], "'name'", $manifest);
     }
 
-    public function testAVariableNameIsRefused(): void
+    public function testAMissingNameIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "autoload": {}
+            }
 
-            $name = 'demo';
+            JSON;
 
-            return [
-                'name' => $name,
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        $this->assertPackageRefused([], "'name'", $source);
+        $message = $this->assertPackageRefused([], "'name'", $manifest);
+        self::assertStringContainsString('demo', $message);
     }
 
-    public function testAComputedKeyClearsLiteralKeysBeforeIt(): void
+    public function testAnEmptyNameIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "",
+                "autoload": {}
+            }
 
-            $key = 'extra';
+            JSON;
 
-            return [
-                'name' => 'demo',
-                'autoload' => [],
-                $key => 1,
-            ];
-
-            PHP;
-
-        $this->assertPackageRefused([], "'name'", $source);
+        $message = $this->assertPackageRefused([], "'name'", $manifest);
+        self::assertStringContainsString('demo', $message);
+        self::assertStringNotContainsString('cannot be parsed', $message);
     }
 
-    public function testLiteralsAfterAComputedKeyStillCount(): void
+    public function testAnEmptyAutoloadObjectIsAccepted(): void
     {
-        $source = <<<'PHP'
-            <?php
-
-            $key = 'extra';
-
-            return [
-                $key => 1,
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame('demo', $archive->module());
-    }
-
-    public function testASpreadClearsLiteralKeysBeforeIt(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            $extra = ['title' => 'x'];
-
-            return [
-                'name' => 'demo',
-                'autoload' => [],
-                ...$extra,
-            ];
-
-            PHP;
-
-        $this->assertPackageRefused([], "'name'", $source);
-    }
-
-    public function testLiteralsAfterASpreadStillCount(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            $extra = ['title' => 'x'];
-
-            return [
-                ...$extra,
-                'name' => 'demo',
-                'autoload' => [],
-            ];
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame('demo', $archive->module());
-    }
-
-    public function testAnArrayFunctionLiteralIsAManifest(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            return array(
-                'name' => 'demo',
-                'autoload' => array(),
-            );
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
+        $archive = $this->openPackage([], self::BARE_MANIFEST);
 
         self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+    }
+
+    public function testAnUnknownModuleJsonKeyIsIgnored(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "title": "Not a registration field",
+                "autoload": {}
+            }
+
+            JSON;
+
+        $archive = $this->openPackage([], $manifest);
+
+        self::assertSame('demo', $archive->module());
+        self::assertSame('Demo', $archive->title());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+    }
+
+    public function testAnEmptyIncludeIsRefused(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "include": ""
+            }
+
+            JSON;
+
+        $this->assertPackageRefused([], "'include'", $manifest);
+    }
+
+    public function testAnEmptyIncludeIsRefusedBeforeAnAutoloadPath(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "include": "",
+                "autoload": {
+                    "N": "missing"
+                }
+            }
+
+            JSON;
+
+        $message = $this->assertPackageRefused([], "'include'", $manifest);
+        self::assertStringNotContainsString('missing', $message);
+    }
+
+    public function testANodesListIsRefused(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "nodes": []
+            }
+
+            JSON;
+
+        $this->assertPackageRefused([], "'nodes'", $manifest);
+    }
+
+    public function testIncludeAndNodesOfTheRegisteredShapeOpen(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "include": "modules/*/module.json",
+                "nodes": {}
+            }
+
+            JSON;
+
+        $archive = $this->openPackage([], $manifest);
+
+        self::assertSame('demo', $archive->module());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
     }
 
     public function testTheModuleNameMustBeThePackageBasename(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "other",
+                "autoload": {}
+            }
 
-            return [
-                'name' => 'other',
-                'autoload' => [],
-            ];
+            JSON;
 
-            PHP;
-
-        $message = $this->assertPackageRefused([], "'name'", $source);
+        $message = $this->assertPackageRefused([], "'name'", $manifest);
         self::assertStringContainsString('demo', $message);
     }
 
     public function testAMissingAutoloadMapIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo"
+            }
 
-            return [
-                'name' => 'demo',
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], "'autoload'", $source);
+        $this->assertPackageRefused([], "'autoload'", $manifest);
     }
 
-    public function testAnAutoloadValueThatIsNotAnArrayIsRefused(): void
+    public function testAnAutoloadStringIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": "src"
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => 'src',
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], "'autoload'", $source);
+        $this->assertPackageRefused([], "'autoload'", $manifest);
     }
 
-    public function testAComputedAutoloadValueIsRefused(): void
+    public function testANonStringAutoloadPathIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": 1
+                }
+            }
 
-            $src = 'src';
+            JSON;
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => $src,
-                ],
-            ];
-
-            PHP;
-
-        $this->assertPackageRefused([], "'autoload'", $source, ['src/Demo.php' => "<?php\n"]);
+        $this->assertPackageRefused([], "'autoload'", $manifest, ['src/Demo.php' => "<?php\n"]);
     }
 
-    public function testASpreadInTheAutoloadMapIsRefused(): void
+    public function testAnAutoloadListIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": ["src"]
+            }
 
-            $more = [];
+            JSON;
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => 'src',
-                    ...$more,
-                ],
-            ];
+        $this->assertPackageRefused([], "'autoload'", $manifest, ['src/Demo.php' => "<?php\n"]);
+    }
 
-            PHP;
+    public function testAnIntegerAutoloadKeyIsTheFolderPrefix(): void
+    {
+        // A decimal JSON key is stored as an int. The folder check uses that integer's spelling.
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "0": "src",
+                    "12": "src",
+                    "-1": "src"
+                }
+            }
 
-        $this->assertPackageRefused([], "'autoload'", $source, ['src/Demo.php' => "<?php\n"]);
+            JSON;
+
+        $archive = $this->openPackage([], $manifest, ['src/Demo.php' => "<?php\n"]);
+
+        self::assertSame([0 => 'src', 12 => 'src', -1 => 'src'], $archive->autoload());
+    }
+
+    public function testAnIntegerAutoloadKeyThatMissesAFolderQuotesThePrefix(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "0": "missing"
+                }
+            }
+
+            JSON;
+
+        $message = $this->assertPackageRefused([], 'not a folder', $manifest);
+        self::assertStringContainsString('"0"', $message);
+        self::assertStringNotContainsString("'autoload'", $message);
     }
 
     public function testAnAutoloadPathOutsideTheArchiveIsRefused(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "missing"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => 'missing',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $message = $this->assertPackageRefused([], 'not a folder', $source);
+        $message = $this->assertPackageRefused([], 'not a folder', $manifest);
         self::assertStringContainsString('missing', $message);
     }
 
-    public function testAnOverriddenAutoloadPathIsStillChecked(): void
+    public function testARepeatedAutoloadKeyKeepsTheDecodedPath(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "missing",
+                    "Pagekit\\Demo\\": "src"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => 'missing',
-                    'Pagekit\\Demo\\' => 'src',
-                ],
-            ];
+            JSON;
 
-            PHP;
+        $archive = $this->openPackage([], $manifest, ['src/Demo.php' => "<?php\n"]);
 
-        $message = $this->assertPackageRefused([], 'not a folder', $source, ['src/Demo.php' => "<?php\n"]);
-        self::assertStringContainsString('missing', $message);
+        self::assertSame(['Pagekit\\Demo\\' => 'src'], $archive->autoload());
     }
 
     public function testTheLastAutoloadPathIsKeptWhenBothFoldersExist(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "src",
+                    "Pagekit\\Demo\\": "lib"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => 'src',
-                    'Pagekit\\Demo\\' => 'lib',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $archive = $this->openPackage([], $source, [
+        $archive = $this->openPackage([], $manifest, [
             'src/Demo.php' => "<?php\n",
             'lib/Demo.php' => "<?php\n",
         ]);
@@ -1141,115 +1033,103 @@ final class PackageArchiveTest extends TestCase
 
     public function testAutoloadDotMeansThePackageRoot(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "."
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => '.',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $archive = $this->openPackage([], $source);
+        $archive = $this->openPackage([], $manifest);
 
         self::assertSame(['Pagekit\\Demo\\' => '.'], $archive->autoload());
     }
 
     public function testAnEmptyAutoloadPathDoesNotMeanThePackageRoot(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": ""
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => '',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], 'not a folder', $source);
+        $this->assertPackageRefused([], 'not a folder', $manifest);
     }
 
     public function testAutoloadPathsDropDotAndEmptySegments(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "./src//Sub"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => './src//Sub',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $archive = $this->openPackage([], $source, ['src/Sub/A.php' => "<?php\n"]);
+        $archive = $this->openPackage([], $manifest, ['src/Sub/A.php' => "<?php\n"]);
 
         self::assertSame(['Pagekit\\Demo\\' => './src//Sub'], $archive->autoload());
     }
 
     public function testAutoloadPathsTreatBackslashAsASeparator(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "src\\Sub"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => 'src\\Sub',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $archive = $this->openPackage([], $source, ['src/Sub/A.php' => "<?php\n"]);
+        $archive = $this->openPackage([], $manifest, ['src/Sub/A.php' => "<?php\n"]);
 
         self::assertSame(['Pagekit\\Demo\\' => 'src\\Sub'], $archive->autoload());
     }
 
     public function testAutoloadPathsDoNotCollapseParentSegments(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "src/../src"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => 'src/../src',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], 'not a folder', $source, ['src/A.php' => "<?php\n"]);
+        $this->assertPackageRefused([], 'not a folder', $manifest, ['src/A.php' => "<?php\n"]);
     }
 
     public function testAutoloadPathsRefuseALeadingSlash(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "Pagekit\\Demo\\": "/src"
+                }
+            }
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    'Pagekit\\Demo\\' => '/src',
-                ],
-            ];
+            JSON;
 
-            PHP;
-
-        $this->assertPackageRefused([], 'not a folder', $source, ['src/A.php' => "<?php\n"]);
+        $this->assertPackageRefused([], 'not a folder', $manifest, ['src/A.php' => "<?php\n"]);
     }
 
     public function testAMissingRequireIsAnEmptyList(): void
     {
-        $archive = $this->openPackage([], self::BARE_INDEX);
+        $archive = $this->openPackage([], self::BARE_MANIFEST);
 
         self::assertSame([], $archive->require());
     }
@@ -1258,9 +1138,9 @@ final class PackageArchiveTest extends TestCase
      * @param list<string> $expected
      */
     #[DataProvider('requirementLists')]
-    public function testRequireIsTheListTheLiteralYields(string $require, array $expected): void
+    public function testRequireIsTheJsonArray(string $require, array $expected): void
     {
-        $archive = $this->openPackage([], self::indexWithRequire($require));
+        $archive = $this->openPackage([], self::manifestWithRequire($require));
 
         self::assertSame($expected, $archive->require());
     }
@@ -1272,118 +1152,124 @@ final class PackageArchiveTest extends TestCase
     {
         yield 'an empty list' => ['[]', []];
 
-        yield 'names in literal order' => ["[\n    'system',\n    'view',\n]", ['system', 'view']];
+        yield 'names in literal order' => ['["system", "view"]', ['system', 'view']];
 
-        yield 'a repeated name' => ["[\n    'system',\n    'system',\n]", ['system', 'system']];
+        yield 'a repeated name' => ['["system", "system"]', ['system', 'system']];
 
-        // "-0" stays a string key, so the name appended after it is not written over it.
-        yield 'minus zero then an omitted name' => [
-            "[\n    '-0' => 'unregistered',\n    'system',\n]",
-            ['unregistered', 'system'],
-        ];
+        yield 'an empty string' => ['[""]', ['']];
 
-        // A negative index continues at n+1, so the appended name is not the later "0".
-        yield 'a negative key then zero' => [
-            "[\n    '-4' => 'kept',\n    'unregistered',\n    '0' => 'system',\n]",
-            ['kept', 'unregistered', 'system'],
-        ];
-
-        yield 'a later zero replaces the omitted name' => [
-            "[\n    'first',\n    0 => 'system',\n]",
-            ['system'],
-        ];
+        yield 'an empty string beside a name' => ['["", "alpha"]', ['', 'alpha']];
     }
 
-    public function testASpreadBeforeTheLiteralManifestLeavesRequireEmpty(): void
+    public function testRequireIsReadWithoutRunningTheEntryPoint(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $archive = $this->openPackage([], self::manifestWithRequire('["system"]'), [
+            'index.php' => "<?php\n\nthrow new \\RuntimeException('executed');\n",
+        ]);
 
-            $extra = [];
+        self::assertSame(['system'], $archive->require());
+    }
 
-            return [
-                ...$extra,
-                'name' => 'demo',
-                'autoload' => [],
-            ];
+    public function testOpenDoesNotRequireTheEntryPoint(): void
+    {
+        $files = $this->package([], self::BARE_MANIFEST);
+        unset($files['index.php']);
 
-            PHP;
+        $archive = $this->openFiles($files);
 
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame([], $archive->require());
+        self::assertSame('demo', $archive->module());
         self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
     }
 
-    public function testARequireWrittenAfterASpreadIsTheLiteralList(): void
+    public function testOpenIgnoresAnUnparseableEntryPoint(): void
     {
-        $source = <<<'PHP'
+        $archive = $this->openPackage([], self::BARE_MANIFEST, [
+            'index.php' => "<?php\n\nfunction (\n",
+        ]);
+
+        self::assertSame('demo', $archive->module());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+    }
+
+    public function testADefaultPackageZipReadsModuleJson(): void
+    {
+        $path = $this->workspace.'/default.zip';
+        PackageZip::write($path, [
+            'name' => 'acme/widget',
+            'title' => 'Widget',
+        ], [], "<?php\n\nthrow new \\RuntimeException('executed');\n");
+
+        $archive = PackageArchive::open($path);
+
+        self::assertSame('widget', $archive->module());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+        $this->assertWorkspaceHoldsOnly($path);
+    }
+
+    public function testAReplacedModuleJsonIsNotFilledInFromTheEntryPoint(): void
+    {
+        $path = $this->workspace.'/replaced.zip';
+        PackageZip::write($path, [
+            'name' => 'pagekit/demo',
+            'title' => 'Demo',
+        ], [
+            'module.json' => "{\"name\":\"demo\"}\n",
+        ], <<<'PHP'
             <?php
 
-            $extra = [];
-
-            return [
-                ...$extra,
-                'name' => 'demo',
-                'autoload' => [],
-                'require' => [
-                    'system',
-                ],
-            ];
-
-            PHP;
-
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame(['system'], $archive->require());
-    }
-
-    public function testRequireIsReadWithoutRunningTheFile(): void
-    {
-        $source = <<<'PHP'
-            <?php
-
-            throw new \RuntimeException('executed');
-
             return [
                 'name' => 'demo',
                 'autoload' => [],
-                'require' => [
-                    'system',
-                ],
             ];
 
-            PHP;
+            PHP);
 
-        $archive = $this->openPackage([], $source);
-
-        self::assertSame(['system'], $archive->require());
+        $message = $this->assertRefused($path, "'autoload'");
+        self::assertStringNotContainsString('index.php', $message);
     }
 
-    #[DataProvider('requireValuesThatAreNotStringLiterals')]
-    public function testARequireThatIsNotStringLiteralsIsRefused(string $require): void
+    #[DataProvider('requireValuesThatAreNotStringLists')]
+    public function testARequireThatIsNotAListOfStringsIsRefused(string $require): void
     {
-        $this->assertPackageRefused([], "'require'", self::indexWithRequire($require));
+        $this->assertPackageRefused([], "'require'", self::manifestWithRequire($require));
     }
 
     /**
      * @return iterable<string, array{string}>
      */
-    public static function requireValuesThatAreNotStringLiterals(): iterable
+    public static function requireValuesThatAreNotStringLists(): iterable
     {
-        yield 'a string' => ["'system'"];
-        yield 'a variable' => ['$names'];
-        yield 'a spread' => ["[\n    'system',\n    ...\$more,\n]"];
-        yield 'an integer' => ["[\n    'system',\n    1,\n]"];
-        yield 'a computed value' => ["[\n    \$module,\n]"];
-        yield 'a computed key' => ["[\n    \$name => 'system',\n]"];
+        yield 'a string' => ['"system"'];
+
+        yield 'an object' => ['{"module": "system"}'];
+
+        yield 'an integer' => ['["system", 1]'];
+
+        yield 'null' => ['[null]'];
+
+        yield 'a boolean' => ['[true]'];
+
+        yield 'a nested list' => ['[["system"]]'];
     }
 
-    public function testAnOmittedRequirePastTheLastIndexIsRefused(): void
+    public function testARequireObjectIsRefusedBeforeAnAutoloadPath(): void
     {
-        $max = var_export((string) PHP_INT_MAX, true);
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "require": {},
+                "autoload": {
+                    "N": "missing"
+                }
+            }
 
-        $this->assertPackageRefused([], "'require'", self::indexWithRequire("[\n    {$max} => 'kept',\n    'overflow',\n]"));
+            JSON;
+
+        $message = $this->assertPackageRefused([], "'require'", $manifest);
+        self::assertStringNotContainsString('missing', $message);
     }
 
     public function testAControlCharacterInAQuotedVersionIsReplaced(): void
@@ -1391,40 +1277,65 @@ final class PackageArchiveTest extends TestCase
         $version = $this->assertPackageRefused(
             ['version' => "1.0+\x01build"],
             'build metadata',
-            self::BARE_INDEX,
+            self::BARE_MANIFEST,
         );
         self::assertStringContainsString('1.0+?build', $version);
         self::assertDoesNotMatchRegularExpression('/[\x00-\x1F\x7F]/', $version);
     }
 
-    public function testInvalidUtf8InAQuotedPathIsReplaced(): void
+    public function testInvalidUtf8InAModuleJsonIsRefusedAsUnparsed(): void
     {
-        $source = <<<'PHP'
-            <?php
+        $manifest = "{\"name\":\"demo\",\"autoload\":{\"A\":\"no\xFFpe\"}}";
 
-            return [
-                'name' => 'demo',
-                'autoload' => [
-                    "A\x01" => "no\xFFpe",
-                ],
-            ];
-
-            PHP;
-
-        $message = $this->assertPackageRefused([], 'not a folder', $source);
-        self::assertStringContainsString('A?', $message);
-        self::assertStringContainsString('no?pe', $message);
-        self::assertStringNotContainsString("\x01", $message);
+        $message = $this->assertPackageRefused([], 'cannot be parsed', $manifest);
+        self::assertStringNotContainsString('no?pe', $message);
         self::assertStringNotContainsString("\xFF", $message);
+        self::assertSame(1, preg_match('//u', $message));
+    }
+
+    public function testAControlCharacterInAnAutoloadPathIsQuoted(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "A\u0001": "missing"
+                }
+            }
+
+            JSON;
+
+        $message = $this->assertPackageRefused([], 'not a folder', $manifest);
+        self::assertStringContainsString('A?', $message);
+        self::assertStringContainsString('missing', $message);
+        self::assertDoesNotMatchRegularExpression('/[\x00-\x1F\x7F]/', $message);
+        self::assertSame(1, preg_match('//u', $message));
+    }
+
+    public function testAControlCharacterInAMissingAutoloadPathIsQuoted(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {
+                    "N": "\u0001"
+                }
+            }
+
+            JSON;
+
+        $message = $this->assertPackageRefused([], 'not a folder', $manifest);
+        self::assertStringContainsString('from "?"', $message);
+        self::assertDoesNotMatchRegularExpression('/[\x00-\x1F\x7F]/', $message);
         self::assertSame(1, preg_match('//u', $message));
     }
 
     public function testAHandBuiltArchiveOpens(): void
     {
-        $files = $this->package([], self::BARE_INDEX);
+        $files = $this->package([], self::BARE_MANIFEST);
         $path = $this->rawArchive([
             ['name' => 'composer.json', 'data' => $files['composer.json']],
-            ['name' => 'index.php', 'data' => $files['index.php']],
+            ['name' => 'module.json', 'data' => $files['module.json']],
         ]);
         $archive = PackageArchive::open($path);
 
@@ -1515,7 +1426,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testExtractToFailsWhenTheDestinationCannotBeCreated(): void
     {
-        $path = $this->archive($this->package([], self::BARE_INDEX));
+        $path = $this->archive($this->package([], self::BARE_MANIFEST));
         $archive = PackageArchive::open($path);
         file_put_contents($this->workspace.'/blocked', 'x');
 
@@ -1542,7 +1453,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testADamagedEntryFailsAndLeavesWhatWasAlreadyUnpacked(): void
     {
-        $files = $this->package([], self::BARE_INDEX, ['readme.txt' => 'hello']);
+        $files = $this->package([], self::BARE_MANIFEST, ['readme.txt' => 'hello']);
         $path = $this->archive($files);
         $this->declareCrc($path, 2, 0);
         $archive = PackageArchive::open($path);
@@ -1556,7 +1467,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testAnEntryTheListingNamesButTheArchiveCannotReadIsRefused(): void
     {
-        $path = $this->archive($this->package([], self::BARE_INDEX));
+        $path = $this->archive($this->package([], self::BARE_MANIFEST));
         $this->declareLocalHeaderUnreachable($path, 0);
 
         $this->assertRefused($path, 'not a readable ZIP archive');
@@ -1564,7 +1475,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testExtractToDoesNotWriteBytesPastTheDeclaredSize(): void
     {
-        $files = $this->package([], self::BARE_INDEX, ['readme.txt' => 'hello-world']);
+        $files = $this->package([], self::BARE_MANIFEST, ['readme.txt' => 'hello-world']);
         $path = $this->archive($files);
         $this->declareUncompressedSize($path, 2, 1);
         $archive = PackageArchive::open($path);
@@ -1579,7 +1490,7 @@ final class PackageArchiveTest extends TestCase
 
     public function testExtractToFailsWhenTheDestinationAcceptsNoneOfTheBytes(): void
     {
-        $path = $this->archive($this->package([], self::BARE_INDEX));
+        $path = $this->archive($this->package([], self::BARE_MANIFEST));
         $archive = PackageArchive::open($path);
         ArchiveSinkThatStopsWriting::reset();
         self::assertTrue(stream_wrapper_register('pkunpack', ArchiveSinkThatStopsWriting::class));
@@ -1599,11 +1510,12 @@ final class PackageArchiveTest extends TestCase
 
     /**
      * @param array<string, mixed>  $composer
+     * @param string|null           $manifest module.json body
      * @param array<string, string> $files
      */
-    private function openPackage(array $composer = [], ?string $index = null, array $files = []): PackageArchive
+    private function openPackage(array $composer = [], ?string $manifest = null, array $files = []): PackageArchive
     {
-        return $this->openFiles($this->package($composer, $index, $files));
+        return $this->openFiles($this->package($composer, $manifest, $files));
     }
 
     /**
@@ -1620,11 +1532,12 @@ final class PackageArchiveTest extends TestCase
 
     /**
      * @param array<string, mixed>  $composer
+     * @param string|null           $manifest module.json body
      * @param array<string, string> $files
      */
-    private function assertPackageRefused(array $composer, string $reason, ?string $index = null, array $files = []): string
+    private function assertPackageRefused(array $composer, string $reason, ?string $manifest = null, array $files = []): string
     {
-        return $this->assertRefused($this->archive($this->package($composer, $index, $files)), $reason);
+        return $this->assertRefused($this->archive($this->package($composer, $manifest, $files)), $reason);
     }
 
     /**
@@ -1643,17 +1556,22 @@ final class PackageArchiveTest extends TestCase
         return $message;
     }
 
-    private function refusedMessage(string $path): string
+    private function refused(string $path): ArchiveRefusedException
     {
         try {
             PackageArchive::open($path);
         } catch (ArchiveRefusedException $exception) {
             $this->assertWorkspaceHoldsOnly($path);
 
-            return $exception->getMessage();
+            return $exception;
         }
 
         self::fail('Expected the archive to be refused.');
+    }
+
+    private function refusedMessage(string $path): string
+    {
+        return $this->refused($path)->getMessage();
     }
 
     private function assertUnpackFailed(PackageArchive $archive, string $directory, string $reason): string
@@ -1677,11 +1595,12 @@ final class PackageArchiveTest extends TestCase
 
     /**
      * @param array<string, mixed>  $composer
+     * @param string|null           $manifest module.json body
      * @param array<string, string> $files
      *
      * @return array<string, string>
      */
-    private function package(array $composer = [], ?string $index = null, array $files = []): array
+    private function package(array $composer = [], ?string $manifest = null, array $files = []): array
     {
         $document = array_merge([
             'name' => 'pagekit/demo',
@@ -1692,14 +1611,21 @@ final class PackageArchiveTest extends TestCase
 
         $entries = [
             'composer.json' => json_encode($document, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            'index.php' => $index ?? self::EXTENSION_INDEX,
+            'index.php' => self::ENTRY_POINT,
         ];
 
-        if ($index === null) {
+        if ($manifest === null) {
             $entries['src/Demo.php'] = "<?php\n";
         }
 
-        return array_merge($entries, $files);
+        $entries = array_merge($entries, $files);
+
+        // After the entry point and any extra file, so those keep the zip index the damage checks use.
+        if (!array_key_exists('module.json', $files)) {
+            $entries['module.json'] = $manifest ?? self::EXTENSION_MANIFEST;
+        }
+
+        return $entries;
     }
 
     /**
@@ -2023,9 +1949,9 @@ final class PackageArchiveTest extends TestCase
         return $entries;
     }
 
-    private static function indexWithRequire(string $require): string
+    private static function manifestWithRequire(string $require): string
     {
-        return "<?php\n\nreturn [\n    'name' => 'demo',\n    'autoload' => [],\n    'require' => ".$require.",\n];\n";
+        return "{\n    \"name\": \"demo\",\n    \"autoload\": {},\n    \"require\": ".$require."\n}\n";
     }
 
     private function assertWorkspaceHoldsOnly(string $fixture): void
