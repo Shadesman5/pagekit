@@ -436,11 +436,11 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
-        "input": 2194371,
-        "output": 300945,
-        "cacheRead": 26224357,
+        "input": 3774486,
+        "output": 771442,
+        "cacheRead": 43838053,
         "cacheWrite": 0,
-        "total": 28719673
+        "total": 48383981
       },
       "tokensSource": "cursor-dashboard-csv",
       "result": "Finalized. PR: #306. Version: 1.2.45. Ticket archived to done/.",
@@ -472,13 +472,13 @@
           "role": "subagent",
           "label": "grok 4.7 xhigh fast",
           "model": "grok-4.7-xhigh-fast",
-          "events": 5,
+          "events": 18,
           "tokens": {
-            "input": 1235462,
-            "output": 205715,
-            "cacheRead": 18051456,
+            "input": 2815577,
+            "output": 676212,
+            "cacheRead": 35665152,
             "cacheWrite": 0,
-            "total": 19492633
+            "total": 39156941
           }
         },
         {
@@ -500,11 +500,11 @@
   ],
   "totals": {
     "tokens": {
-      "input": 6678802,
-      "output": 1281924,
-      "cacheRead": 97855077,
+      "input": 8258917,
+      "output": 1752421,
+      "cacheRead": 115468773,
       "cacheWrite": 0,
-      "total": 105815803
+      "total": 125480111
     },
     "durationMs": 14478936,
     "phaseCount": 6,
@@ -519,9 +519,9 @@
     "note": "Post-hoc V1 UI / Automations import (parent agent usage)"
   },
   "csvImport": {
-    "at": "2026-09-27T06:09:36.185Z",
+    "at": "2026-09-27T18:59:32.188Z",
     "source": "import-usage-csv.mjs",
-    "events": 83,
+    "events": 107,
     "phasesUpdated": 7
   }
 }

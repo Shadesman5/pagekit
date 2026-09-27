@@ -836,11 +836,11 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
-        "input": 6204606,
-        "output": 612094,
-        "cacheRead": 60380874,
+        "input": 7630575,
+        "output": 670569,
+        "cacheRead": 66173743,
         "cacheWrite": 0,
-        "total": 67197574
+        "total": 74474887
       },
       "tokensSource": "cursor-dashboard-csv",
       "result": "Finalized. PR: #304. Version: 1.2.44. Ticket archived to done/.",
@@ -908,17 +908,31 @@
             "total": 7277313
           },
           "agentId": "bc-53ec4039-5815-4443-b76b-280e30096dae"
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 1425969,
+            "output": 58475,
+            "cacheRead": 5792869,
+            "cacheWrite": 0,
+            "total": 7277313
+          },
+          "agentId": "bc-53ec4039-5815-4443-b76b-280e30096dae"
         }
       ]
     }
   ],
   "totals": {
     "tokens": {
-      "input": 24478253,
-      "output": 4464313,
-      "cacheRead": 333308106,
+      "input": 25904222,
+      "output": 4522788,
+      "cacheRead": 339100975,
       "cacheWrite": 0,
-      "total": 362250672
+      "total": 369527985
     },
     "durationMs": 50544743,
     "phaseCount": 10,
@@ -927,9 +941,9 @@
     "cloudAgents": 10
   },
   "csvImport": {
-    "at": "2026-09-27T06:09:36.182Z",
+    "at": "2026-09-27T18:59:32.186Z",
     "source": "import-usage-csv.mjs",
-    "events": 83,
+    "events": 107,
     "phasesUpdated": 1
   }
 }
