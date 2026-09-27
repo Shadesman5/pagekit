@@ -377,6 +377,29 @@ final class PackageArchive
             throw new ArchiveRefusedException(self::fieldMessage('name', $module));
         }
 
+        // Discovery follows this glob. It has to stay inside the package, or a disabled archive can name the boot module.
+        if (array_key_exists('include', $decoded)) {
+            $include = $decoded['include'];
+
+            if (is_string($include)) {
+                self::assertIncludeStaysInside($include);
+            } elseif (is_array($include)) {
+                $patterns = [];
+
+                foreach ($include as $pattern) {
+                    if (!is_string($pattern)) {
+                        throw new ArchiveRefusedException(self::fieldMessage('include'));
+                    }
+
+                    $patterns[] = $pattern;
+                }
+
+                self::assertIncludeStaysInside($patterns);
+            } else {
+                throw new ArchiveRefusedException(self::fieldMessage('include'));
+            }
+        }
+
         // An empty object is how an archive says it has no map; omitting the key is not that.
         if (!array_key_exists('autoload', $decoded)) {
             throw new ArchiveRefusedException(self::fieldMessage('autoload', $module));
@@ -458,6 +481,26 @@ final class PackageArchive
         }
 
         return __('The archive\'s module.json gives no \'%field%\' the install can register.', ['%field%' => $field]);
+    }
+
+    /**
+     * Refuses an include glob that leaves the package.
+     *
+     * @param string|list<string> $include
+     *
+     * @throws ArchiveRefusedException
+     */
+    private static function assertIncludeStaysInside(string|array $include): void
+    {
+        foreach (is_string($include) ? [$include] : $include as $pattern) {
+            if (ModuleManifest::includeStaysInModule($pattern)) {
+                continue;
+            }
+
+            throw new ArchiveRefusedException(__('The archive\'s module.json \'include\' path "%include%" does not stay inside the package.', [
+                '%include%' => self::printable($pattern),
+            ]));
+        }
     }
 
     /**

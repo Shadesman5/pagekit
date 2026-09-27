@@ -17,6 +17,30 @@ final class ModuleManifest
     public const MAX_BYTES = 1048576;
 
     /**
+     * Whether an include glob stays under the module that declares it.
+     */
+    public static function includeStaysInModule(string $pattern): bool
+    {
+        $pattern = strtr($pattern, '\\', '/');
+
+        if ($pattern === '' || str_contains($pattern, "\0")) {
+            return false;
+        }
+
+        if ($pattern[0] === '/' || self::isDrivePath($pattern)) {
+            return false;
+        }
+
+        foreach (explode('/', $pattern) as $segment) {
+            if (self::segmentMatchesParent($segment)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Registration fields from one JSON object.
      *
      * Null means the document names no module: discovery skips it and does not
@@ -104,6 +128,224 @@ final class ModuleManifest
         }
 
         return $module;
+    }
+
+    private static function isDrivePath(string $pattern): bool
+    {
+        if (strlen($pattern) < 2 || $pattern[1] !== ':') {
+            return false;
+        }
+
+        $drive = $pattern[0];
+
+        return ($drive >= 'A' && $drive <= 'Z') || ($drive >= 'a' && $drive <= 'z');
+    }
+
+    /**
+     * Whether this path segment can name the parent directory.
+     */
+    private static function segmentMatchesParent(string $segment): bool
+    {
+        if ($segment === '..') {
+            return true;
+        }
+
+        // glob skips "." and ".." unless the pattern itself starts with ".".
+        if ($segment === '' || !str_starts_with($segment, '.')) {
+            return false;
+        }
+
+        return self::globMatchesParent($segment);
+    }
+
+    private static function globMatchesParent(string $pattern): bool
+    {
+        $subject = '..';
+        $end = strlen($subject);
+        /** @var array<int, true> $at */
+        $at = [0 => true];
+        $size = strlen($pattern);
+        $index = 0;
+
+        while ($index < $size) {
+            $char = $pattern[$index];
+
+            if ($char === '*') {
+                $at = self::expandStar($at, $end);
+                $index++;
+
+                continue;
+            }
+
+            if ($char === '?') {
+                $at = self::advanceAny($at, $end);
+                $index++;
+
+                continue;
+            }
+
+            if ($char === '[') {
+                $class = self::bracketAtom($pattern, $index);
+
+                // A collating form can still name ".."; refusing it keeps the guarantee.
+                if ($class === null || $class['length'] < 1) {
+                    return true;
+                }
+
+                $at = self::advanceClass($at, $subject, $class['negate'], $class['ranges']);
+                $index += $class['length'];
+
+                continue;
+            }
+
+            $at = self::advanceClass($at, $subject, false, [[$char, $char]]);
+            $index++;
+        }
+
+        return isset($at[$end]);
+    }
+
+    /**
+     * @param array<int, true> $reachable
+     *
+     * @return array<int, true>
+     */
+    private static function expandStar(array $reachable, int $end): array
+    {
+        $start = $end + 1;
+
+        foreach (array_keys($reachable) as $position) {
+            if ($position < $start) {
+                $start = $position;
+            }
+        }
+
+        if ($start > $end) {
+            return [];
+        }
+
+        $next = [];
+
+        for ($position = $start; $position <= $end; $position++) {
+            $next[$position] = true;
+        }
+
+        return $next;
+    }
+
+    /**
+     * @param array<int, true> $reachable
+     *
+     * @return array<int, true>
+     */
+    private static function advanceAny(array $reachable, int $end): array
+    {
+        $next = [];
+
+        foreach (array_keys($reachable) as $position) {
+            if ($position < $end) {
+                $next[$position + 1] = true;
+            }
+        }
+
+        return $next;
+    }
+
+    /**
+     * @param array<int, true>                  $reachable
+     * @param list<array{0: string, 1: string}> $ranges
+     *
+     * @return array<int, true>
+     */
+    private static function advanceClass(array $reachable, string $subject, bool $negate, array $ranges): array
+    {
+        $next = [];
+        $end = strlen($subject);
+
+        foreach (array_keys($reachable) as $position) {
+            if ($position < $end && self::inRanges($subject[$position], $negate, $ranges)) {
+                $next[$position + 1] = true;
+            }
+        }
+
+        return $next;
+    }
+
+    /**
+     * @param list<array{0: string, 1: string}> $ranges
+     */
+    private static function inRanges(string $char, bool $negate, array $ranges): bool
+    {
+        foreach ($ranges as [$start, $end]) {
+            if ($start <= $char && $char <= $end) {
+                return !$negate;
+            }
+        }
+
+        return $negate;
+    }
+
+    /**
+     * Bracket expression at $start, or null when its form can still match "..".
+     *
+     * @return array{length: int, negate: bool, ranges: list<array{0: string, 1: string}>}|null
+     */
+    private static function bracketAtom(string $pattern, int $start): ?array
+    {
+        $size = strlen($pattern);
+        $index = $start + 1;
+
+        if ($index >= $size) {
+            return ['length' => 1, 'negate' => false, 'ranges' => [['[', '[']]];
+        }
+
+        $negate = false;
+
+        if ($pattern[$index] === '!' || $pattern[$index] === '^') {
+            $negate = true;
+            $index++;
+        }
+
+        if ($index >= $size) {
+            return ['length' => 1, 'negate' => false, 'ranges' => [['[', '[']]];
+        }
+
+        /** @var list<array{0: string, 1: string}> $ranges */
+        $ranges = [];
+        $first = true;
+
+        while ($index < $size) {
+            if ($pattern[$index] === ']' && !$first) {
+                return ['length' => $index + 1 - $start, 'negate' => $negate, 'ranges' => $ranges];
+            }
+
+            if (
+                $pattern[$index] === '['
+                && $index + 1 < $size
+                && ($pattern[$index + 1] === '.' || $pattern[$index + 1] === ':' || $pattern[$index + 1] === '=')
+            ) {
+                return null;
+            }
+
+            $first = false;
+            $from = $pattern[$index];
+            $index++;
+
+            if ($index + 1 < $size && $pattern[$index] === '-' && $pattern[$index + 1] !== ']') {
+                $to = $pattern[$index + 1];
+                $index += 2;
+
+                if ($from <= $to) {
+                    $ranges[] = [$from, $to];
+                }
+
+                continue;
+            }
+
+            $ranges[] = [$from, $from];
+        }
+
+        return ['length' => 1, 'negate' => false, 'ranges' => [['[', '[']]];
     }
 
     /**
