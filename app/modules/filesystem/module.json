@@ -1,0 +1,6 @@
+{
+    "name": "filesystem",
+    "autoload": {
+        "Pagekit\\Filesystem\\": "src"
+    }
+}

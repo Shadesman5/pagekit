@@ -936,7 +936,7 @@ final class PackageFailureRecordTest extends TestCase
 
     private function fixture(string $name): string
     {
-        return strtr(dirname(__DIR__, 3), '\\', '/') . '/tests/fixtures/modules/' . $name . '/index.php';
+        return strtr(dirname(__DIR__, 3), '\\', '/') . '/tests/fixtures/modules/' . $name . '/module.json';
     }
 
     private function removeTree(string $path): void

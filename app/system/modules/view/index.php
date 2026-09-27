@@ -9,15 +9,6 @@ use Twig\TwigFilter;
 
 return [
 
-    'name' => 'system/view',
-
-    'require' => [
-
-        'view',
-        'kernel',
-
-    ],
-
     'main' => function ($app) {
 
         $app->extend('twig', function ($twig) use ($app) {

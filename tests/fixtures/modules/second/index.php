@@ -7,6 +7,4 @@ declare(strict_types=1);
  * on either side of it.
  */
 
-return [
-    'name' => 'fixture-second',
-];
+return [];

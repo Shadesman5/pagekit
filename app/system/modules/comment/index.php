@@ -6,26 +6,10 @@ use Pagekit\Comment\CommentPlugin;
 
 return [
 
-    'name' => 'system/comment',
-
-    'require' => [
-
-        'database',
-        'kernel',
-        'system/content',
-
-    ],
-
     'main' => function ($app) {
 
         $app->get('events')->subscribe(new CommentPlugin());
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Comment\\' => 'src',
-
-    ],
 
 ];

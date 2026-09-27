@@ -39,11 +39,11 @@ final class KernelFoundationOwnershipTest extends TestCase
         self::assertSame('src', $autoload['Pagekit\\'] ?? null);
         self::assertSame('src', $autoload['Pagekit\\Kernel\\'] ?? null);
         self::assertSame(
-            ['app/modules/kernel/index.php'],
+            ['app/modules/kernel/module.json'],
             $this->manifestsClaiming('Pagekit\\'),
         );
         self::assertSame(
-            ['app/modules/kernel/index.php'],
+            ['app/modules/kernel/module.json'],
             $this->manifestsClaiming('Pagekit\\Kernel\\'),
         );
 
@@ -123,11 +123,11 @@ final class KernelFoundationOwnershipTest extends TestCase
         self::assertSame([], $this->manifestsNamed('view/twig'));
         self::assertDirectoryDoesNotExist($this->root() . '/app/modules/view/twig');
         self::assertSame(
-            ['app/modules/view/index.php'],
+            ['app/modules/view/module.json'],
             $this->manifestsClaiming('Pagekit\\View\\'),
         );
         self::assertSame(
-            ['app/modules/view/index.php'],
+            ['app/modules/view/module.json'],
             $this->manifestsClaiming('Pagekit\\Twig\\'),
         );
 
@@ -194,7 +194,7 @@ final class KernelFoundationOwnershipTest extends TestCase
         self::assertSame('src', $autoload['Pagekit\\Settings\\'] ?? null);
         self::assertArrayNotHasKey('Pagekit\\System\\', $autoload);
         self::assertSame(
-            ['app/system/modules/settings/index.php'],
+            ['app/system/modules/settings/module.json'],
             $this->manifestsClaiming('Pagekit\\Settings\\'),
         );
         self::assertSame([], $this->manifestsClaiming('Pagekit\\System\\'));
@@ -271,8 +271,34 @@ final class KernelFoundationOwnershipTest extends TestCase
 
         self::assertIsArray($loaded);
 
+        $registration = $this->registration(dirname($relative) . '/module.json');
+
+        foreach (['name', 'require', 'include', 'autoload', 'nodes'] as $key) {
+            if (array_key_exists($key, $registration)) {
+                $loaded[$key] = $registration[$key];
+            } else {
+                unset($loaded[$key]);
+            }
+        }
+
         /** @var array<string, mixed> $loaded */
         return $loaded;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function registration(string $relative): array
+    {
+        $contents = file_get_contents($this->root() . '/' . $relative);
+
+        self::assertIsString($contents);
+
+        $decoded = json_decode($contents, true);
+
+        self::assertIsArray($decoded);
+
+        return $decoded;
     }
 
     /**
@@ -387,9 +413,7 @@ final class KernelFoundationOwnershipTest extends TestCase
     private function manifestsClaiming(string $prefix): array
     {
         $escaped = str_replace('\\', '\\\\', $prefix);
-        $single = preg_quote("'" . $escaped . "'", '/');
-        $double = preg_quote('"' . $escaped . '"', '/');
-        $pattern = '/(?:' . $single . '|' . $double . ')\s*=>/';
+        $pattern = '/' . preg_quote('"' . $escaped . '"', '/') . '\s*:/';
         $hits = [];
 
         foreach ($this->moduleIndexFiles() as $relative) {
@@ -412,7 +436,7 @@ final class KernelFoundationOwnershipTest extends TestCase
      */
     private function manifestsNamed(string $name): array
     {
-        $pattern = '/[\'"]name[\'"]\s*=>\s*[\'"]' . preg_quote($name, '/') . '[\'"]/';
+        $pattern = '/"name"\s*:\s*"' . preg_quote($name, '/') . '"/';
         $hits = [];
 
         foreach ($this->moduleIndexFiles() as $relative) {
@@ -485,9 +509,9 @@ final class KernelFoundationOwnershipTest extends TestCase
         $paths = [];
 
         foreach ([
-            $this->root() . '/app/modules/*/index.php',
-            $this->root() . '/app/system/modules/*/index.php',
-            $this->root() . '/packages/pagekit/*/index.php',
+            $this->root() . '/app/modules/*/module.json',
+            $this->root() . '/app/system/modules/*/module.json',
+            $this->root() . '/packages/pagekit/*/module.json',
         ] as $pattern) {
             foreach (glob($pattern) ?: [] as $path) {
                 $paths[] = $this->relative($path);
@@ -495,10 +519,10 @@ final class KernelFoundationOwnershipTest extends TestCase
         }
 
         foreach ([
-            'app/system/index.php',
-            'app/package/index.php',
-            'app/installer/index.php',
-            'app/console/index.php',
+            'app/system/module.json',
+            'app/package/module.json',
+            'app/installer/module.json',
+            'app/console/module.json',
         ] as $relative) {
             if (is_file($this->root() . '/' . $relative)) {
                 $paths[] = $relative;

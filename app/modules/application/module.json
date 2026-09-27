@@ -1,0 +1,16 @@
+{
+    "name": "application",
+    "require": [
+        "kernel",
+        "debug",
+        "routing",
+        "auth",
+        "config",
+        "cookie",
+        "database",
+        "filesystem",
+        "log",
+        "session",
+        "view"
+    ]
+}

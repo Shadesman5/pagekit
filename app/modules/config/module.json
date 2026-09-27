@@ -1,0 +1,10 @@
+{
+    "name": "config",
+    "require": [
+        "database",
+        "kernel"
+    ],
+    "autoload": {
+        "Pagekit\\Config\\": "src"
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "name": "system/info",
+    "require": [
+        "routing"
+    ],
+    "autoload": {
+        "Pagekit\\Info\\": "src"
+    }
+}

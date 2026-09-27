@@ -168,7 +168,7 @@ final class UploadedPackageRoundTripTest extends TestCase
         }
 
         $modules->addLoader(new AutoLoader($loader));
-        $modules->register($this->packages.'/*/*/index.php');
+        $modules->register($this->packages.'/*/*/module.json');
 
         self::assertSame([], $modules->getRegistrationFailures());
 
@@ -237,9 +237,20 @@ final class UploadedPackageRoundTripTest extends TestCase
         ], [
             'scripts.php' => $this->lifecycle(),
             'src/Widget.php' => $this->widget(),
+            'module.json' => $this->registration(),
         ], $this->manifest());
 
         return $path;
+    }
+
+    private function registration(): string
+    {
+        $json = json_encode([
+            'name' => self::MODULE,
+            'autoload' => [self::NAMESPACE_PREFIX => 'src'],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        return $json."\n";
     }
 
     private function manifest(): string

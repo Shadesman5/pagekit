@@ -70,22 +70,26 @@ final class ActivationCommandInstallation
             throw new \RuntimeException('The fixture module directory could not be created.');
         }
 
-        $main = '';
+        $manifest = json_encode(
+            ['name' => $name, 'require' => array_values($require)],
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        if (file_put_contents($directory . '/module.json', $manifest . "\n") === false) {
+            throw new \RuntimeException('The fixture module could not be written.');
+        }
 
         if ($runsMain) {
             $marker = var_export($this->mainLog, true);
             $line = var_export($name . "\n", true);
-            $main = "    'main' => function (): void {\n        file_put_contents({$marker}, {$line}, FILE_APPEND);\n    },\n";
+            $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'main' => function (): void {\n        file_put_contents({$marker}, {$line}, FILE_APPEND);\n    },\n];\n";
+
+            if (file_put_contents($directory . '/index.php', $contents) === false) {
+                throw new \RuntimeException('The fixture module could not be written.');
+            }
         }
 
-        $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'name' => " . var_export($name, true) . ",\n    'require' => " . var_export(array_values($require), true) . ",\n" . $main . "];\n";
-        $file = $directory . '/index.php';
-
-        if (file_put_contents($file, $contents) === false) {
-            throw new \RuntimeException('The fixture module could not be written.');
-        }
-
-        $this->moduleFiles[] = $file;
+        $this->moduleFiles[] = $directory . '/module.json';
     }
 
     public function register(): void

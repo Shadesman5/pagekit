@@ -19,10 +19,10 @@ $app = new App($config);
 $app->set('autoloader', $loader);
 
 $app->get('module')->register([
-    'app/modules/*/index.php',
-    'app/package/index.php',
-    'app/installer/index.php',
-    'app/system/index.php',
+    'app/modules/*/module.json',
+    'app/package/module.json',
+    'app/installer/module.json',
+    'app/system/module.json',
 ], $path);
 
 $app->get('module')->addLoader(new AutoLoader($app->get('autoloader')));

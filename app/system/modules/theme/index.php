@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'system/theme',
-
     'type' => 'theme',
 
     'layout' => 'views:system/template.php',

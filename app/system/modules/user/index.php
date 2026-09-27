@@ -10,29 +10,7 @@ use Symfony\Component\Clock\Clock;
 
 return [
 
-    'name' => 'system/user',
-
-    'require' => [
-
-        'auth',
-        'config',
-        'database',
-        'kernel',
-        'routing',
-        'session',
-        'system/captcha',
-        'system/mail',
-        'view',
-
-    ],
-
     'main' => 'Pagekit\\User\\UserModule',
-
-    'autoload' => [
-
-        'Pagekit\\User\\' => 'src',
-
-    ],
 
     'routes' => [
 

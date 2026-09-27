@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'console',
-
-    'autoload' => [
-
-        'Pagekit\\Console\\' => 'src',
-
-    ],
-
     'events' => [
 
         'console.init' => function ($event, $console) {
@@ -32,7 +24,5 @@ return [
         },
 
     ],
-
-    'require' => ['application', 'migration', 'installer', 'package'],
 
 ];

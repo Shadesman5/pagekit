@@ -12,8 +12,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 return [
 
-    'name' => 'kernel',
-
     'main' => function ($app) {
 
         $app->set('kernel', function ($app) {
@@ -50,13 +48,6 @@ return [
             }
 
         }, 200],
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\' => 'src',
-        'Pagekit\\Kernel\\' => 'src',
 
     ],
 

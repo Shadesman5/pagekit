@@ -1,0 +1,10 @@
+{
+    "name": "system/intl",
+    "require": [
+        "kernel",
+        "routing"
+    ],
+    "autoload": {
+        "Pagekit\\Intl\\": "src"
+    }
+}

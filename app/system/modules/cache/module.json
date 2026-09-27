@@ -1,0 +1,10 @@
+{
+    "name": "system/cache",
+    "require": [
+        "kernel",
+        "routing"
+    ],
+    "autoload": {
+        "Pagekit\\Cache\\": "src"
+    }
+}

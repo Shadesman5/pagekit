@@ -627,7 +627,7 @@ Installing a package that is already there updates it: its folder is replaced as
 An archive is refused unless it carries, at its root rather than inside a wrapping folder:
 
 -   `composer.json` with `name` (`vendor/name`), `type` (`pagekit-extension` or `pagekit-theme`), `version` and `title`
--   the module's `index.php`, returning an array whose `name` is the part of the package name after the slash and whose `autoload` map names the folders its classes are loaded from (`'autoload' => []` when there are none). The file is read without being run, so both are written out as plain strings and arrays.
+-   `module.json`, with `name` equal to the part of the package name after the slash and `autoload` an object of namespace prefix to folder (`"autoload": {}` when there are none). `require`, when present, is an array of module names. `include`, when present, is a path or a list of paths that stay inside the package; one that does not is refused before anything is written. The file is JSON and is not executed. `index.php` is the entry point and runs when the module is loaded; the archive check does not open it.
 
 ### Extension Development
 

@@ -11,11 +11,12 @@ use Pagekit\Application;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManifestException;
 use Pagekit\System\SystemModule;
 use PHPUnit\Framework\TestCase;
 
 /**
- * A package that could not be executed is found before the boot has a logger, so
+ * A package whose manifest could not be decoded is found before the boot has a logger, so
  * its failure is held by the module manager until the system module runs. This is
  * where that handover happens, and it has to carry the throwable itself: the
  * report names the file, and the trace it puts in the log is all anyone has to
@@ -48,13 +49,13 @@ final class RegistrationFailureReportingTest extends TestCase
         // module name it would have declared is precisely what could not be read.
         self::assertSame(Level::Error, $records[0]->level);
         self::assertStringContainsString($this->fixture('throwing'), $records[0]->message);
-        self::assertStringContainsString('The module file could not be executed', $records[0]->message);
+        self::assertStringContainsString('Syntax error', $records[0]->message);
         self::assertStringContainsString($this->fixture('missing-class'), $records[1]->message);
 
         // The throwable travels with the report. Its trace lands in the log, which
         // is the one place the fault is kept in full.
-        self::assertInstanceOf(\RuntimeException::class, $records[0]->context['exception'] ?? null);
-        self::assertInstanceOf(\Error::class, $records[1]->context['exception'] ?? null);
+        self::assertInstanceOf(ModuleManifestException::class, $records[0]->context['exception'] ?? null);
+        self::assertInstanceOf(ModuleManifestException::class, $records[1]->context['exception'] ?? null);
 
         // And the boot ran through to a usable site with two unusable packages
         // lying on disk.
@@ -140,7 +141,7 @@ final class RegistrationFailureReportingTest extends TestCase
 
     private function fixture(string $name): string
     {
-        return $this->root().'/tests/fixtures/modules/'.$name.'/index.php';
+        return $this->root().'/tests/fixtures/modules/'.$name.'/module.json';
     }
 
     private function root(): string

@@ -35,15 +35,6 @@ $canonicalizeFilesystemPath = static function (string $path): string {
 
 $config = [
 
-    'name' => 'database',
-
-    'require' => [
-
-        'filesystem',
-        'kernel',
-
-    ],
-
     'main' => function ($app) use ($canonicalizeFilesystemPath) {
 
         $default = [
@@ -161,12 +152,6 @@ $config = [
         Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
         Type::overrideType(Types::JSON, '\Pagekit\Database\Types\JsonArrayType');
     },
-
-    'autoload' => [
-
-        'Pagekit\\Database\\' => 'src',
-
-    ],
 
     'config' => [
 

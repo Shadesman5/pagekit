@@ -9,7 +9,6 @@ declare(strict_types=1);
  */
 
 return [
-    'name' => 'fixture-main-throwing',
     'main' => function () {
         throw new \RuntimeException('The module could not be loaded');
     },

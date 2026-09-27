@@ -20,18 +20,6 @@ return [
 
     ],
 
-    'nodes' => [
-
-        'blog' => [
-            'name' => '@blog',
-            'label' => 'Blog',
-            'controller' => 'Pagekit\\Blog\\Controller\\SiteController',
-            'protected' => true,
-            'frontpage' => true,
-        ],
-
-    ],
-
     'routes' => [
 
         '/blog' => [

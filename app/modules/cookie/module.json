@@ -1,0 +1,6 @@
+{
+    "name": "cookie",
+    "autoload": {
+        "Pagekit\\Cookie\\": "src"
+    }
+}

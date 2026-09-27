@@ -1,0 +1,4 @@
+{
+    "name": "fixture-host",
+    "include": "modules/*/module.json"
+}

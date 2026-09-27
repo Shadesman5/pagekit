@@ -7,8 +7,6 @@ use Pagekit\Kernel\Exception\NotFoundException;
 
 return [
 
-    'name' => 'installer',
-
     'main' => function ($app) {
 
         $config = $this->config;
@@ -45,17 +43,6 @@ return [
         }
 
     },
-
-    'require' => [
-
-        'application',
-        'migration',
-        'package',
-        'system/cache',
-        'system/intl',
-        'system/view',
-
-    ],
 
     'routes' => [
 

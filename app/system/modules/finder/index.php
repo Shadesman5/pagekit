@@ -4,22 +4,6 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'system/finder',
-
-    'require' => [
-
-        'filesystem',
-        'kernel',
-        'routing',
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Finder\\' => 'src',
-
-    ],
-
     'main' => function ($app) {
         $this->config['storage'] = '/' . trim(($this->config['storage'] ?: 'storage'), '/');
         $app->set('path.storage', $app->get('path') . $this->config['storage']);

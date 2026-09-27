@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Module;
 
 use Pagekit\Application;
+use Pagekit\Module\Loader\AutoLoader;
 use Pagekit\Module\Loader\CallableLoader;
 use Pagekit\Module\Loader\LoaderInterface;
 use Pagekit\Module\Loader\ModuleLoader;
@@ -113,6 +114,10 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Loads modules by name.
      *
+     * The autoload map is applied before the entry point runs, because that
+     * file can name a class at file scope. Every other preLoader runs after
+     * the merge, from the list on the manager when this module's pass starts.
+     *
      * @param string|array<int, string> $modules
      */
     public function load(string|array $modules): self
@@ -136,39 +141,65 @@ class ModuleManager implements \IteratorAggregate
         $resolved = array_diff_key($resolved, $this->modules);
 
         foreach ($resolved as $name => $module) {
+            // A loader appended from this module's own main() is not on this list.
+            $preLoaders = $this->preLoaders;
+            $record = $module;
 
-            foreach ($this->preLoaders as $loader) {
-                $module = $loader->load($module);
+            foreach ($preLoaders as $loader) {
+                if ($loader instanceof AutoLoader) {
+                    $record = $loader->load($record);
+                }
+            }
+
+            $merged = array_replace($this->defaults, $module);
+            $path = $module['path'] ?? null;
+
+            if (!is_string($path)) {
+                throw new \RuntimeException(sprintf('Module "%s" has no path.', $name));
+            }
+
+            $entry = $path.'/'.ModuleManifest::ENTRY;
+
+            if (is_file($entry)) {
+                $returned = $this->includeEntry($entry);
+
+                if (!is_array($returned)) {
+                    throw new \RuntimeException(sprintf('Module "%s" entry point must return an array.', $name));
+                }
+
+                $merged = array_replace($merged, $returned);
+            }
+
+            foreach (['name', 'require', 'include', 'autoload', 'nodes', 'path'] as $key) {
+                if (array_key_exists($key, $module)) {
+                    $merged[$key] = $module[$key];
+                } else {
+                    unset($merged[$key]);
+                }
+            }
+
+            foreach ($preLoaders as $loader) {
+                if (!$loader instanceof AutoLoader) {
+                    $merged = $loader->load($merged);
+                }
             }
 
             foreach ($this->postLoaders as $loader) {
-                $module = $loader->load($module);
+                $merged = $loader->load($merged);
             }
 
-            $this->modules[$name] = $module;
+            $this->modules[$name] = $merged;
         }
 
         return $this;
     }
 
     /**
-     * Registers modules from path(s).
-     *
-     * Discovery learns what a module declares by executing its file, so a
-     * broken package throws here - before anything has been loaded, and long
-     * before there is a site left to report it on. Each include is therefore
-     * isolated: the throwing file registers no module and is kept for the boot
-     * to log, while every other package registers as usual.
-     *
-     * The isolation reaches as far as userland code can reach. A file throwing
-     * at top level is caught, and so is a ParseError, which PHP raises as a
-     * throwable. A genuinely fatal compile error - a duplicate class or
-     * function declaration - along with exit/die and exhausted memory or time
-     * still ends the request, because none of those is a throwable. That
-     * residue goes away only once discovery no longer executes the file to
-     * find out what is in it.
+     * Registers modules from static manifests and does not execute the entry point.
      *
      * @param string|array<int, string> $paths
+     *
+     * @return self
      */
     public function register(string|array $paths, ?string $basePath = null): self
     {
@@ -176,43 +207,18 @@ class ModuleManager implements \IteratorAggregate
         // would answer for modules that are no longer the ones on disk.
         $this->requiredBy = null;
 
-        $app = $this->app;
-        $includes = [];
+        $includes = $this->registerPaths($paths, $basePath, []);
 
-        foreach ((array) $paths as $path) {
+        while ($includes !== []) {
+            // Taken before the pass. A name already stored is left alone; two includes
+            // in this pass still resolve last-wins for a name that was free.
+            $protected = [];
 
-            $files = glob($this->resolvePath($path, $basePath), GLOB_NOSORT) ?: [];
-
-            foreach ($files as $file) {
-
-                // TODO: Must be refactored in Step 2.7.3 (Static Module Registration)
-                try {
-                    $module = include $file;
-                } catch (\Throwable $e) {
-                    $this->registrationFailures[$file] = $e;
-
-                    continue;
-                }
-
-                if (!is_array($module) || !isset($module['name'])) {
-                    continue;
-                }
-
-                $module = array_replace($this->defaults, $module);
-                $module['path'] = strtr(dirname($file), '\\', '/');
-
-                if (isset($module['include'])) {
-                    foreach ((array) $module['include'] as $include) {
-                        $includes[] = $this->resolvePath($include, $module['path']);
-                    }
-                }
-
-                $this->registered[$module['name']] = $module;
+            foreach (array_keys($this->registered) as $existing) {
+                $protected[$existing] = true;
             }
-        }
 
-        if ($includes) {
-            $this->register($includes);
+            $includes = $this->registerIncluded($includes, $protected);
         }
 
         // A lookup during this register() would have indexed a half-built set.
@@ -567,16 +573,269 @@ class ModuleManager implements \IteratorAggregate
     }
 
     /**
-     * Resolves a absolute path to a given base path.
+     * The entry point closes over $app from this scope.
+     *
+     * @return mixed Genuinely unknown type — PHP include returns the file's value, or 1 when the file returns nothing; the caller rejects a non-array.
+     */
+    private function includeEntry(string $file): mixed
+    {
+        $app = $this->app;
+
+        return include $file;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function readManifest(string $file): ?array
+    {
+        $size = filesize($file);
+
+        if ($size === false) {
+            throw new ModuleManifestException('The module manifest could not be read.');
+        }
+
+        if ($size > ModuleManifest::MAX_BYTES) {
+            throw new ModuleManifestException(sprintf('The module manifest exceeds %d bytes.', ModuleManifest::MAX_BYTES));
+        }
+
+        $handle = fopen($file, 'rb');
+
+        if ($handle === false) {
+            throw new ModuleManifestException('The module manifest could not be read.');
+        }
+
+        $json = stream_get_contents($handle, ModuleManifest::MAX_BYTES + 1);
+        fclose($handle);
+
+        if (!is_string($json) || strlen($json) > ModuleManifest::MAX_BYTES) {
+            throw new ModuleManifestException(sprintf('The module manifest exceeds %d bytes.', ModuleManifest::MAX_BYTES));
+        }
+
+        return ModuleManifest::decode($json);
+    }
+
+    private function hasHiddenSegment(string $path): bool
+    {
+        foreach (explode('/', strtr($path, '\\', '/')) as $segment) {
+            if ($segment !== '' && str_starts_with($segment, '.')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Joins a relative path onto a base.
      */
     protected function resolvePath(string $path, ?string $basePath = null): string
     {
         $path = strtr($path, '\\', '/');
+        $base = $this->normalizedBase($basePath);
 
-        if ($path[0] != '/' && !(strlen($path) > 3 && ctype_alpha($path[0]) && $path[1] == ':' && $path[2] == '/')) {
-            $path = "$basePath/$path";
+        if ($base === null) {
+            return $path;
         }
 
-        return $path;
+        // An empty base, an absolute path, or ".." is that base, so the caller does not glob it.
+        if ($base === '' || !ModuleManifest::includeStaysInModule($path)) {
+            return $base;
+        }
+
+        return $base.'/'.ltrim($path, '/');
+    }
+
+    private function normalizedBase(?string $basePath): ?string
+    {
+        if ($basePath === null) {
+            return null;
+        }
+
+        return rtrim(strtr($basePath, '\\', '/'), '/');
+    }
+
+    /**
+     * @param string|array<int, string> $paths
+     * @param array<string, true>       $protected
+     *
+     * @return list<array{pattern: string, directory: string}>
+     */
+    private function registerPaths(string|array $paths, ?string $basePath, array $protected): array
+    {
+        $files = [];
+        $base = $this->normalizedBase($basePath);
+
+        foreach ((array) $paths as $path) {
+            $resolved = $this->resolvePath($path, $basePath);
+
+            // The base is the stand-in for a pattern that must not be read, including an empty base.
+            if ($base !== null && $resolved === $base) {
+                continue;
+            }
+
+            foreach (glob($resolved, GLOB_NOSORT) ?: [] as $file) {
+                $files[] = $file;
+            }
+        }
+
+        return $this->registerFiles($files, $protected);
+    }
+
+    /**
+     * @param list<array{pattern: string, directory: string}> $includes
+     * @param array<string, true>                             $protected
+     *
+     * @return list<array{pattern: string, directory: string}>
+     */
+    private function registerIncluded(array $includes, array $protected): array
+    {
+        $files = [];
+
+        foreach ($includes as $include) {
+            foreach ($this->includeFiles($include['pattern'], $include['directory']) as $file) {
+                $files[] = $file;
+            }
+        }
+
+        return $this->registerFiles($files, $protected);
+    }
+
+    /**
+     * Manifests the glob names that stay inside the module. Absolute patterns and ".." match nothing.
+     *
+     * @return list<string>
+     */
+    private function includeFiles(string $pattern, string $directory): array
+    {
+        $base = rtrim(strtr($directory, '\\', '/'), '/');
+        $resolved = $this->resolvePath($pattern, $directory);
+
+        // Joining ".." onto the module still begins with that directory, so the prefix is not enough.
+        if ($base === '' || !str_starts_with($resolved, $base.'/') || !ModuleManifest::includeStaysInModule($pattern)) {
+            return [];
+        }
+
+        $files = [];
+
+        foreach (glob($resolved, GLOB_NOSORT) ?: [] as $file) {
+            if ($this->pathStaysInside($file, $directory)) {
+                $files[] = $file;
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * @param list<string>         $files
+     * @param array<string, true>  $protected
+     *
+     * @return list<array{pattern: string, directory: string}>
+     */
+    private function registerFiles(array $files, array $protected): array
+    {
+        /** @var array<string, true> $written */
+        $written = [];
+
+        foreach ($files as $file) {
+            $name = $this->registerManifest($file, $protected);
+
+            if ($name !== null) {
+                // The last write owns the include. An earlier slot lets a later file replace a child it registers.
+                unset($written[$name]);
+                $written[$name] = true;
+            }
+        }
+
+        return $this->includesFrom($written);
+    }
+
+    /**
+     * @param array<string, true> $protected
+     */
+    private function registerManifest(string $file, array $protected): ?string
+    {
+        // A segment that starts with "." is a hidden sibling of an installed package, not a module.
+        if ($this->hasHiddenSegment($file) || !is_file($file)) {
+            return null;
+        }
+
+        try {
+            $module = $this->readManifest($file);
+        } catch (ModuleManifestException $exception) {
+            $this->registrationFailures[$file] = $exception;
+
+            return null;
+        }
+
+        if ($module === null) {
+            return null;
+        }
+
+        $module['path'] = strtr(dirname($file), '\\', '/');
+        $name = $module['name'];
+
+        if (!is_string($name) || $name === '' || isset($protected[$name])) {
+            return null;
+        }
+
+        $this->registered[$name] = $module;
+
+        return $name;
+    }
+
+    /**
+     * The last manifest written for a name is the one stored, so only its include is followed.
+     *
+     * @param array<string, true> $names
+     *
+     * @return list<array{pattern: string, directory: string}>
+     */
+    private function includesFrom(array $names): array
+    {
+        $includes = [];
+
+        foreach (array_keys($names) as $name) {
+            $module = $this->registered[$name] ?? null;
+
+            if (!is_array($module)) {
+                continue;
+            }
+
+            $directory = $module['path'] ?? null;
+            $declared = $module['include'] ?? null;
+
+            if (!is_string($directory) || $directory === '' || $declared === null) {
+                continue;
+            }
+
+            foreach (is_array($declared) ? $declared : [$declared] as $pattern) {
+                if (!is_string($pattern) || $pattern === '') {
+                    continue;
+                }
+
+                $includes[] = ['pattern' => $pattern, 'directory' => $directory];
+            }
+        }
+
+        return $includes;
+    }
+
+    /**
+     * glob() follows a symlink out of the module; the file that is read has to stay inside it.
+     */
+    private function pathStaysInside(string $file, string $directory): bool
+    {
+        $root = realpath($directory);
+        $real = realpath($file);
+
+        if ($root === false || $real === false) {
+            return false;
+        }
+
+        $root = rtrim(strtr($root, '\\', '/'), '/');
+
+        return str_starts_with(strtr($real, '\\', '/'), $root.'/');
     }
 }

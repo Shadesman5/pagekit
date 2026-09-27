@@ -630,7 +630,7 @@ final class ExtensionLoaderTest extends TestCase
 
     private function fixture(string $name): string
     {
-        return strtr(dirname(__DIR__, 2), '\\', '/').'/fixtures/modules/'.$name.'/index.php';
+        return strtr(dirname(__DIR__, 2), '\\', '/').'/fixtures/modules/'.$name.'/module.json';
     }
 
     private function removeTree(string $path): void

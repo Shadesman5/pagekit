@@ -1,0 +1,11 @@
+{
+    "name": "system/settings",
+    "require": [
+        "config",
+        "filesystem",
+        "routing"
+    ],
+    "autoload": {
+        "Pagekit\\Settings\\": "src"
+    }
+}

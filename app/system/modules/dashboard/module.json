@@ -1,0 +1,10 @@
+{
+    "name": "system/dashboard",
+    "require": [
+        "kernel",
+        "routing"
+    ],
+    "autoload": {
+        "Pagekit\\Dashboard\\": "src"
+    }
+}

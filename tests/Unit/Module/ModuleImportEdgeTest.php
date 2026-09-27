@@ -7,16 +7,10 @@ namespace Pagekit\Tests\Unit\Module;
 use PhpParser\Error;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
-use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\Assign;
-use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Name;
-use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassLike;
-use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\Stmt\GroupUse;
 use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\TraitUse;
 use PhpParser\Node\Stmt\Use_;
 use PhpParser\Parser;
@@ -893,12 +887,12 @@ PHP);
         $paths = [];
 
         foreach ([
-            '/app/modules/*/index.php',
-            '/app/system/index.php',
-            '/app/system/modules/*/index.php',
-            '/app/package/index.php',
-            '/app/installer/index.php',
-            '/app/console/index.php',
+            '/app/modules/*/module.json',
+            '/app/system/module.json',
+            '/app/system/modules/*/module.json',
+            '/app/package/module.json',
+            '/app/installer/module.json',
+            '/app/console/module.json',
         ] as $pattern) {
             foreach (glob($root.$pattern) ?: [] as $path) {
                 $paths[] = strtr($path, '\\', '/');
@@ -966,115 +960,49 @@ PHP);
         }
 
         try {
-            $statements = $this->parser()->parse($code) ?? [];
-        } catch (Error $error) {
+            $decoded = json_decode($code, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $error) {
             $violations[] = $this->relative($root, $path).' could not be parsed: '.$error->getMessage();
 
             return null;
         }
 
-        $array = $this->manifestArray($statements);
-
-        if ($array === null) {
+        if (!is_array($decoded)) {
             $violations[] = $this->relative($root, $path).' has no module manifest';
 
             return null;
         }
 
-        $name = null;
-        $require = null;
-        $sawRequire = false;
+        $name = $decoded['name'] ?? null;
 
-        foreach ($array->items as $item) {
-            if ($item === null || !$item->key instanceof String_) {
-                continue;
-            }
-
-            if ($item->key->value === 'name' && $item->value instanceof String_) {
-                $name = $item->value->value;
-            }
-
-            if ($item->key->value === 'require') {
-                $sawRequire = true;
-                $require = $this->literalStrings($item->value);
-            }
-        }
-
-        if ($name === null || $name === '') {
+        if (!is_string($name) || $name === '') {
             $violations[] = $this->relative($root, $path).' has no module name';
 
             return null;
         }
 
-        if ($sawRequire && $require === null) {
-            $violations[] = $name.' manifest require is not a list of module names';
-            $require = [];
-        }
+        $require = [];
 
-        return ['name' => $name, 'require' => $require ?? []];
-    }
+        if (array_key_exists('require', $decoded)) {
+            $declared = $decoded['require'];
 
-    /**
-     * @param list<Node\Stmt> $statements
-     */
-    private function manifestArray(array $statements): ?Array_
-    {
-        /** @var array<string, Array_> $assigned */
-        $assigned = [];
+            if (!is_array($declared) || !array_is_list($declared)) {
+                $violations[] = $name.' manifest require is not a list of module names';
+            } else {
+                foreach ($declared as $item) {
+                    if (!is_string($item)) {
+                        $violations[] = $name.' manifest require is not a list of module names';
+                        $require = [];
 
-        foreach ($statements as $statement) {
-            if ($statement instanceof Namespace_) {
-                $found = $this->manifestArray($statement->stmts);
+                        break;
+                    }
 
-                if ($found !== null) {
-                    return $found;
+                    $require[] = $item;
                 }
             }
-
-            if ($statement instanceof Expression && $statement->expr instanceof Assign) {
-                $assign = $statement->expr;
-
-                if ($assign->var instanceof Variable && is_string($assign->var->name) && $assign->expr instanceof Array_) {
-                    $assigned[$assign->var->name] = $assign->expr;
-                }
-            }
-
-            if (!$statement instanceof Return_) {
-                continue;
-            }
-
-            if ($statement->expr instanceof Array_) {
-                return $statement->expr;
-            }
-
-            if ($statement->expr instanceof Variable && is_string($statement->expr->name) && isset($assigned[$statement->expr->name])) {
-                return $assigned[$statement->expr->name];
-            }
         }
 
-        return null;
-    }
-
-    /**
-     * @return list<string>|null
-     */
-    private function literalStrings(Node $node): ?array
-    {
-        if (!$node instanceof Array_) {
-            return null;
-        }
-
-        $values = [];
-
-        foreach ($node->items as $item) {
-            if ($item === null || $item->unpack || !$item->value instanceof String_) {
-                return null;
-            }
-
-            $values[] = $item->value->value;
-        }
-
-        return $values;
+        return ['name' => $name, 'require' => $require];
     }
 
     /**
@@ -1340,8 +1268,11 @@ PHP);
     {
         $this->write(
             $root,
-            $directory.'/index.php',
-            "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'name' => ".var_export($name, true).",\n    'require' => ".var_export(array_values($require), true).",\n];\n",
+            $directory.'/module.json',
+            json_encode(
+                ['name' => $name, 'require' => array_values($require)],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+            )."\n",
         );
     }
 

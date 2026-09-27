@@ -1,0 +1,11 @@
+{
+    "name": "system/comment",
+    "require": [
+        "database",
+        "kernel",
+        "system/content"
+    ],
+    "autoload": {
+        "Pagekit\\Comment\\": "src"
+    }
+}

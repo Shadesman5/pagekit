@@ -141,7 +141,9 @@ final class PackageUploadBoundaryTest extends TestCase
         $zip = $this->workspace.'/no-autoload.zip';
         PackageZip::write($zip, [
             'title' => 'Fancy Title',
-        ], [], "<?php\n\nreturn [\n    'name' => 'demo',\n];\n");
+        ], [
+            'module.json' => json_encode(['name' => 'demo'], JSON_THROW_ON_ERROR)."\n",
+        ]);
         $incoming = $this->uploaded($zip);
 
         $exception = $this->refusedUpload($incoming);

@@ -1,0 +1,11 @@
+{
+    "name": "routing",
+    "require": [
+        "kernel",
+        "filter",
+        "filesystem"
+    ],
+    "autoload": {
+        "Pagekit\\Routing\\": "src"
+    }
+}

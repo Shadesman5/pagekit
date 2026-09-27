@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'system/editor',
-
-    'autoload' => [
-
-        'Pagekit\\Editor\\' => 'src',
-
-    ],
-
     'config' => [
 
         'editor' => 'html',

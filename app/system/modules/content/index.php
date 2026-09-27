@@ -9,15 +9,6 @@ use Pagekit\Content\Plugin\VideoPlugin;
 
 return [
 
-    'name' => 'system/content',
-
-    'require' => [
-
-        'kernel',
-        'markdown',
-
-    ],
-
     'main' => function ($app) {
 
         $app->get('events')->subscribe(new MarkdownPlugin($app->get('markdown')));
@@ -27,11 +18,5 @@ return [
         $app->set('content', fn () => new ContentHelper($app->get('events')));
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Content\\' => 'src',
-
-    ],
 
 ];

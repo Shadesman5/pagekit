@@ -8,15 +8,6 @@ use Symfony\Component\Mailer\Transport\SendmailTransport;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 return [
-    'name' => 'system/mail',
-
-    'require' => [
-
-        'kernel',
-        'routing',
-
-    ],
-
     'main' => function ($app) {
 
         $app->set('mailer', function ($app) {
@@ -84,12 +75,6 @@ return [
         });
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Mail\\' => 'src',
-
-    ],
 
     'routes' => [
 

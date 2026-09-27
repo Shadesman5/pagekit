@@ -6,18 +6,7 @@ use Pagekit\Package\Snapshot\SnapshotStore;
 
 return [
 
-    'name' => 'package',
-
     'main' => 'Pagekit\\Package\\PackageModule',
-
-    'require' => [
-
-        'application',
-        'migration',
-        'system/intl',
-        'system/view',
-
-    ],
 
     'routes' => [
 

@@ -8,7 +8,4 @@ declare(strict_types=1);
  * by the sweep that found this file, and are executed one level deeper than it.
  */
 
-return [
-    'name' => 'fixture-host',
-    'include' => 'modules/*/index.php',
-];
+return [];

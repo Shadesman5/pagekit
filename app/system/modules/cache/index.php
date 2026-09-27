@@ -4,22 +4,7 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'system/cache',
-
-    'require' => [
-
-        'kernel',
-        'routing',
-
-    ],
-
     'main' => 'Pagekit\\Cache\\CacheModule',
-
-    'autoload' => [
-
-        'Pagekit\\Cache\\' => 'src',
-
-    ],
 
     'routes' => [
 

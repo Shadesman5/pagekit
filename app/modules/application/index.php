@@ -8,8 +8,6 @@ use Symfony\Component\ErrorHandler\ErrorHandler;
 
 return [
 
-    'name' => 'application',
-
     'main' => function ($app) {
 
         $app->set('version', fn () => $this->config['version']);
@@ -25,22 +23,6 @@ return [
         ini_set('display_errors', $app->inConsole() || $app->get('debug') ? 1 : 0);
 
     },
-
-    'require' => [
-
-        'kernel',
-        'debug',
-        'routing',
-        'auth',
-        'config',
-        'cookie',
-        'database',
-        'filesystem',
-        'log',
-        'session',
-        'view',
-
-    ],
 
     'config' => [
 

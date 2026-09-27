@@ -69,7 +69,7 @@ final class SystemModuleThemeFallbackTest extends TestCase
         // decorate. Nothing resolves it here, so the decoration never runs.
         $app->set('assets', fn () => new \stdClass());
 
-        $app->get('module')->register([$this->root().'/tests/fixtures/modules/healthy/index.php']);
+        $app->get('module')->register([$this->root().'/tests/fixtures/modules/healthy/module.json']);
 
         $system = new SystemModule([
             'name' => 'system',

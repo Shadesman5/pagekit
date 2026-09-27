@@ -9,16 +9,6 @@ use Symfony\Component\Clock\Clock;
 
 return [
 
-    'name' => 'auth',
-
-    'require' => [
-
-        'cookie',
-        'database',
-        'kernel',
-
-    ],
-
     'main' => function ($app) {
 
         $app->set('auth', fn ($app) => new Auth($app->get('events'), $app->get('auth.handler')));
@@ -32,12 +22,6 @@ return [
         $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $this->config, new Clock()));
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Auth\\' => 'src',
-
-    ],
 
     'config' => [
 

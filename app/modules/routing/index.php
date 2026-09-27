@@ -18,8 +18,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 return [
 
-    'name' => 'routing',
-
     'main' => function ($app) {
 
         $app->set('routes', fn () => new Routes());
@@ -85,20 +83,6 @@ return [
             };
 
         }, 130],
-
-    ],
-
-    'require' => [
-
-        'kernel',
-        'filter',
-        'filesystem',
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Routing\\' => 'src',
 
     ],
 
