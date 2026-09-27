@@ -1,6 +1,6 @@
 ---
 name: plan-reviewer
-model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]
+model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=false]
 description: Plan Auditor for Pagekit modernization. Audits the Architect's ticket plan against the original task prompt/requirement and ROADMAP before any code is written. Use proactively after the Architect writes a ticket (V2 Step 0 gate).
 ---
 
