@@ -821,7 +821,9 @@ final class PackageArchiveTest extends TestCase
 
             JSON;
 
-        $this->assertPackageRefused([], "'include'", $manifest);
+        $message = $this->assertPackageRefused([], "'include'", $manifest);
+        self::assertStringContainsString('non-empty strings', $message);
+        self::assertStringNotContainsString('does not stay inside the package', $message);
     }
 
     public function testAnEmptyIncludeIsRefusedBeforeAnAutoloadPath(): void
@@ -838,6 +840,8 @@ final class PackageArchiveTest extends TestCase
             JSON;
 
         $message = $this->assertPackageRefused([], "'include'", $manifest);
+        self::assertStringContainsString('non-empty strings', $message);
+        self::assertStringNotContainsString('does not stay inside the package', $message);
         self::assertStringNotContainsString('missing', $message);
     }
 
@@ -872,6 +876,107 @@ final class PackageArchiveTest extends TestCase
         self::assertSame('demo', $archive->module());
         self::assertSame([], $archive->autoload());
         self::assertSame([], $archive->require());
+    }
+
+    public function testAListOfIncludesThatStayInsideThePackageOpens(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "include": ["modules/*/module.json", "themes/*/module.json"]
+            }
+
+            JSON;
+
+        $archive = $this->openPackage([], $manifest);
+
+        self::assertSame('demo', $archive->module());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+    }
+
+    public function testAnEmptyIncludeListOpens(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "include": []
+            }
+
+            JSON;
+
+        $archive = $this->openPackage([], $manifest);
+
+        self::assertSame('demo', $archive->module());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+    }
+
+    public function testAnEmptyIncludeElementIsRefusedAsTheField(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "include": [""]
+            }
+
+            JSON;
+
+        $message = $this->assertPackageRefused([], "'include'", $manifest);
+        self::assertStringContainsString('non-empty strings', $message);
+        self::assertStringNotContainsString('does not stay inside the package', $message);
+    }
+
+    public function testAnIncludeOfADotSegmentThatIsNotTheParentOpens(): void
+    {
+        $manifest = <<<'JSON'
+            {
+                "name": "demo",
+                "autoload": {},
+                "include": ".hidden/module.json"
+            }
+
+            JSON;
+
+        $archive = $this->openPackage([], $manifest);
+
+        self::assertSame('demo', $archive->module());
+        self::assertSame([], $archive->autoload());
+        self::assertSame([], $archive->require());
+    }
+
+    #[DataProvider('includesThatLeaveThePackage')]
+    public function testAnIncludeThatLeavesThePackageIsRefusedBeforeAutoload(string $include): void
+    {
+        $this->assertIncludeLeavesBeforeAutoload($include, $include);
+    }
+
+    public function testALaterIncludeInTheListIsRefusedBeforeAutoload(): void
+    {
+        $this->assertIncludeLeavesBeforeAutoload(
+            ['modules/*/module.json', '../x/module.json'],
+            '../x/module.json',
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function includesThatLeaveThePackage(): iterable
+    {
+        yield 'absolute' => ['/tmp/x/module.json'];
+        yield 'parent' => ['../x/module.json'];
+        yield 'dot star' => ['.*'];
+        yield 'parent star' => ['..*'];
+        yield 'lowercase drive' => ['c:/tmp/x/module.json'];
+        yield 'collating' => ['.[[.'];
+        yield 'dot range' => ['.[.-.]'];
+        yield 'negated class' => ['.[^x]'];
+        yield 'bracket parent' => ['.[].]'];
+        yield 'backslash parent' => ['..\\x\\module.json'];
     }
 
     public function testTheModuleNameMustBeThePackageBasename(): void
@@ -1647,6 +1752,26 @@ final class PackageArchiveTest extends TestCase
     private function assertPackageRefused(array $composer, string $reason, ?string $manifest = null, array $files = []): string
     {
         return $this->assertRefused($this->archive($this->package($composer, $manifest, $files)), $reason);
+    }
+
+    /**
+     * @param string|list<string> $include
+     */
+    private function assertIncludeLeavesBeforeAutoload(string|array $include, string $pattern): void
+    {
+        $manifest = json_encode([
+            'name' => 'demo',
+            'include' => $include,
+            'autoload' => ['N' => 'missing'],
+        ], JSON_THROW_ON_ERROR);
+
+        $message = $this->assertPackageRefused([], 'does not stay inside the package', $manifest);
+
+        self::assertStringContainsString("'include'", $message);
+        self::assertStringContainsString($pattern, $message);
+        self::assertStringNotContainsString('missing', $message);
+        self::assertStringNotContainsString('non-empty strings', $message);
+        self::assertStringNotContainsString('not a folder', $message);
     }
 
     /**

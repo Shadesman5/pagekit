@@ -407,6 +407,365 @@ final class ModuleRegistrationTest extends TestCase
         self::assertInstanceOf(Module::class, $manager->get('neighbor'));
     }
 
+    public function testTheLastCallerSuppliedManifestOwnsTheNameAndItsInclude(): void
+    {
+        $manager = $this->manager();
+        $early = $this->plant('early', $this->manifest([
+            'name' => 'system',
+            'require' => ['from-early'],
+            'include' => 'modules/*/module.json',
+        ]));
+        $this->plant('early/modules/only', $this->manifest([
+            'name' => 'early-only',
+            'require' => ['from-early-child'],
+        ]));
+        $other = $this->plant('other', $this->manifest([
+            'name' => 'other',
+            'include' => 'modules/*/module.json',
+        ]));
+        $this->plant('other/modules/system', $this->manifest([
+            'name' => 'system',
+            'require' => ['hijack'],
+        ]));
+        $this->plant('other/modules/view', $this->manifest([
+            'name' => 'system/view',
+            'require' => ['from-other'],
+        ]));
+        $later = $this->plant('later', $this->manifest([
+            'name' => 'system',
+            'require' => ['from-later'],
+            'include' => 'modules/*/module.json',
+        ]));
+        $this->plant('later/modules/view', $this->manifest([
+            'name' => 'system/view',
+            'require' => ['from-later-child'],
+            'include' => 'modules/*/module.json',
+        ]));
+        $this->plant('later/modules/view/modules/again', $this->manifest([
+            'name' => 'system/view',
+            'require' => ['from-nested'],
+        ]));
+
+        $manager->register([$early, $other, $later]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('system'));
+        self::assertTrue($manager->isRegistered('other'));
+        self::assertTrue($manager->isRegistered('system/view'));
+        // The replaced manifest's include is not followed.
+        self::assertFalse($manager->isRegistered('early-only'));
+        self::assertSame(['from-later'], $manager->requires('system'));
+        // A free name in this include pass keeps the last manifest; the next pass does not replace it.
+        self::assertSame(['from-later-child'], $manager->requires('system/view'));
+    }
+
+    public function testAPathThatLeavesTheBaseIsNotGlobbed(): void
+    {
+        $manager = $this->manager();
+        $root = $this->workspace().'/root';
+        $this->plant('x', $this->manifest(['name' => 'escaped']));
+        $absolute = $this->plant('absolute', $this->manifest(['name' => 'absolute-leak']));
+        $this->plant('root/good', $this->manifest(['name' => 'good']));
+
+        $this->inDirectory($root, function () use ($manager, $root, $absolute): void {
+            $parent = glob('../x/'.ModuleManifest::FILE, GLOB_NOSORT);
+            $leaked = glob($absolute, GLOB_NOSORT);
+
+            self::assertIsArray($parent);
+            self::assertNotSame([], $parent);
+            self::assertIsArray($leaked);
+            self::assertNotSame([], $leaked);
+
+            $manager->register([
+                '../x/'.ModuleManifest::FILE,
+                $absolute,
+                "good/\0".ModuleManifest::FILE,
+                'good/'.ModuleManifest::FILE,
+            ], $root);
+        });
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('good'));
+        self::assertFalse($manager->isRegistered('escaped'));
+        self::assertFalse($manager->isRegistered('absolute-leak'));
+    }
+
+    public function testAnEmptyBaseDoesNotRegisterTheWorkingDirectory(): void
+    {
+        $manager = $this->manager();
+        $directory = $this->workspace();
+        $file = $directory.'/'.ModuleManifest::FILE;
+
+        if (file_put_contents($file, $this->manifest(['name' => 'from-cwd'])) === false) {
+            self::fail('The fixture manifest could not be written.');
+        }
+
+        $this->inDirectory($directory, function () use ($manager): void {
+            $seen = glob(ModuleManifest::FILE, GLOB_NOSORT);
+
+            self::assertIsArray($seen);
+            self::assertNotSame([], $seen);
+
+            $manager->register([ModuleManifest::FILE], '');
+        });
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertFalse($manager->isRegistered('from-cwd'));
+    }
+
+    public function testAnIncludeThatLeavesTheModuleIsNotGlobbed(): void
+    {
+        $manager = $this->manager();
+        $this->plant('x', $this->manifest(['name' => 'escaped']));
+        $absolute = $this->plant('absolute', $this->manifest(['name' => 'absolute-leak']));
+        $host = $this->plant('host', $this->manifest([
+            'name' => 'host',
+            'include' => [
+                '../x/'.ModuleManifest::FILE,
+                $absolute,
+                "leak\0/".ModuleManifest::FILE,
+            ],
+        ]));
+        $good = $this->plant('good', $this->manifest(['name' => 'good']));
+
+        $this->inDirectory(dirname($host), function () use ($manager, $host, $good, $absolute): void {
+            $parent = glob('../x/'.ModuleManifest::FILE, GLOB_NOSORT);
+            $leaked = glob($absolute, GLOB_NOSORT);
+
+            self::assertIsArray($parent);
+            self::assertNotSame([], $parent);
+            self::assertIsArray($leaked);
+            self::assertNotSame([], $leaked);
+
+            $manager->register([$host, $good]);
+        });
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('host'));
+        self::assertTrue($manager->isRegistered('good'));
+        self::assertFalse($manager->isRegistered('escaped'));
+        self::assertFalse($manager->isRegistered('absolute-leak'));
+    }
+
+    public function testASymlinkOutsideTheModuleOccupiesNoName(): void
+    {
+        $manager = $this->manager();
+        $outside = $this->plant('outside', $this->manifest([
+            'name' => 'leaked',
+            'require' => ['leaked'],
+        ]));
+        $real = $this->plant('host/modules/real', $this->manifest([
+            'name' => 'real-child',
+            'require' => ['kept'],
+        ]));
+        $host = $this->plant('host', $this->manifest([
+            'name' => 'host',
+            'include' => 'modules/*/module.json',
+        ]));
+        $link = dirname($host).'/modules/linked';
+
+        if (!@symlink(dirname($outside), $link)) {
+            self::markTestSkipped('symlink() is unavailable on this host');
+        }
+
+        $hostReal = realpath(dirname($host));
+        $leakReal = realpath($link.'/'.ModuleManifest::FILE);
+        $seen = glob(dirname($host).'/modules/*/'.ModuleManifest::FILE, GLOB_NOSORT);
+
+        self::assertIsString($hostReal);
+        self::assertIsString($leakReal);
+        self::assertFalse(str_starts_with(
+            strtr($leakReal, '\\', '/'),
+            rtrim(strtr($hostReal, '\\', '/'), '/').'/',
+        ));
+        self::assertIsArray($seen);
+        $paths = array_map(static fn (string $file): string => strtr($file, '\\', '/'), $seen);
+        self::assertContains(strtr($link.'/'.ModuleManifest::FILE, '\\', '/'), $paths);
+        self::assertContains(strtr($real, '\\', '/'), $paths);
+
+        $manager->register([$host]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('host'));
+        self::assertTrue($manager->isRegistered('real-child'));
+        self::assertSame(['kept'], $manager->requires('real-child'));
+        self::assertFalse($manager->isRegistered('leaked'));
+    }
+
+    public function testAnIncludeListRegistersEachChild(): void
+    {
+        $manager = $this->manager();
+        $host = $this->plant('host', $this->manifest([
+            'name' => 'host',
+            'include' => [
+                'modules/*/'.ModuleManifest::FILE,
+                'themes/*/'.ModuleManifest::FILE,
+            ],
+        ]));
+        $this->plant('host/modules/view', $this->manifest([
+            'name' => 'system/view',
+            'require' => ['from-module'],
+        ]));
+        $this->plant('host/themes/one', $this->manifest([
+            'name' => 'theme-one',
+            'require' => ['from-theme'],
+        ]));
+
+        $manager->register([$host]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('host'));
+        self::assertSame(['from-module'], $manager->requires('system/view'));
+        self::assertSame(['from-theme'], $manager->requires('theme-one'));
+    }
+
+    public function testAHostileIncludeDoesNotStopTheNextPattern(): void
+    {
+        $manager = $this->manager();
+        $this->plant('x', $this->manifest(['name' => 'escaped']));
+        $host = $this->plant('host', $this->manifest([
+            'name' => 'host',
+            'include' => [
+                '../x/'.ModuleManifest::FILE,
+                'modules/*/'.ModuleManifest::FILE,
+            ],
+        ]));
+        $this->plant('host/modules/view', $this->manifest([
+            'name' => 'system/view',
+            'require' => ['kept'],
+        ]));
+
+        $this->inDirectory(dirname($host), function () use ($manager, $host): void {
+            $parent = glob('../x/'.ModuleManifest::FILE, GLOB_NOSORT);
+
+            self::assertIsArray($parent);
+            self::assertNotSame([], $parent);
+
+            // One manifest path is a string. A list is the other accepted shape.
+            $manager->register($host);
+        });
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('host'));
+        self::assertFalse($manager->isRegistered('escaped'));
+        self::assertSame(['kept'], $manager->requires('system/view'));
+    }
+
+    public function testADirectoryPathIsNotAModule(): void
+    {
+        $manager = $this->manager();
+        $good = $this->plant('good', $this->manifest(['name' => 'good', 'require' => ['kernel']]));
+        $directory = dirname($good);
+        $listed = array_map(
+            static fn (string $path): string => strtr($path, '\\', '/'),
+            glob($directory, GLOB_NOSORT) ?: [],
+        );
+
+        self::assertContains($directory, $listed);
+
+        $manager->register([$directory, $good]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertSame(['kernel'], $manager->requires('good'));
+    }
+
+    public function testABrokenSymlinkIncludeOccupiesNoName(): void
+    {
+        $manager = $this->manager();
+        $real = $this->plant('host/modules/real', $this->manifest([
+            'name' => 'real-child',
+            'require' => ['kept'],
+        ]));
+        $host = $this->plant('host', $this->manifest([
+            'name' => 'host',
+            'include' => 'modules/*/'.ModuleManifest::FILE,
+        ]));
+        $link = dirname($host).'/modules/broken/'.ModuleManifest::FILE;
+
+        if (!is_dir(dirname($link)) && !mkdir(dirname($link), 0755, true) && !is_dir(dirname($link))) {
+            self::fail('The dangling-link directory could not be created.');
+        }
+
+        if (!@symlink($this->workspace().'/missing-target', $link)) {
+            self::markTestSkipped('symlink() is unavailable on this host');
+        }
+
+        $matched = array_map(
+            static fn (string $path): string => strtr($path, '\\', '/'),
+            glob(dirname($host).'/modules/*/'.ModuleManifest::FILE, GLOB_NOSORT) ?: [],
+        );
+
+        self::assertContains(strtr($link, '\\', '/'), $matched);
+        self::assertContains(strtr($real, '\\', '/'), $matched);
+        self::assertFalse(realpath($link));
+
+        $manager->register([$host]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('host'));
+        self::assertTrue($manager->isRegistered('real-child'));
+        self::assertSame(['kept'], $manager->requires('real-child'));
+        self::assertFalse($manager->isRegistered('broken'));
+    }
+
+    public function testABackslashBeforeAHiddenSegmentIsNotRegistered(): void
+    {
+        if (DIRECTORY_SEPARATOR === '\\') {
+            self::markTestSkipped('A backslash is a directory separator on this host.');
+        }
+
+        $manager = $this->manager();
+        $hidden = $this->plant('pkg\\.hidden-demo', "{\"name\":\"hidden-demo\"}\n");
+        $visible = $this->plant('pkg/visible', "{\"name\":\"visible-demo\"}\n");
+
+        self::assertStringContainsString('\\', $hidden);
+        self::assertFileExists($hidden);
+
+        $manager->register([$hidden, $visible]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertFalse($manager->isRegistered('hidden-demo'));
+        self::assertTrue($manager->isRegistered('visible-demo'));
+    }
+
+    public function testNodeTypesSkipABlankKeyAndAnIntegerKey(): void
+    {
+        $manager = $this->manager();
+        $typed = $this->plant('typed', <<<'JSON'
+            {
+                "name": "typed",
+                "nodes": {
+                    "": {"label": "Blank"},
+                    "0": {"label": "Zero"},
+                    "post": {"label": "Post"}
+                }
+            }
+
+            JSON);
+        $plain = $this->plant('plain', "{\"name\":\"plain\"}\n");
+        $empty = $this->plant('empty-nodes', "{\"name\":\"empty-nodes\",\"nodes\":{}}\n");
+
+        $manager->register([$typed, $plain, $empty]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertSame(['post'], $manager->nodeTypes('typed'));
+        self::assertSame([], $manager->nodeTypes('plain'));
+        self::assertSame([], $manager->nodeTypes('empty-nodes'));
+        self::assertSame([], $manager->nodeTypes('missing'));
+
+        $manager->load('typed');
+
+        $loaded = $manager->get('typed');
+
+        self::assertInstanceOf(Module::class, $loaded);
+        self::assertSame([
+            '' => ['label' => 'Blank'],
+            0 => ['label' => 'Zero'],
+            'post' => ['label' => 'Post'],
+        ], $loaded->get('nodes'));
+        self::assertSame(['post'], $manager->nodeTypes('typed'));
+    }
+
     /**
      * A manager as the boot builds it, against an application that has nothing
      * registered in it yet.
@@ -463,6 +822,29 @@ final class ModuleRegistrationTest extends TestCase
         }
 
         return $this->workspace;
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function manifest(array $fields): string
+    {
+        return json_encode($fields, JSON_THROW_ON_ERROR)."\n";
+    }
+
+    private function inDirectory(string $directory, callable $run): void
+    {
+        $cwd = getcwd();
+
+        if ($cwd === false || !chdir($directory)) {
+            self::fail('The working directory could not be changed.');
+        }
+
+        try {
+            $run();
+        } finally {
+            chdir($cwd);
+        }
     }
 
     private function plant(string $directory, string $json, ?string $entry = null): string

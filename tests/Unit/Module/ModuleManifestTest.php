@@ -93,6 +93,23 @@ final class ModuleManifestTest extends TestCase
 
         self::assertIsArray($list);
         self::assertSame(['modules/*/module.json', 'themes/*/module.json'], $list['include']);
+
+        $empty = ModuleManifest::decode('{"name":"host","include":[]}');
+
+        self::assertIsArray($empty);
+        self::assertSame([], $empty['include']);
+    }
+
+    #[DataProvider('includesThatStayInTheModule')]
+    public function testAnIncludeThatStaysInTheModule(string $pattern): void
+    {
+        self::assertTrue(ModuleManifest::includeStaysInModule($pattern));
+    }
+
+    #[DataProvider('includesThatLeaveTheModule')]
+    public function testAnIncludeThatLeavesTheModule(string $pattern): void
+    {
+        self::assertFalse(ModuleManifest::includeStaysInModule($pattern));
     }
 
     public function testAutoloadIsAStringMapOnlyWhenPresent(): void
@@ -199,6 +216,66 @@ final class ModuleManifestTest extends TestCase
 
         self::assertIsArray($module);
         self::assertSame(['post' => ['label' => 'Post']], $module['nodes']);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function includesThatStayInTheModule(): iterable
+    {
+        yield 'module glob' => ['modules/*/module.json'];
+        yield 'theme glob' => ['themes/*/module.json'];
+        yield 'star' => ['*'];
+        yield 'concrete child' => ['modules/view/module.json'];
+        yield 'question in a later segment' => ['modules/?/module.json'];
+        yield 'empty segment' => ['modules//module.json'];
+        yield 'dot segment' => ['./module.json'];
+        yield 'current directory segment' => ['modules/./module.json'];
+        yield 'hidden segment' => ['.hidden/module.json'];
+        yield 'three dots' => ['...'];
+        yield 'parent plus one' => ['..?'];
+        yield 'colon without a drive letter' => ['1:/module.json'];
+        yield 'single character' => ['c'];
+        yield 'star after a miss' => ['.x*'];
+        yield 'question past the end' => ['.??'];
+        yield 'literal after a star' => ['.*x'];
+        yield 'negated dot' => ['.[!.]'];
+        yield 'class without a dot' => ['.[a-z]'];
+        yield 'inverted range' => ['.[z-a]'];
+        yield 'inverted range around a dot' => ['.[/-.]'];
+        yield 'unclosed bracket' => ['.['];
+        yield 'unclosed class' => ['.[.'];
+        yield 'negate with no class' => ['.[!'];
+        yield 'literal closing bracket' => ['.[]]'];
+        yield 'negated class that still needs a character' => ['.[^x].'];
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function includesThatLeaveTheModule(): iterable
+    {
+        yield 'dot star' => ['.*'];
+        yield 'parent star' => ['..*'];
+        yield 'dot any' => ['.?'];
+        yield 'dot class' => ['.[.]'];
+        yield 'parent segment' => ['../x/module.json'];
+        yield 'exact parent' => ['..'];
+        yield 'windows parent' => ['..\\x\\module.json'];
+        yield 'absolute' => ['/tmp/x/module.json'];
+        yield 'drive' => ['C:/tmp/x/module.json'];
+        yield 'lowercase drive' => ['c:/tmp/x/module.json'];
+        yield 'bare drive' => ['c:'];
+        yield 'empty' => [''];
+        yield 'nul' => ["\0"];
+        yield 'collating dot' => ['.[[.'];
+        yield 'collating class' => ['.[[:'];
+        yield 'collating equal' => ['.[[='];
+        yield 'dot range' => ['.[.-.]'];
+        yield 'negated class' => ['.[^x]'];
+        yield 'bracket names the parent' => ['.[].]'];
+        yield 'second star' => ['.**'];
+        yield 'star then a dot' => ['.*.'];
     }
 
     /**
