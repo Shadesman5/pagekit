@@ -16,7 +16,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (L) — Static discovery and load-time entry point
 - [x] Step 2 (L) — Archive reads module.json
-- [ ] Step 3 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 3 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written
