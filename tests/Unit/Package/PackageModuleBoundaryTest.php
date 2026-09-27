@@ -311,7 +311,7 @@ final class PackageModuleBoundaryTest extends TestCase
             $manifests = $this->registeredManifests($source);
 
             // Listed with the other manifests; which slot it occupies does not change discovery.
-            self::assertSame(1, count(array_keys($manifests, 'app/package/index.php', true)), $file);
+            self::assertSame(1, count(array_keys($manifests, 'app/package/module.json', true)), $file);
         }
     }
 
@@ -321,7 +321,8 @@ final class PackageModuleBoundaryTest extends TestCase
 
         try {
             foreach (self::BOOT_FILES as $file) {
-                $module = $this->packageRegisteredBy($path, $this->root().'/'.$file);
+                $manager = $this->managerRegisteredBy($path, $this->root().'/'.$file);
+                $module = $this->registeredPackage($manager, $file);
 
                 self::assertSame('package', $module['name'], $file);
                 self::assertIsString($module['path'] ?? null, $file);
@@ -330,6 +331,19 @@ final class PackageModuleBoundaryTest extends TestCase
                 self::assertNotFalse($resolved, $file);
                 // Discovery stores the directory it read. The list slot is not part of that.
                 self::assertSame($this->root().'/app/package', strtr($resolved, '\\', '/'), $file);
+
+                // Packages are not on the installer list; the console manifest is only on the console list.
+                self::assertSame([], $manager->getRegistrationFailures(), $this->failureSummary($manager));
+                self::assertTrue($manager->isRegistered('kernel'), $file);
+                self::assertTrue($manager->isRegistered('system'), $file);
+                self::assertTrue($manager->isRegistered('system/captcha'), $file);
+
+                $shipsPackages = $file !== 'app/installer/app.php';
+
+                self::assertSame($shipsPackages, $manager->isRegistered('blog'), $file);
+                self::assertSame($shipsPackages, $manager->isRegistered('theme-one'), $file);
+                self::assertSame($shipsPackages ? ['blog'] : [], $manager->nodeTypes('blog'), $file);
+                self::assertSame($file === 'app/console/app.php', $manager->isRegistered('console'), $file);
             }
         } finally {
             $this->removeTree($path);
@@ -1207,6 +1221,17 @@ final class PackageModuleBoundaryTest extends TestCase
         $manifest = require $path;
         self::assertIsArray($manifest);
 
+        $registration = json_decode((string) file_get_contents(dirname($path).'/module.json'), true);
+        self::assertIsArray($registration);
+
+        foreach (['name', 'require', 'include', 'autoload', 'nodes'] as $key) {
+            if (array_key_exists($key, $registration)) {
+                $manifest[$key] = $registration[$key];
+            } else {
+                unset($manifest[$key]);
+            }
+        }
+
         return $manifest;
     }
 
@@ -1260,10 +1285,7 @@ final class PackageModuleBoundaryTest extends TestCase
         }
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function packageRegisteredBy(string $base, string $bootFile): array
+    private function managerRegisteredBy(string $base, string $bootFile): ModuleManager
     {
         // Included boot files read these two names from the including scope.
         $path = $base;
@@ -1284,6 +1306,14 @@ final class PackageModuleBoundaryTest extends TestCase
         $manager = $app->get('module');
         self::assertInstanceOf(ModuleManager::class, $manager, $bootFile);
 
+        return $manager;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function registeredPackage(ModuleManager $manager, string $bootFile): array
+    {
         // load() would run every main(). The registry is what register() stored.
         $registered = (new \ReflectionProperty(ModuleManager::class, 'registered'))->getValue($manager);
         self::assertIsArray($registered, $bootFile);

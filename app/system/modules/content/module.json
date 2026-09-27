@@ -1,0 +1,10 @@
+{
+    "name": "system/content",
+    "require": [
+        "kernel",
+        "markdown"
+    ],
+    "autoload": {
+        "Pagekit\\Content\\": "src"
+    }
+}

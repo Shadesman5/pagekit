@@ -1,0 +1,24 @@
+{
+    "name": "system/site",
+    "require": [
+        "config",
+        "database",
+        "filter",
+        "kernel",
+        "package",
+        "routing",
+        "system/content",
+        "system/user",
+        "view"
+    ],
+    "autoload": {
+        "Pagekit\\Site\\": "src"
+    },
+    "nodes": {
+        "page": {
+            "name": "@page",
+            "label": "Page",
+            "controller": "Pagekit\\Site\\Controller\\PageController"
+        }
+    }
+}

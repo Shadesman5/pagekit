@@ -1,0 +1,10 @@
+{
+    "name": "system/mail",
+    "require": [
+        "kernel",
+        "routing"
+    ],
+    "autoload": {
+        "Pagekit\\Mail\\": "src"
+    }
+}

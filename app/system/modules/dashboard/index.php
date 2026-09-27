@@ -4,22 +4,7 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'system/dashboard',
-
-    'require' => [
-
-        'kernel',
-        'routing',
-
-    ],
-
     'main' => 'Pagekit\\Dashboard\\DashboardModule',
-
-    'autoload' => [
-
-        'Pagekit\\Dashboard\\' => 'src',
-
-    ],
 
     'routes' => [
 

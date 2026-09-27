@@ -9,8 +9,6 @@ use Pagekit\Log\Logger;
 
 return [
 
-    'name' => 'log',
-
     'main' => function ($app) {
 
         $app->set('log', function ($app) {
@@ -38,12 +36,6 @@ return [
         $app->set('log.debug', fn () => new DebugBarHandler());
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Log\\' => 'src',
-
-    ],
 
     'config' => [
 

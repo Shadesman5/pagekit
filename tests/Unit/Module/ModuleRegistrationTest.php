@@ -7,21 +7,10 @@ namespace Pagekit\Tests\Unit\Module;
 use Pagekit\Application;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Module\ModuleManifest;
+use Pagekit\Module\ModuleManifestException;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Discovery finds out what a module declares by executing its file, and it does
- * that for every package on disk on every request - enabled or not, before a
- * single module has been loaded. A package throwing at top level therefore threw
- * out of the boot itself and cost the whole site, including the admin panel
- * needed to disable it.
- *
- * The isolation asserted here ends that: the file that fails registers nothing
- * and its throwable is kept for the boot to report, every other package
- * registers as it did before, and a module that is merely broken at runtime
- * still registers - a failure that reaches the load window can be attributed to
- * a module name, one in here cannot.
- */
 final class ModuleRegistrationTest extends TestCase
 {
     private ?string $workspace = null;
@@ -32,11 +21,7 @@ final class ModuleRegistrationTest extends TestCase
             return;
         }
 
-        foreach (glob($this->workspace.'/*') ?: [] as $file) {
-            unlink($file);
-        }
-
-        rmdir($this->workspace);
+        $this->removeTree($this->workspace);
         $this->workspace = null;
     }
 
@@ -53,13 +38,10 @@ final class ModuleRegistrationTest extends TestCase
 
         self::assertSame([$this->fixture('throwing')], array_keys($failures));
 
-        // The throwable is handed on untouched: its trace is all an administrator
-        // has to find the fault in a package they did not write.
         $failure = $failures[$this->fixture('throwing')];
 
-        self::assertInstanceOf(\RuntimeException::class, $failure);
-        self::assertSame('The module file could not be executed', $failure->getMessage());
-        self::assertSame($this->fixture('throwing'), $failure->getFile());
+        self::assertInstanceOf(ModuleManifestException::class, $failure);
+        self::assertSame('Syntax error', $failure->getMessage());
 
         // What was registered is only observable through what can be loaded.
         $manager->load(['fixture-healthy', 'fixture-second']);
@@ -76,11 +58,8 @@ final class ModuleRegistrationTest extends TestCase
 
         $failure = $manager->getRegistrationFailures()[$this->fixture('missing-class')] ?? null;
 
-        // An extension left behind by an uninstalled dependency is the everyday
-        // case, and PHP raises an Error for it. Isolating exceptions only would
-        // still take the site down over it.
-        self::assertInstanceOf(\Error::class, $failure);
-        self::assertStringContainsString('Vendor\NotInstalled\Extension', $failure->getMessage());
+        self::assertInstanceOf(ModuleManifestException::class, $failure);
+        self::assertStringContainsString('"require"', $failure->getMessage());
 
         $manager->load('fixture-healthy');
 
@@ -99,11 +78,21 @@ final class ModuleRegistrationTest extends TestCase
 
         $manager->register([$broken, $this->fixture('healthy')]);
 
-        self::assertInstanceOf(\ParseError::class, $manager->getRegistrationFailures()[$broken] ?? null);
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('fixture-unparsable'));
 
         $manager->load('fixture-healthy');
 
         self::assertInstanceOf(Module::class, $manager->get('fixture-healthy'));
+
+        try {
+            $manager->load('fixture-unparsable');
+            self::fail('A parse error in the entry point has to leave load().');
+        } catch (\ParseError) {
+            self::assertNull($manager->get('fixture-unparsable'));
+        }
+
+        self::assertSame([], $manager->getRegistrationFailures());
     }
 
     public function testAPackageThatFailedToRegisterIsUndefinedRatherThanHalfKnown(): void
@@ -165,7 +154,7 @@ final class ModuleRegistrationTest extends TestCase
         // have to survive, or the panel goes down with them.
         $manager->register($this->fixtures('host'));
 
-        self::assertSame([$this->modules().'/host/modules/broken/index.php'], array_keys($manager->getRegistrationFailures()));
+        self::assertSame([$this->modules().'/host/modules/broken/module.json'], array_keys($manager->getRegistrationFailures()));
 
         $manager->load(['fixture-host', 'fixture-host-child']);
 
@@ -199,6 +188,166 @@ final class ModuleRegistrationTest extends TestCase
         );
     }
 
+    public function testRegisterDoesNotExecuteTheEntryPoint(): void
+    {
+        $manager = $this->manager();
+        $marker = $this->workspace().'/marker/ran.marker';
+        $file = $this->plant('marker', "{\n    \"name\": \"fixture-marker\"\n}\n", <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            file_put_contents(__DIR__.'/ran.marker', '1');
+
+            throw new \RuntimeException('The entry point ran');
+
+            PHP);
+
+        $manager->register([$file]);
+
+        // The marker is written by the entry point, which register() must not include.
+        self::assertFileDoesNotExist($marker);
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('fixture-marker'));
+
+        try {
+            $manager->load('fixture-marker');
+            self::fail('The entry point has to run when the module is loaded.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame(\RuntimeException::class, $exception::class);
+            self::assertSame('The entry point ran', $exception->getMessage());
+        }
+
+        self::assertFileExists($marker);
+        self::assertNull($manager->get('fixture-marker'));
+        self::assertTrue($manager->isRegistered('fixture-marker'));
+        self::assertSame([], $manager->getRegistrationFailures());
+    }
+
+    public function testAHiddenSegmentIsNotRegistered(): void
+    {
+        $manager = $this->manager();
+        $hidden = $this->plant('pagekit/.demo-deadbeef', "{\"name\":\"hidden-demo\"}\n");
+        $visible = $this->plant('pagekit/demo', "{\"name\":\"visible-demo\"}\n", "<?php\n\ndeclare(strict_types=1);\n\nreturn [];\n");
+        $listed = array_map(
+            static fn (string $path): string => strtr($path, '\\', '/'),
+            glob($hidden) ?: [],
+        );
+
+        // The path is a file glob can see; discovery itself has to ignore the hidden segment.
+        self::assertCount(1, $listed);
+        self::assertStringEndsWith('/pagekit/.demo-deadbeef/'.ModuleManifest::FILE, $listed[0]);
+
+        $manager->register([$hidden, $visible]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertFalse($manager->isRegistered('hidden-demo'));
+        self::assertTrue($manager->isRegistered('visible-demo'));
+
+        $manager->load('visible-demo');
+
+        self::assertInstanceOf(Module::class, $manager->get('visible-demo'));
+        self::assertNull($manager->get('hidden-demo'));
+    }
+
+    public function testAManifestLargerThanTheLimitIsRefusedBeforeItIsDecoded(): void
+    {
+        $manager = $this->manager();
+        $over = $this->plant('over-size', $this->jsonOfSize('over-size', ModuleManifest::MAX_BYTES + 1));
+        $exact = $this->plant('exact-size', $this->jsonOfSize('exact-size', ModuleManifest::MAX_BYTES));
+        $neighbor = $this->plant('neighbor', "{\"name\":\"neighbor\"}\n", "<?php\n\ndeclare(strict_types=1);\n\nreturn [];\n");
+
+        self::assertSame(ModuleManifest::MAX_BYTES + 1, filesize($over));
+        self::assertSame(ModuleManifest::MAX_BYTES, filesize($exact));
+
+        $manager->register([$over, $exact, $neighbor]);
+
+        $failure = $manager->getRegistrationFailures()[$over] ?? null;
+
+        self::assertInstanceOf(ModuleManifestException::class, $failure);
+        self::assertSame(
+            sprintf('The module manifest exceeds %d bytes.', ModuleManifest::MAX_BYTES),
+            $failure->getMessage(),
+        );
+        self::assertNull($failure->getPrevious());
+        self::assertSame([$over], array_keys($manager->getRegistrationFailures()));
+        self::assertFalse($manager->isRegistered('over-size'));
+        self::assertTrue($manager->isRegistered('exact-size'));
+        self::assertTrue($manager->isRegistered('neighbor'));
+
+        $manager->load(['exact-size', 'neighbor']);
+
+        self::assertInstanceOf(Module::class, $manager->get('exact-size'));
+        self::assertInstanceOf(Module::class, $manager->get('neighbor'));
+    }
+
+    public function testADocumentWithoutAModuleNameIsSkipped(): void
+    {
+        $manager = $this->manager();
+        $empty = $this->plant('empty', "{}\n");
+        $blank = $this->plant('blank', "{\"name\":\"\"}\n");
+
+        $manager->register([$empty, $blank]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertFalse($manager->isRegistered(''));
+
+        $numeric = $this->plant('numeric', "{\"name\":42}\n");
+
+        $manager->register([$numeric]);
+
+        $failure = $manager->getRegistrationFailures()[$numeric] ?? null;
+
+        self::assertInstanceOf(ModuleManifestException::class, $failure);
+        self::assertStringContainsString('"name"', $failure->getMessage());
+        self::assertSame([$numeric], array_keys($manager->getRegistrationFailures()));
+        self::assertFalse($manager->isRegistered('42'));
+        self::assertFalse($manager->isRegistered(''));
+    }
+
+    public function testAWrongFieldTypeIsRecordedAndTheNextModuleStillRegisters(): void
+    {
+        $manager = $this->manager();
+        $documents = [
+            'not-json' => ["{\n", null],
+            'bad-require' => ["{\"name\":\"bad-require\",\"require\":{}}\n", 'require'],
+            'bad-include' => ["{\"name\":\"bad-include\",\"include\":1}\n", 'include'],
+            'bad-autoload' => ["{\"name\":\"bad-autoload\",\"autoload\":[]}\n", 'autoload'],
+            'bad-nodes' => ["{\"name\":\"bad-nodes\",\"nodes\":[]}\n", 'nodes'],
+        ];
+        $paths = [];
+
+        foreach ($documents as $directory => [$json]) {
+            $paths[$directory] = $this->plant($directory, $json);
+        }
+
+        $next = $this->plant('fixture-next', "{\"name\":\"fixture-next\"}\n", "<?php\n\ndeclare(strict_types=1);\n\nreturn [];\n");
+
+        $manager->register([...array_values($paths), $next]);
+
+        self::assertSame(array_values($paths), array_keys($manager->getRegistrationFailures()));
+
+        $syntax = $manager->getRegistrationFailures()[$paths['not-json']] ?? null;
+
+        self::assertInstanceOf(ModuleManifestException::class, $syntax);
+        self::assertSame('Syntax error', $syntax->getMessage());
+        self::assertInstanceOf(\JsonException::class, $syntax->getPrevious());
+
+        foreach (['bad-require' => 'require', 'bad-include' => 'include', 'bad-autoload' => 'autoload', 'bad-nodes' => 'nodes'] as $directory => $field) {
+            $failure = $manager->getRegistrationFailures()[$paths[$directory]] ?? null;
+
+            self::assertInstanceOf(ModuleManifestException::class, $failure);
+            self::assertStringContainsString('"'.$field.'"', $failure->getMessage());
+            self::assertFalse($manager->isRegistered($directory));
+        }
+
+        self::assertTrue($manager->isRegistered('fixture-next'));
+
+        $manager->load('fixture-next');
+
+        self::assertInstanceOf(Module::class, $manager->get('fixture-next'));
+    }
+
     /**
      * A manager as the boot builds it, against an application that has nothing
      * registered in it yet.
@@ -218,10 +367,10 @@ final class ModuleRegistrationTest extends TestCase
 
         mkdir($this->workspace, 0755, true);
 
-        $file = $this->workspace.'/index.php';
-        file_put_contents($file, "<?php\n\nreturn ['name' => 'fixture-unparsable'\n");
+        file_put_contents($this->workspace.'/module.json', "{\n    \"name\": \"fixture-unparsable\"\n}\n");
+        file_put_contents($this->workspace.'/index.php', "<?php\n\nreturn ['main' =>\n");
 
-        return $file;
+        return $this->workspace.'/module.json';
     }
 
     /**
@@ -234,11 +383,85 @@ final class ModuleRegistrationTest extends TestCase
 
     private function fixture(string $name): string
     {
-        return $this->modules().'/'.$name.'/index.php';
+        return $this->modules().'/'.$name.'/module.json';
     }
 
     private function modules(): string
     {
         return strtr(dirname(__DIR__, 2), '\\', '/').'/fixtures/modules';
+    }
+
+    private function workspace(): string
+    {
+        if ($this->workspace !== null) {
+            return $this->workspace;
+        }
+
+        $this->workspace = strtr(sys_get_temp_dir(), '\\', '/').'/pk_module_registration_'.getmypid().'_'.uniqid();
+
+        if (!mkdir($this->workspace, 0755, true) && !is_dir($this->workspace)) {
+            self::fail('The fixture workspace could not be created.');
+        }
+
+        return $this->workspace;
+    }
+
+    private function plant(string $directory, string $json, ?string $entry = null): string
+    {
+        $path = $this->workspace().'/'.$directory;
+
+        if (!is_dir($path) && !mkdir($path, 0755, true) && !is_dir($path)) {
+            self::fail('The fixture module directory could not be created.');
+        }
+
+        $file = $path.'/'.ModuleManifest::FILE;
+
+        if (file_put_contents($file, $json) === false) {
+            self::fail('The fixture manifest could not be written.');
+        }
+
+        if ($entry !== null && file_put_contents($path.'/'.ModuleManifest::ENTRY, $entry) === false) {
+            self::fail('The fixture entry point could not be written.');
+        }
+
+        return $file;
+    }
+
+    private function jsonOfSize(string $name, int $bytes): string
+    {
+        $prefix = '{"name":"'.$name.'"';
+        $suffix = '}';
+        $spaces = $bytes - strlen($prefix) - strlen($suffix);
+
+        self::assertGreaterThan(0, $spaces);
+
+        $json = $prefix.str_repeat(' ', $spaces).$suffix;
+
+        self::assertSame($bytes, strlen($json));
+
+        return $json;
+    }
+
+    private function removeTree(string $path): void
+    {
+        if (is_link($path) || is_file($path)) {
+            unlink($path);
+
+            return;
+        }
+
+        if (!is_dir($path)) {
+            return;
+        }
+
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $this->removeTree($path.'/'.$entry);
+        }
+
+        rmdir($path);
     }
 }

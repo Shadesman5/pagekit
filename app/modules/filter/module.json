@@ -1,0 +1,6 @@
+{
+    "name": "filter",
+    "autoload": {
+        "Pagekit\\Filter\\": "src"
+    }
+}

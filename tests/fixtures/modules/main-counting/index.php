@@ -16,7 +16,6 @@ declare(strict_types=1);
 use Pagekit\Application;
 
 return [
-    'name' => 'fixture-main-counting',
     'main' => function (Application $app): void {
         $executions = 'fixture-main-counting.executions';
 

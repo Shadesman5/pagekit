@@ -6,8 +6,6 @@ use Pagekit\Config\ConfigManager;
 
 return [
 
-    'name' => 'config',
-
     'main' => function ($app) {
 
         $app->set('config', fn ($app) => new ConfigManager($app->get('db'), $this->config));
@@ -27,19 +25,6 @@ return [
         }
 
     },
-
-    'require' => [
-
-        'database',
-        'kernel',
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Config\\' => 'src',
-
-    ],
 
     'config' => [
 

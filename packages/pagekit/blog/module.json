@@ -1,0 +1,15 @@
+{
+    "name": "blog",
+    "autoload": {
+        "Pagekit\\Blog\\": "src"
+    },
+    "nodes": {
+        "blog": {
+            "name": "@blog",
+            "label": "Blog",
+            "controller": "Pagekit\\Blog\\Controller\\SiteController",
+            "protected": true,
+            "frontpage": true
+        }
+    }
+}

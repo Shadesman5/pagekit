@@ -14,7 +14,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (L) — Static discovery and load-time entry point
+- [x] Step 1 (L) — Static discovery and load-time entry point
 - [ ] Step 2 (L) — Archive reads module.json
 - [ ] Step 3 (XL) — Review (Bugbot + Security) + E2E
 
@@ -34,7 +34,12 @@
      `File::symbol` — chosen vs. rejected, why, the invariant a test must hold. Files that follow the
      plan get no line; a step with no open decision gets `none`. Architect leaves every step `_none yet_`. -->
 ### Step 1
-_none yet_
+- `ModuleManifest::decode` — a present `name` that is not a string throws `ModuleManifestException` naming `name`; a missing name or `""` returns null and is not a failure. Rejected returning null for every non-string name, because a wrong JSON type throws and the archive refusal has to name the field. Invariant: `{}` and `{"name":""}` are skipped with `getRegistrationFailures()` empty; `{"name":42}` is stored under that path and the name is not registered.
+- `ModuleManifest::decode` — a `require` element that is a string, including `""`, is kept in order; a non-string element throws and that module is not registered. Invariant: `["", "alpha"]` registers, and both `requires()` and the always-loaded closure skip `""`; `[42]` is a registration failure for that path.
+- `ModuleManager::load` — a non-array entry-point return throws `RuntimeException` `Module "%s" entry point must return an array.` and the module is not stored. The PSR-4 prefix added before the include stays. Invariant: after the throw, `isRegistered($name)` is true and `get($name)` is null.
+- `ModuleManager::includeEntry` — return stays `mixed` because `include` yields the file's value or `1`. Rejected `array`: a non-array must throw that `RuntimeException` from `load()`, not `TypeError`. Invariant: an entry point that returns a string throws `Module "%s" entry point must return an array.` and `get($name)` is null.
+- `ModuleManifest` field readers — native parameters stay `string|array`, `array`, and `array|\stdClass|string|int|float|bool|null` (rejected `mixed`). PHPDoc names the iterable value as `array<array-key, mixed>` on `includePaths` and `strings`, and on `value`'s array parameter and return. Invariant: `{"name":"a","include":1}`, `{"name":"a","require":{}}`, `{"name":"a","autoload":[]}`, and `{"name":"a","nodes":[]}` are registration failures naming the field, not `TypeError`s; a nodes object still stores nested scalars, nulls, and arrays.
+- `packages/pagekit/blog/index.php` and `packages/pagekit/theme-one/index.php` — `name` and `autoload` stay as PHP literals beside `module.json`. Rejected dropping them here and rejected teaching `PackageArchive` to read `module.json`: that reader still parses `index.php`, and these two trees are what the shipped-archive tests zip. `nodes` stays only in blog's `module.json`. Invariant: opening the zipped blog tree yields module `blog`, autoload `Pagekit\Blog\` => `src`, and `require` `[]`; opening theme-one yields module `theme-one` and an empty autoload map. `load()` still writes those keys back from the registered record.
 ### Step 2
 _none yet_
 ### Step 3

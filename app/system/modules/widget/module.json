@@ -1,0 +1,15 @@
+{
+    "name": "system/widget",
+    "require": [
+        "config",
+        "database",
+        "kernel",
+        "routing",
+        "system/site",
+        "system/user",
+        "view"
+    ],
+    "autoload": {
+        "Pagekit\\Widget\\": "src"
+    }
+}

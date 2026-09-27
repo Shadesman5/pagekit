@@ -12,7 +12,6 @@ declare(strict_types=1);
  */
 
 return [
-    'name' => 'fixture-main-erroring',
     'main' => function () {
         new \Vendor\NotInstalled\Service();
     },

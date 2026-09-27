@@ -1,0 +1,9 @@
+{
+    "name": "package",
+    "require": [
+        "application",
+        "migration",
+        "system/intl",
+        "system/view"
+    ]
+}

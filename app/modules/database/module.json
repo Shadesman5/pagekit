@@ -1,0 +1,10 @@
+{
+    "name": "database",
+    "require": [
+        "filesystem",
+        "kernel"
+    ],
+    "autoload": {
+        "Pagekit\\Database\\": "src"
+    }
+}

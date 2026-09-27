@@ -1,0 +1,6 @@
+{
+    "name": "markdown",
+    "autoload": {
+        "Pagekit\\Markdown\\": "src"
+    }
+}

@@ -323,7 +323,7 @@ final class ExtensionAutoDisableTest extends TestCase
      */
     private function fixtures(string ...$names): array
     {
-        return array_map(fn (string $name) => $this->root().'/tests/fixtures/modules/'.$name.'/index.php', $names);
+        return array_map(fn (string $name) => $this->root().'/tests/fixtures/modules/'.$name.'/module.json', $names);
     }
 
     private function root(): string

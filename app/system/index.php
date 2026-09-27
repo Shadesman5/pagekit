@@ -8,38 +8,7 @@ use Pagekit\Package\Lifecycle\LifecycleRunner;
 
 return [
 
-    'name' => 'system',
-
     'main' => 'Pagekit\\System\\SystemModule',
-
-    'include' => 'modules/*/index.php',
-
-    'require' => [
-
-        'application',
-        'feed',
-        'markdown',
-        'installer',
-        'migration',
-        'package',
-        'system/captcha',
-        'system/view',
-        'system/widget',
-        'system/cache',
-        'system/comment',
-        'system/content',
-        'system/dashboard',
-        'system/editor',
-        'system/finder',
-        'system/info',
-        'system/intl',
-        'system/mail',
-        'system/settings',
-        'system/site',
-        'system/theme',
-        'system/user',
-
-    ],
 
     'routes' => [
 

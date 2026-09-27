@@ -1,0 +1,6 @@
+{
+    "name": "migration",
+    "autoload": {
+        "Pagekit\\Migration\\": "src"
+    }
+}

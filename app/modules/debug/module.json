@@ -1,0 +1,14 @@
+{
+    "name": "debug",
+    "require": [
+        "view",
+        "routing",
+        "auth",
+        "database",
+        "system/info",
+        "system/user"
+    ],
+    "autoload": {
+        "Pagekit\\Debug\\": "src"
+    }
+}

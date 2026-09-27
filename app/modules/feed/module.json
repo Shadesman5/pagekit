@@ -1,0 +1,6 @@
+{
+    "name": "feed",
+    "autoload": {
+        "Pagekit\\Feed\\": "src"
+    }
+}

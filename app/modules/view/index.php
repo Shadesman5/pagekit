@@ -30,18 +30,6 @@ use Twig\Extension\DebugExtension;
 
 return [
 
-    'name' => 'view',
-
-    'require' => [
-
-        'filesystem',
-        'kernel',
-        'markdown',
-        'routing',
-        'session',
-
-    ],
-
     'main' => function ($app) {
 
         $app->set('twig', function ($app) {
@@ -189,13 +177,6 @@ return [
             }
 
         }, 50],
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\View\\' => 'src',
-        'Pagekit\\Twig\\' => 'src/Twig',
 
     ],
 

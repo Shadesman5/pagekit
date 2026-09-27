@@ -4,25 +4,9 @@ declare(strict_types=1);
 
 return [
 
-    'name' => 'system/settings',
-
-    'require' => [
-
-        'config',
-        'filesystem',
-        'routing',
-
-    ],
-
     'main' => function ($app) {
         $app->set('configFile', fn ($app) => $app->get('config.file'));
     },
-
-    'autoload' => [
-
-        'Pagekit\\Settings\\' => 'src',
-
-    ],
 
     'routes' => [
 

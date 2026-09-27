@@ -1,0 +1,6 @@
+{
+    "name": "system/editor",
+    "autoload": {
+        "Pagekit\\Editor\\": "src"
+    }
+}

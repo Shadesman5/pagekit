@@ -193,16 +193,16 @@ final class PackageEnableRequirementTest extends TestCase
             self::fail('The fixture module directory could not be created.');
         }
 
-        $file = $directory . '/index.php';
+        $file = $directory . '/module.json';
 
-        if (file_put_contents($file, "<?php\n\ndeclare(strict_types=1);\n\nreturn ['name' => '', 'require' => ['missing']];\n") === false) {
+        if (file_put_contents($file, "{\"name\":\"\",\"require\":[\"missing\"]}\n") === false) {
             self::fail('The fixture module could not be written.');
         }
 
         $modules->register([$file]);
         $modules->setActivityPolicy([], 'system');
 
-        self::assertTrue($modules->isRegistered(''));
+        self::assertFalse($modules->isRegistered(''));
 
         (new PackageManager($app, new NullOutput()))->enable($this->package(''));
 
@@ -212,7 +212,7 @@ final class PackageEnableRequirementTest extends TestCase
         self::assertSame(['package.enable'], $events->fired);
         self::assertStringContainsString('enable', (string) file_get_contents($this->marker));
         self::assertNull($modules->get(''));
-        self::assertTrue($modules->isRegistered(''));
+        self::assertFalse($modules->isRegistered(''));
     }
 
     public function testEnableOfAModuleThatIsNotRegisteredDoesNotThrowUndefinedModule(): void
@@ -362,8 +362,11 @@ final class PackageEnableRequirementTest extends TestCase
             self::fail('The fixture module directory could not be created.');
         }
 
-        $file = $directory . '/index.php';
-        $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'name' => " . var_export($name, true) . ",\n    'require' => " . var_export(array_values($require), true) . ",\n];\n";
+        $file = $directory . '/module.json';
+        $contents = json_encode(
+            ['name' => $name, 'require' => array_values($require)],
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        )."\n";
 
         if (file_put_contents($file, $contents) === false) {
             self::fail('The fixture module could not be written.');

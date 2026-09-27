@@ -1,0 +1,7 @@
+{
+    "name": "system/view",
+    "require": [
+        "view",
+        "kernel"
+    ]
+}

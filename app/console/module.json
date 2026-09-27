@@ -1,0 +1,12 @@
+{
+    "name": "console",
+    "require": [
+        "application",
+        "migration",
+        "installer",
+        "package"
+    ],
+    "autoload": {
+        "Pagekit\\Console\\": "src"
+    }
+}

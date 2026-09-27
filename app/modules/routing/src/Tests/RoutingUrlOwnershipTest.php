@@ -150,6 +150,17 @@ class RoutingUrlOwnershipTest extends TestCase
 
         $this->assertIsArray($loaded);
 
+        $registration = json_decode((string) file_get_contents($this->root().'/'.dirname($relative).'/module.json'), true);
+        $this->assertIsArray($registration);
+
+        foreach (['name', 'require', 'include', 'autoload', 'nodes'] as $key) {
+            if (array_key_exists($key, $registration)) {
+                $loaded[$key] = $registration[$key];
+            } else {
+                unset($loaded[$key]);
+            }
+        }
+
         /** @var array<string, mixed> $loaded */
         return $loaded;
     }

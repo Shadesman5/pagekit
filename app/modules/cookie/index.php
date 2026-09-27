@@ -6,19 +6,11 @@ use Pagekit\Cookie\CookieJar;
 
 return [
 
-    'name' => 'cookie',
-
     'main' => function ($app) {
 
         $app->set('cookie', fn () => new CookieJar());
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Cookie\\' => 'src',
-
-    ],
 
     'config' => [
 

@@ -160,9 +160,11 @@ final class SharedDatabaseLoggerTest extends TestCase
         $directory = dirname(__DIR__, 2);
         $definition = require $directory.'/index.php';
         $this->assertIsArray($definition);
+        $registration = json_decode((string) file_get_contents($directory.'/module.json'), true);
+        $this->assertIsArray($registration);
 
         $main = $definition['main'] ?? null;
-        $name = $definition['name'] ?? null;
+        $name = $registration['name'] ?? null;
         $events = $definition['events'] ?? [];
         $this->assertInstanceOf(\Closure::class, $main);
         $this->assertIsString($name);

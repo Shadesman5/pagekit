@@ -12,15 +12,6 @@ use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 
 return [
 
-    'name' => 'session',
-
-    'require' => [
-
-        'database',
-        'kernel',
-
-    ],
-
     'main' => function ($app) {
 
         $app->set('session', function ($app) {
@@ -104,12 +95,6 @@ return [
             $app->get('session')->start();
 
         }, 100],
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Session\\' => 'src',
 
     ],
 

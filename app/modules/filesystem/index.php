@@ -10,8 +10,6 @@ use Pagekit\Filesystem\StreamWrapper;
 
 return [
 
-    'name' => 'filesystem',
-
     'main' => function ($app) {
 
         $app->set('file', fn () => new Filesystem());
@@ -56,12 +54,6 @@ return [
             $app->get('file')->registerAdapter('file', new FileAdapter($app->get('path.public'), $baseUrl, $mounts));
 
         }, 100],
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Filesystem\\' => 'src',
-
     ],
 
     'config' => [

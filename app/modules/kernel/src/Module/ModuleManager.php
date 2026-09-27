@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Module;
 
 use Pagekit\Application;
+use Pagekit\Module\Loader\AutoLoader;
 use Pagekit\Module\Loader\CallableLoader;
 use Pagekit\Module\Loader\LoaderInterface;
 use Pagekit\Module\Loader\ModuleLoader;
@@ -113,6 +114,10 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Loads modules by name.
      *
+     * The autoload map is applied before the entry point runs, because that
+     * file can name a class at file scope. Every other preLoader runs after
+     * the merge, from the list on the manager when this module's pass starts.
+     *
      * @param string|array<int, string> $modules
      */
     public function load(string|array $modules): self
@@ -136,16 +141,54 @@ class ModuleManager implements \IteratorAggregate
         $resolved = array_diff_key($resolved, $this->modules);
 
         foreach ($resolved as $name => $module) {
+            // A loader appended from this module's own main() is not on this list.
+            $preLoaders = $this->preLoaders;
+            $record = $module;
 
-            foreach ($this->preLoaders as $loader) {
-                $module = $loader->load($module);
+            foreach ($preLoaders as $loader) {
+                if ($loader instanceof AutoLoader) {
+                    $record = $loader->load($record);
+                }
+            }
+
+            $merged = array_replace($this->defaults, $module);
+            $path = $module['path'] ?? null;
+
+            if (!is_string($path)) {
+                throw new \RuntimeException(sprintf('Module "%s" has no path.', $name));
+            }
+
+            $entry = $path.'/'.ModuleManifest::ENTRY;
+
+            if (is_file($entry)) {
+                $returned = $this->includeEntry($entry);
+
+                if (!is_array($returned)) {
+                    throw new \RuntimeException(sprintf('Module "%s" entry point must return an array.', $name));
+                }
+
+                $merged = array_replace($merged, $returned);
+            }
+
+            foreach (['name', 'require', 'include', 'autoload', 'nodes', 'path'] as $key) {
+                if (array_key_exists($key, $module)) {
+                    $merged[$key] = $module[$key];
+                } else {
+                    unset($merged[$key]);
+                }
+            }
+
+            foreach ($preLoaders as $loader) {
+                if (!$loader instanceof AutoLoader) {
+                    $merged = $loader->load($merged);
+                }
             }
 
             foreach ($this->postLoaders as $loader) {
-                $module = $loader->load($module);
+                $merged = $loader->load($merged);
             }
 
-            $this->modules[$name] = $module;
+            $this->modules[$name] = $merged;
         }
 
         return $this;
@@ -154,19 +197,9 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Registers modules from path(s).
      *
-     * Discovery learns what a module declares by executing its file, so a
-     * broken package throws here - before anything has been loaded, and long
-     * before there is a site left to report it on. Each include is therefore
-     * isolated: the throwing file registers no module and is kept for the boot
-     * to log, while every other package registers as usual.
-     *
-     * The isolation reaches as far as userland code can reach. A file throwing
-     * at top level is caught, and so is a ParseError, which PHP raises as a
-     * throwable. A genuinely fatal compile error - a duplicate class or
-     * function declaration - along with exit/die and exhausted memory or time
-     * still ends the request, because none of those is a throwable. That
-     * residue goes away only once discovery no longer executes the file to
-     * find out what is in it.
+     * Discovery reads the static manifest and does not execute the entry point.
+     * A manifest that cannot be decoded registers nothing and is kept for the
+     * boot to log; the sweep continues with the next file.
      *
      * @param string|array<int, string> $paths
      */
@@ -176,7 +209,6 @@ class ModuleManager implements \IteratorAggregate
         // would answer for modules that are no longer the ones on disk.
         $this->requiredBy = null;
 
-        $app = $this->app;
         $includes = [];
 
         foreach ((array) $paths as $path) {
@@ -185,29 +217,42 @@ class ModuleManager implements \IteratorAggregate
 
             foreach ($files as $file) {
 
-                // TODO: Must be refactored in Step 2.7.3 (Static Module Registration)
+                // A segment that starts with "." is a hidden sibling of an installed package, not a module.
+                if ($this->hasHiddenSegment($file) || !is_file($file)) {
+                    continue;
+                }
+
                 try {
-                    $module = include $file;
-                } catch (\Throwable $e) {
-                    $this->registrationFailures[$file] = $e;
+                    $module = $this->readManifest($file);
+                } catch (ModuleManifestException $exception) {
+                    $this->registrationFailures[$file] = $exception;
 
                     continue;
                 }
 
-                if (!is_array($module) || !isset($module['name'])) {
+                if ($module === null) {
                     continue;
                 }
 
-                $module = array_replace($this->defaults, $module);
                 $module['path'] = strtr(dirname($file), '\\', '/');
+                $name = $module['name'];
+
+                if (!is_string($name) || $name === '') {
+                    continue;
+                }
 
                 if (isset($module['include'])) {
-                    foreach ((array) $module['include'] as $include) {
-                        $includes[] = $this->resolvePath($include, $module['path']);
+                    $patterns = $module['include'];
+                    $patterns = is_array($patterns) ? $patterns : [$patterns];
+
+                    foreach ($patterns as $include) {
+                        if (is_string($include) && $include !== '') {
+                            $includes[] = $this->resolvePath($include, $module['path']);
+                        }
                     }
                 }
 
-                $this->registered[$module['name']] = $module;
+                $this->registered[$name] = $module;
             }
         }
 
@@ -564,6 +609,60 @@ class ModuleManager implements \IteratorAggregate
         $this->requiredBy = $index;
 
         return $index;
+    }
+
+    /**
+     * The entry point closes over $app from this scope.
+     *
+     * @return mixed Genuinely unknown type — PHP include returns the file's value, or 1 when the file returns nothing; the caller rejects a non-array.
+     */
+    private function includeEntry(string $file): mixed
+    {
+        $app = $this->app;
+
+        return include $file;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function readManifest(string $file): ?array
+    {
+        $size = filesize($file);
+
+        if ($size === false) {
+            throw new ModuleManifestException('The module manifest could not be read.');
+        }
+
+        if ($size > ModuleManifest::MAX_BYTES) {
+            throw new ModuleManifestException(sprintf('The module manifest exceeds %d bytes.', ModuleManifest::MAX_BYTES));
+        }
+
+        $handle = fopen($file, 'rb');
+
+        if ($handle === false) {
+            throw new ModuleManifestException('The module manifest could not be read.');
+        }
+
+        $json = stream_get_contents($handle, ModuleManifest::MAX_BYTES + 1);
+        fclose($handle);
+
+        if (!is_string($json) || strlen($json) > ModuleManifest::MAX_BYTES) {
+            throw new ModuleManifestException(sprintf('The module manifest exceeds %d bytes.', ModuleManifest::MAX_BYTES));
+        }
+
+        return ModuleManifest::decode($json);
+    }
+
+    private function hasHiddenSegment(string $path): bool
+    {
+        foreach (explode('/', strtr($path, '\\', '/')) as $segment) {
+            if ($segment !== '' && str_starts_with($segment, '.')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

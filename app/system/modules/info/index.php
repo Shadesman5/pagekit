@@ -6,14 +6,6 @@ use Pagekit\Info\InfoHelper;
 
 return [
 
-    'name' => 'system/info',
-
-    'require' => [
-
-        'routing',
-
-    ],
-
     'main' => function ($app) {
 
         $app->set('info', fn () => new InfoHelper(
@@ -27,12 +19,6 @@ return [
         ));
 
     },
-
-    'autoload' => [
-
-        'Pagekit\\Info\\' => 'src',
-
-    ],
 
     'routes' => [
 

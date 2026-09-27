@@ -7,6 +7,7 @@ namespace Pagekit\Tests\Unit\Module;
 use Pagekit\Application;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Module\ModuleManifestException;
 use Pagekit\Module\UnsatisfiedRequirementException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -276,19 +277,18 @@ final class ModuleRequirementTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string}>
      */
     public static function requirementsThatAreNotModuleNames(): iterable
     {
-        yield 'empty string' => ["['']", ''];
-        yield 'integer' => ['[42]', 'int'];
+        yield 'empty string' => [''];
     }
 
     #[DataProvider('requirementsThatAreNotModuleNames')]
-    public function testARequirementThatIsNotAModuleNameIsRefused(string $requirePhp, string $requirement): void
+    public function testARequirementThatIsNotAModuleNameIsRefused(string $requirement): void
     {
         $manager = $this->manager();
-        $manager->register([$this->writeModule('counted', $requirePhp)]);
+        $manager->register([$this->declareModule('counted', [$requirement])]);
 
         try {
             $manager->load('counted');
@@ -550,20 +550,23 @@ final class ModuleRequirementTest extends TestCase
             self::fail('The fixture module directory could not be created.');
         }
 
-        $file = $directory . '/index.php';
+        $file = $directory . '/module.json';
 
-        if (file_put_contents($file, "<?php\n\ndeclare(strict_types=1);\n\nreturn ['name' => 42];\n") === false) {
+        if (file_put_contents($file, "{\"name\":42}\n") === false) {
             self::fail('The fixture module could not be written.');
         }
 
         $manager->register([$file]);
+
+        self::assertInstanceOf(ModuleManifestException::class, $manager->getRegistrationFailures()[$file] ?? null);
+        self::assertFalse($manager->isRegistered('42'));
 
         try {
             $manager->load('42');
             self::fail('A module whose name is not text has to be refused.');
         } catch (\RuntimeException $e) {
             self::assertSame(\RuntimeException::class, $e::class);
-            self::assertSame('Undefined module: int', $e->getMessage());
+            self::assertSame('Undefined module: 42', $e->getMessage());
         }
 
         self::assertNull($manager->get('42'));
@@ -591,7 +594,7 @@ final class ModuleRequirementTest extends TestCase
         // A requirement that is not a name is skipped; a module already in the closure is not walked again.
         $manager = $this->manager();
         $manager->register([
-            $this->writeModule('system', "['', 42, 'alpha']"),
+            $this->declareModule('system', ['', 'alpha']),
             $this->declareModule('alpha', ['system', 'user']),
             $this->declareModule('user'),
             $this->declareModule('blog', ['user']),
@@ -634,12 +637,77 @@ final class ModuleRequirementTest extends TestCase
     {
         $manager = $this->manager();
         $manager->register([
-            $this->writeModule('alpha', "['', 42, 'shared']"),
+            $this->declareModule('alpha', ['', 'shared']),
             $this->declareModule('shared'),
         ]);
 
         self::assertSame(['alpha'], $manager->requiredBy('shared'));
         self::assertSame([], $manager->requiredBy(''));
+    }
+
+    public function testAnEmptyStringRequirementIsKeptAndSkippedByTheNameLists(): void
+    {
+        $manager = $this->manager();
+        $manager->register([
+            $this->declareModule('system', ['alpha', '', 'beta']),
+            $this->declareModule('alpha'),
+            $this->declareModule('beta'),
+        ]);
+
+        self::assertSame([], $manager->getRegistrationFailures());
+        self::assertTrue($manager->isRegistered('system'));
+        // The blank entry stays on the manifest; this list is what callers walk.
+        self::assertSame(['alpha', 'beta'], $manager->requires('system'));
+
+        $manager->setActivityPolicy([], 'system');
+
+        self::assertTrue($manager->isAlwaysLoaded('system'));
+        self::assertTrue($manager->isAlwaysLoaded('alpha'));
+        self::assertTrue($manager->isAlwaysLoaded('beta'));
+        self::assertFalse($manager->isAlwaysLoaded(''));
+        self::assertSame(['alpha', 'beta'], $manager->requires('system'));
+
+        try {
+            $manager->load('system');
+            self::fail('A blank requirement is still stored, so load has to refuse it.');
+        } catch (UnsatisfiedRequirementException $e) {
+            self::assertFalse($e->registered);
+            self::assertSame('system', $e->depender);
+            self::assertSame('', $e->requirement);
+            self::assertSame(
+                'Module "system" requires "", which is not registered.',
+                $e->getMessage(),
+            );
+        }
+
+        self::assertNull($manager->get('system'));
+        self::assertNull($manager->get('alpha'));
+        self::assertNull($manager->get('beta'));
+    }
+
+    public function testANonStringRequirementIsARegistrationFailure(): void
+    {
+        $manager = $this->manager();
+        $file = $this->declareModule('counted');
+
+        if (file_put_contents($file, "{\"name\":\"counted\",\"require\":[42]}\n") === false) {
+            self::fail('The fixture module could not be written.');
+        }
+
+        $manager->register([$file, $this->declareModule('alpha')]);
+
+        $failure = $manager->getRegistrationFailures()[$file] ?? null;
+
+        self::assertInstanceOf(ModuleManifestException::class, $failure);
+        self::assertStringContainsString('"require"', $failure->getMessage());
+        self::assertSame([$file], array_keys($manager->getRegistrationFailures()));
+        self::assertFalse($manager->isRegistered('counted'));
+        self::assertTrue($manager->isRegistered('alpha'));
+
+        $manager->load('alpha');
+
+        self::assertInstanceOf(Module::class, $manager->get('alpha'));
+        self::assertNull($manager->get('counted'));
     }
 
     private function manager(): ModuleManager
@@ -652,24 +720,19 @@ final class ModuleRequirementTest extends TestCase
      */
     private function declareModule(string $name, array $require = []): string
     {
-        return $this->writeModule($name, var_export(array_values($require), true));
-    }
-
-    /**
-     * Writes a manifest whose require value is the given PHP expression.
-     */
-    private function writeModule(string $name, string $requirePhp): string
-    {
         $directory = $this->workspace . '/' . $name;
 
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
             self::fail('The fixture module directory could not be created.');
         }
 
-        $file = $directory . '/index.php';
-        $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'name' => " . var_export($name, true) . ",\n    'require' => " . $requirePhp . ",\n];\n";
+        $file = $directory . '/module.json';
+        $contents = json_encode(
+            ['name' => $name, 'require' => array_values($require)],
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
 
-        if (file_put_contents($file, $contents) === false) {
+        if (file_put_contents($file, $contents."\n") === false) {
             self::fail('The fixture module could not be written.');
         }
 

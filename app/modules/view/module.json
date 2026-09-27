@@ -1,0 +1,14 @@
+{
+    "name": "view",
+    "require": [
+        "filesystem",
+        "kernel",
+        "markdown",
+        "routing",
+        "session"
+    ],
+    "autoload": {
+        "Pagekit\\View\\": "src",
+        "Pagekit\\Twig\\": "src/Twig"
+    }
+}

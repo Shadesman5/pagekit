@@ -1,0 +1,11 @@
+{
+    "name": "auth",
+    "require": [
+        "cookie",
+        "database",
+        "kernel"
+    ],
+    "autoload": {
+        "Pagekit\\Auth\\": "src"
+    }
+}

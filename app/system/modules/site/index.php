@@ -12,39 +12,7 @@ use Pagekit\Site\PackageNodeTypes;
 
 return [
 
-    'name' => 'system/site',
-
-    'require' => [
-
-        'config',
-        'database',
-        'filter',
-        'kernel',
-        'package',
-        'routing',
-        'system/content',
-        'system/user',
-        'view',
-
-    ],
-
     'main' => 'Pagekit\\Site\\SiteModule',
-
-    'autoload' => [
-
-        'Pagekit\\Site\\' => 'src',
-
-    ],
-
-    'nodes' => [
-
-        'page' => [
-            'name' => '@page',
-            'label' => 'Page',
-            'controller' => 'Pagekit\\Site\\Controller\\PageController',
-        ],
-
-    ],
 
     'routes' => [
 

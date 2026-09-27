@@ -7,6 +7,4 @@ declare(strict_types=1);
  * intact module on disk beside a broken one.
  */
 
-return [
-    'name' => 'fixture-healthy',
-];
+return [];

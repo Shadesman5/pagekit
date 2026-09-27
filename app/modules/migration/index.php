@@ -14,8 +14,6 @@ use Pagekit\Migration\MigrationService;
 
 return [
 
-    'name' => 'migration',
-
     'main' => function ($app) {
         $app->set('migration', function ($app) {
             $configPath = __DIR__ . '/../../config/migrations.php';
@@ -31,10 +29,6 @@ return [
             return new ConfigurationProvider($app->get('db'), $config);
         });
     },
-
-    'autoload' => [
-        'Pagekit\\Migration\\' => 'src',
-    ],
 
     'routes' => [
         // Migration routes (if web interface needed in future)

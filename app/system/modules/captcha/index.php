@@ -6,23 +6,6 @@ use Pagekit\Captcha\CaptchaListener;
 
 return [
 
-    'name' => 'system/captcha',
-
-    'require' => [
-
-        'auth',
-        'kernel',
-        'routing',
-        'view',
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Captcha\\' => 'src',
-
-    ],
-
     'resources' => [
 
         'system/captcha:' => '',

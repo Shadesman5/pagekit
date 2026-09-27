@@ -687,7 +687,6 @@ final class PackageRemovalPreflightTest extends TestCase
             [
                 'blog' => [
                     'post' => ['label' => 'Post'],
-                    0 => ['label' => 'Index'],
                     '' => ['label' => 'Blank'],
                     'page' => ['label' => 'Page'],
                 ],
@@ -796,8 +795,8 @@ final class PackageRemovalPreflightTest extends TestCase
             $module['nodes'] = $nodes;
         }
 
-        $file = $directory . '/index.php';
-        $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($module, true) . ";\n";
+        $file = $directory . '/module.json';
+        $contents = json_encode($module, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n";
 
         if (file_put_contents($file, $contents) === false) {
             self::fail('The fixture module could not be written.');

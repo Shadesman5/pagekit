@@ -19,8 +19,6 @@ use Symfony\Component\Stopwatch\Stopwatch;
 
 return [
 
-    'name' => 'debug',
-
     'main' => function ($app) {
 
         // The database module applies this list. It does not construct these classes.
@@ -129,23 +127,6 @@ return [
             ]);
 
         },
-
-    ],
-
-    'require' => [
-
-        'view',
-        'routing',
-        'auth',
-        'database',
-        'system/info',
-        'system/user',
-
-    ],
-
-    'autoload' => [
-
-        'Pagekit\\Debug\\' => 'src',
 
     ],
 

@@ -1,0 +1,10 @@
+{
+    "name": "session",
+    "require": [
+        "database",
+        "kernel"
+    ],
+    "autoload": {
+        "Pagekit\\Session\\": "src"
+    }
+}

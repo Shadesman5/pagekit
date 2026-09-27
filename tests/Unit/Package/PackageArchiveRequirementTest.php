@@ -369,8 +369,11 @@ final class PackageArchiveRequirementTest extends TestCase
             self::fail('The fixture module directory could not be created.');
         }
 
-        $file = $directory . '/index.php';
-        $contents = "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    'name' => " . var_export($name, true) . ",\n    'require' => " . var_export(array_values($require), true) . ",\n];\n";
+        $file = $directory . '/module.json';
+        $contents = json_encode(
+            ['name' => $name, 'require' => array_values($require)],
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        )."\n";
 
         if (file_put_contents($file, $contents) === false) {
             self::fail('The fixture module could not be written.');
