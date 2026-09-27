@@ -308,9 +308,10 @@ No second install path, no resolver, no Composer at runtime.
 **3. Validation & security**
 
 - The archive check (`Pagekit\Package\Archive\PackageArchive::open()`) refuses a malformed manifest
-  (missing or invalid `name` / `type` / `version` / `title`, a module manifest without a literal
-  `autoload` map) and an unsafe archive (absolute or traversing entry names, symlink entries,
-  oversize declared content) before anything is written; a published package meets the same check
+  (missing or invalid `name` / `type` / `version` / `title`, or a `module.json` that is missing,
+  not a JSON object, or without an `autoload` object of namespace prefix to folder) and an unsafe
+  archive (absolute or traversing entry names, symlink entries, oversize declared content) before
+  anything is written; a published package meets the same check
   at install. What this step adds is **provenance**: a checksum the index publishes and the client
   verifies before the archive reaches the install, and a signature over it once the trust model
   (signing keys, who may publish under a vendor name) exists — the download is untrusted input until

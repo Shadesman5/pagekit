@@ -35,7 +35,7 @@ A non-array return from the entry point throws `RuntimeException` `Module "%s" e
 
 Field readers keep native `string|array`, `array`, and scalar-or-structure parameters. PHPDoc names the iterable value `array<array-key, mixed>`. `{"include":1}`, `{"require":{}}`, `{"autoload":[]}`, and `{"nodes":[]}` are registration failures naming the field. A `nodes` object still stores nested scalars, nulls, and arrays.
 
-`packages/pagekit/blog/index.php` and `packages/pagekit/theme-one/index.php` keep `name` and `autoload` as PHP literals beside `module.json`. `PackageArchive` still parses `index.php`, and those two trees are what the shipped-archive tests zip. Blog's `nodes` live only in `module.json`. Opening the zipped blog tree still yields module `blog`, autoload `Pagekit\Blog\` => `src`, and `require` `[]`. Opening theme-one still yields module `theme-one` and an empty autoload map. `load()` writes those keys back from the registered record.
+`packages/pagekit/blog/index.php` and `packages/pagekit/theme-one/index.php` still return `name` and `autoload` beside `module.json`. `PackageArchive` reads `module.json` and does not open `index.php`. Those two trees are what the shipped-archive tests zip. Blog's `nodes` live only in `module.json`. Opening the zipped blog tree yields module `blog`, autoload `Pagekit\Blog\` => `src`, and `require` `[]`. Opening theme-one yields module `theme-one` and an empty autoload map. `load()` writes those keys back from the registered record.
 
 | File | Change |
 |---|---|
@@ -211,7 +211,10 @@ None.
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-None.
+- **Blog and theme-one still return registration keys.** `packages/pagekit/blog/index.php` returns `name` and `autoload`; `packages/pagekit/theme-one/index.php` returns the same. `ModuleManager::load()` writes those keys back from the registered `module.json`, and `PackageArchive` does not open `index.php`, so the literals do not register the module and are not what the archive check reads. → **2.8**
+- **An archive without `index.php` still installs.** `PackageArchive::open` does not check that the entry point exists. `ModuleManager::load()` merges the defaults with the registered record and does not include a file, so the module is `Pagekit\Module\Module` with `type` `module`. Recorded default: refuse a missing `index.php` without reading it. The other exit is to state that a manifest-only package loads that way. → **2.8**
+- **A key outside the registration record is ignored.** `ModuleManifest::fields` copies `name`, `require`, `include`, `autoload`, and `nodes` only. `type`, `main`, routes, events, and `config` in `module.json` are not a failure and do not reach `load()`. `include`, when present, has to be a non-empty string or a list of non-empty strings; `""` is a `ModuleManifestException`. → **2.8**
+- **The upload still describes a PHP array.** `PackageArchive::fieldMessage()` says `name` is `'name' => '%module%' as a string literal` and that `autoload` and `require` are an `array of string literals`. `ModuleManifest::decode` accepts `autoload` only as a JSON object, so `[]` is refused with that `autoload` sentence. Recorded default: those three sentences name the JSON shape. The other exit is to leave them and rely on the contract text. → **2.8**
 
 ---
 
@@ -238,7 +241,7 @@ None.
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-None.
+- README's archive checklist names `module.json` (`name`, `autoload`, `require`) and says the archive check does not open `index.php`.
 
 ---
 
@@ -247,7 +250,8 @@ None.
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-None.
+- **Missing entry point.** `PackageArchive::manifest` reads `module.json` through `ModuleManifest::decode` and never looks up `ModuleManifest::ENTRY`. `PackageArchiveTest::testOpenDoesNotRequireTheEntryPoint` opens a zip that has no `index.php`. `ModuleManager::load` builds `$path.'/'.ModuleManifest::ENTRY`, includes it only when `is_file` is true, then writes `name`, `require`, `include`, `autoload`, `nodes`, and `path` back from the registered record. With no file, the stored module is `array_replace` of `$defaults` (`main` null, `type` `module`, `class` `Pagekit\Module\Module`, `config` `[]`) and that record. `ModuleLoader::load` then constructs `Pagekit\Module\Module` and `Module::main` returns without calling a closure. Refusing the missing file is a presence check in `PackageArchive::open` before `extractTo`, still without reading the file. Leaving it means a `pagekit-extension` or `pagekit-theme` archive enables as that default module.
+- **Refusal wording.** `PackageArchive::refusedManifest` reads the field out of `Module manifest field "<field>" is invalid.` and `fieldMessage` picks the sentence. `name` keeps `'name' => '%module%' as a string literal`. `autoload` and `require` keep `array of string literals`. `include` is `gives no 'include' of non-empty strings` and `nodes` is `gives no 'nodes' object`. `ModuleManifest::fields` accepts `autoload` only as a JSON object; `[]` throws naming `autoload`, and `{}` is the empty map. Rewriting the three sentences changes the `__()` msgid. Leaving them means the upload text still names the PHP shape the decoder refuses.
 
 ---
 
