@@ -6,16 +6,20 @@
 **Branch:** `feature/static-module-registration`
 **ROADMAP Step:** 2.7.3 (Static Module Registration)
 **GitHub Issue:** [#266](https://github.com/Shadesman5/pagekit/issues/266)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#306](https://github.com/Shadesman5/pagekit/pull/306)
+**Status:** ✅ Complete
 **Started:** 2026-09-26 22:29
-**Completed:** _TBD_
+**Completed:** 2026-09-27 05:36
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Discovery reads `module.json` and does not execute `index.php`. `load()` applies the PSR-4 map from that record, includes `path/index.php` when the file exists, and writes `name`, `require`, `include`, `autoload`, `nodes`, and `path` back from the record. Defaults (`main`, `type`, `class`, `config`) are applied in that merge and are not stored at registration.
+
+`PackageArchive` reads `name`, `autoload`, and `require` from the same file and does not open `index.php`. A missing `module.json` or a manifest exception is `ArchiveRefusedException` before anything is written.
+
+First-party modules carry those registration keys in `module.json`. Blog and theme-one still repeat `name` and `autoload` in `index.php`. `load()` writes those keys back from the registered record.
 
 ---
 
@@ -95,31 +99,50 @@ Gates: Bugbot clean (no bugs); Security clean (no findings); E2E PASS. No fix-lo
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **A non-string `name` is a failure; a missing name or `""` is not.** Returning null for every non-string name was rejected: a wrong JSON type has to be a failure the archive refusal can name. `{}` and `{"name":""}` are skipped with `getRegistrationFailures()` empty. `{"name":42}` is stored under that path and the name is not registered.
+- **A string `require` element is kept, including `""`.** A non-string element is a registration failure and that module is not registered. `requires()` and the always-loaded closure skip `""`.
+- **A non-array entry point throws from `load()`, not as a `TypeError`.** `includeEntry()` returns `mixed` because `include` yields the file's value or `1`. The message is `Module "%s" entry point must return an array.` The module stays registered, `get($name)` is null, and the PSR-4 prefix added before the include stays.
+- **Field readers keep native parameter types.** `mixed` was rejected. A wrong type for `require`, `include`, `autoload`, or `nodes` is a registration failure naming the field. A `nodes` object still stores nested scalars, nulls, and arrays.
+- **The manifest exception's sentence is the archive refusal.** A property on the exception was rejected. A `JsonException` previous keeps `cannot be parsed` and includes the JSON error, so a non-UTF-8 document never reaches a path quote. A non-object says the archive's `module.json` is not a JSON object. `include` and `nodes` have their own sentences. `name`, `autoload`, and `require` keep theirs, with the filename `module.json`.
+- **The decoder exception wins, and only the decoded map is checked.** Walking folders or raw text first was rejected. A bad `require` or `include` is named, and a missing autoload folder in the same document is not. A repeated JSON key is the one `json_decode` keeps. An autoload key PHP stored as an int is cast to a string prefix and then checked as a folder. It is not an autoload-field refusal.
+- **`PackageZip` always writes `module.json`.** The fourth argument stays the `index.php` entry point. Parsing that entry point into `module.json` was rejected. A caller-supplied `module.json` replaces the default entry. A default zip opens with `module()` equal to the composer basename, `autoload()` `[]`, and `require()` `[]`.
+- **Blog and theme-one still repeat `name` and `autoload` in `index.php`.** Those literals stayed while the archive still parsed `index.php`, because the shipped-archive tests zip those two trees. The archive now reads `module.json` and does not open `index.php`. The literals are still in the two entry points. `load()` writes the keys back from the registered record.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+An extension or theme archive must include `module.json` at the package root. `name` is the part of the Composer name after the slash. `autoload` must be present (`{}` when there is no map) and each value must be a folder in the archive. `require` omitted means none. The archive check does not open `index.php`. Registration fields that exist only in `index.php` do not register the module and do not satisfy the archive check.
+
+On boot, `register()` reads `module.json` and does not execute `index.php`. `load()` runs `index.php` when that file exists, then restores `name`, `require`, `include`, `autoload`, `nodes`, and `path` from the registered record.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+- A zip whose `name` and `autoload` live only in `index.php` is refused, and that package does not register.
+- A module that is loaded still executes `index.php`. The extension fault barrier still covers that window. Discovery of a package that is only on disk does not execute it.
+- Blog and theme-one still contain `name` and `autoload` in `index.php`. Discovery and the archive read `module.json`.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+`register()` does not include the entry point. A throw or a side effect in `index.php` does not run at discovery.
+
+Size is checked before the bytes are decoded. Over 1 MiB is a registration failure, and an archive refusal, and the document is not decoded.
+
+A path segment that starts with `.` is not registered, including a path passed directly, so a retired `packages/<vendor>/.<name>-<hex>` tree is not a second module.
+
+Invalid JSON, a non-object, or a bad field is stored under that path and the sweep continues. The archive refuses the same document before a write.
+
+The entry point of a module that is being loaded still runs. There is no process sandbox.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+`register()` reads `module.json` through `ModuleManifest` and does not include `index.php`. There is no fallback to the entry point and no second decoder. The Step 2.7.3 TODO and the include `try` are gone. `PackageArchive` uses that same reader and no longer parses PHP. `nikic/php-parser` stays for the console visitor and the import-edge test.
 
 ---
 
@@ -128,14 +151,29 @@ _TBD_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PHP Tests | ✅ success — [run 36296661841](https://github.com/Shadesman5/pagekit/actions/runs/36296661841) on `f60f5ba2` |
+| CI — Frontend | ✅ success — [run 36296661845](https://github.com/Shadesman5/pagekit/actions/runs/36296661845) |
+| CI — Infection | ✅ success — [run 36296661839](https://github.com/Shadesman5/pagekit/actions/runs/36296661839) |
+| CI — e2e-smoke, e2e-merge | skipped by repository policy |
+| Pull request | [#306](https://github.com/Shadesman5/pagekit/pull/306) |
+| Coverage gap pass | ran — `tests/Unit/Module/ModuleLoadTest.php`, `tests/Unit/Module/ModuleManifestTest.php`, `tests/Unit/Module/ModuleRegistrationTest.php`, `tests/Unit/Package/PackageArchiveTest.php` |
+| Cursor Bugbot (PR) | ✅ clean |
+| Cursor Security Reviewer (PR) | ✅ clean |
+| E2E | PASS |
+
+**CI head:** `f60f5ba2fcb0e374dade89afb2fa9a8f10998dba`
+
+**Metrics (CI-owned):** [PR #306 quality-report comment](https://github.com/Shadesman5/pagekit/pull/306#issuecomment-5852718031) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Step 1: none. Step 2: production verifier FAIL (mixed parameters and integer autoload keys), then FAIL (fixtures still wrote registration fields into `index.php`), then PASS. Step 3: Bugbot clean; Security clean; E2E PASS; no fix-loops. Finalize: CI green on `f60f5ba2`; `e2e-smoke` and `e2e-merge` skipped by repository policy; coverage-gap pass ran; Bugbot clean; Security clean; E2E PASS. No finalize fix-loop.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -144,7 +182,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -153,13 +191,18 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.8** — the published package contract, author tooling, and upload-ZIP shape require this `module.json` beside `index.php`.
+- **Step 5.0** — a tier change rewrites that module's `module.json`. `system`'s `require` list lives there.
+- **Non-goals:** `vendor/` at the repo root (2.7.4); prebuilt JS/CSS (2.8); marketplace (5.6); process sandbox of enabled PHP; rebuilding the admin package list from `composer.json` (`title`, `version`, `type`).
+- **Bridges:** none.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- 2.7.4 — Standard Composer Layout (`vendor/` at the repo root)
+- 2.8 — Extension Packaging & Prebuilt Assets
+- 5.0 — a tier change rewrites `module.json`
 
 ---
 
@@ -168,7 +211,7 @@ _TBD / None_
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -177,7 +220,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -186,7 +229,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -195,7 +238,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -204,22 +247,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/<task-slug>_plan.md` (_TBD_ → move to `done/` after Finalize)
-- Task prompt: `migration-docs/TODO/agent_prompts/.../PROMPT_X_Y_Z_....md`
-- Predecessor: Step X.Y.(Z−1) — _TBD_
-- Successor: Step X.Y.(Z+1) — _TBD_
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_3_Static-Module-Registration_plan.md`
+- Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_3_Static-Module-Registration.md`
+- Predecessor: Step 2.7.2 — Module Dependency Integrity
+- Successor: Step 2.7.4 — Standard Composer Layout (`vendor/` at the repo root)
