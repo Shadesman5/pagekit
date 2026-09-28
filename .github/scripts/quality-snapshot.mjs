@@ -17,6 +17,12 @@
 // path-filtered, not yet uploaded, or a 404 workflow) yields no pairing / null metric, keeping the
 // blend null-safe.
 //
+// A paired commit older than the snapshot already on quality-data, or a pair that did
+// not report test and coverage numbers, does not replace that snapshot. History drops
+// the same class of point, and a later point that only repeats the previous real
+// numbers, so a bad collect cannot stay in the chart. A newer Nightly MSI is written
+// onto the published tip rather than onto the stale commit.
+//
 // Writes land on `quality-data` only — never on develop (no Ruleset bypass) — mirroring the
 // conductor-metrics push. GITHUB_TOKEN pushes do not re-trigger workflows, so the collector
 // dispatches pages-deploy explicitly to rebuild the site from the fresh snapshot.
@@ -25,6 +31,7 @@ import { execFileSync, execSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readdirSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, basename } from 'node:path';
+import { guardSnapshot, retainHistory } from './quality-snapshot-guard.mjs';
 
 const REPO = required('GITHUB_REPOSITORY');
 const BRANCH = (process.env.BRANCH || 'develop').trim() || 'develop';
@@ -72,12 +79,20 @@ function main() {
     return;
   }
   const { phpRun, e2eRun } = pair;
+  log(
+    `paired commit ${phpRun.head_sha} (php ${phpRun.id} @ ${phpRun.created_at}, e2e ${e2eRun.id} @ ${e2eRun.created_at})`
+  );
 
   // Full-suite Infection MSI comes from the latest Nightly on this branch whose infection-full
   // job actually ran (conclusion success). Idle Nightlies only run the guard and skip infection-
   // full — those still conclude the workflow as success, but have no infection.json. Picking the
   // newest workflow success blindly would null out a previously published MSI after an idle night.
   const nightlyRun = latestNightlyWithInfection({ branch: BRANCH });
+  log(
+    nightlyRun
+      ? `nightly ${nightlyRun.id} @ ${nightlyRun.run_started_at ?? nightlyRun.created_at}`
+      : 'no nightly with a successful infection-full job'
+  );
 
   const snapshot = buildSnapshot({ floor, baseline, phpRun, e2eRun, nightlyRun });
   publish(snapshot);
@@ -224,28 +239,65 @@ function historyEntry(s) {
   };
 }
 
-// Collect runs on every merge and every nightly, but the metrics rarely move. Appending regardless
-// would bury real change under duplicate points and grow the file the dashboard fetches for nothing.
-function historyChanged(prev, next) {
-  if (!prev) return true;
-  const watched = [
-    ['coverage', 'linePercent'],
-    ['phpunit', 'tests'],
-    ['phpunit', 'failures'],
-    ['phpstan', 'errors'],
-    ['phpstan', 'baselineBlocks'],
-    ['phpstan', 'suppressedErrors'],
-    ['e2e', 'specsPassed'],
-    ['e2e', 'specsTotal']
-  ];
-  if (watched.some(([group, key]) => next[group]?.[key] !== prev[group]?.[key])) return true;
+function nextHistory(original, guarded) {
+  let points = retainHistory(original, isAncestorCommit);
+  if (guarded) points = retainHistory([...points, historyEntry(guarded)], isAncestorCommit);
+  return points.slice(-HISTORY_CAP);
+}
 
-  // Infection counts only while the nightly reports. A run that is temporarily missing would
-  // otherwise register as a change on the way out and again on the way back in.
-  return ['msi', 'coveredMsi', 'killed', 'escaped'].some(key => {
-    const value = next.infection?.[key];
-    return value != null && value !== prev.infection?.[key];
-  });
+function logHistoryEdits(before, after) {
+  const beforeKeys = new Set(before.map(pointKey));
+  const afterKeys = new Set(after.map(pointKey));
+  for (const point of before) {
+    if (!afterKeys.has(pointKey(point))) {
+      log(`dropped history point ${point.at} ${point.sha ?? 'no-sha'}`);
+    }
+  }
+  for (const point of after) {
+    if (!beforeKeys.has(pointKey(point))) {
+      log(
+        `appended history point ${point.at} ${point.sha} (${after.length} total, cap ${HISTORY_CAP}).`
+      );
+    }
+  }
+}
+
+function pointKey(point) {
+  return `${point?.at}|${point?.sha}`;
+}
+
+function readSnapshotFile() {
+  if (!existsSync(SNAPSHOT_PATH)) return null;
+  return safe(() => JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')));
+}
+
+function readRemoteJson(path) {
+  const raw = gh(
+    [
+      'api',
+      '-H',
+      'Accept: application/vnd.github.raw',
+      `/repos/${REPO}/contents/${path}?ref=${DATA_BRANCH}`
+    ],
+    { allowFail: true }
+  );
+  return raw ? safe(() => JSON.parse(raw)) : null;
+}
+
+// True when `older` is a strict ancestor of `newer`. A missing object or a non-ancestor
+// answers false — the collect then keeps its other guards rather than guessing.
+function isAncestorCommit(older, newer) {
+  if (!isFullSha(older) || !isFullSha(newer)) return false;
+  try {
+    sh(`git merge-base --is-ancestor ${older} ${newer}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isFullSha(sha) {
+  return typeof sha === 'string' && /^[0-9a-f]{40}$/i.test(sha);
 }
 
 function readHistoryFile() {
@@ -263,11 +315,23 @@ function writeHistoryFile(points) {
 // Successful runs of a workflow on the branch, newest-first. The API already returns newest-first;
 // sort by id defensively so both head-SHA pairing and "latest" selection are deterministic.
 function successfulRuns(workflowFile, { branch, event } = {}) {
-  const qs = new URLSearchParams({ status: 'completed', per_page: '30' });
-  if (branch) qs.set('branch', branch);
-  if (event) qs.set('event', event);
-  const obj = ghApiObject(`/repos/${REPO}/actions/workflows/${workflowFile}/runs?${qs}`);
-  const runs = Array.isArray(obj?.workflow_runs) ? obj.workflow_runs : [];
+  // One page of 30 hid nothing in this repo, but a short or stale page is how an old
+  // green pair becomes "latest". Walk a few full pages so the tip is in the list the
+  // ancestry guard then refuses to roll backwards.
+  const runs = [];
+  for (let page = 1; page <= 5; page++) {
+    const qs = new URLSearchParams({
+      status: 'completed',
+      per_page: '100',
+      page: String(page)
+    });
+    if (branch) qs.set('branch', branch);
+    if (event) qs.set('event', event);
+    const obj = ghApiObject(`/repos/${REPO}/actions/workflows/${workflowFile}/runs?${qs}`);
+    const batch = Array.isArray(obj?.workflow_runs) ? obj.workflow_runs : [];
+    runs.push(...batch);
+    if (batch.length < 100) break;
+  }
   return runs.filter(r => r.conclusion === 'success').sort((a, b) => Number(b.id) - Number(a.id));
 }
 
@@ -423,48 +487,65 @@ function deriveViewports(report) {
 // Reading the previous series over the API instead makes the diff-guard verdict real rather than a
 // guess — the one thing worth checking before this script reaches the default branch.
 function dryRunPublish(snapshot) {
-  const raw = gh(
-    [
-      'api',
-      '-H',
-      'Accept: application/vnd.github.raw',
-      `/repos/${REPO}/contents/${HISTORY_PATH}?ref=${DATA_BRANCH}`
-    ],
-    { allowFail: true }
-  );
-  const parsed = raw ? safe(() => JSON.parse(raw)) : null;
-  const points = Array.isArray(parsed?.points) ? parsed.points : [];
-  const entry = historyEntry(snapshot);
-  const changed = historyChanged(points.at(-1) ?? null, entry);
+  const previous = readRemoteJson(SNAPSHOT_PATH);
+  const guarded = guardSnapshot(previous, snapshot, isAncestorCommit);
+  const history = readRemoteJson(HISTORY_PATH);
+  const original = Array.isArray(history?.points) ? history.points : [];
+  const points = nextHistory(original, guarded);
 
-  log(`DRY_RUN=1 — nothing written. ${points.length} existing history point(s) on ${DATA_BRANCH}.`);
   log(
-    changed
-      ? 'watched metrics changed — would append:'
-      : 'watched metrics unchanged — would NOT append:'
+    `DRY_RUN=1 — nothing written. ${original.length} existing history point(s) on ${DATA_BRANCH}.`
   );
-  console.log(`\n--- snapshot ---\n${JSON.stringify(snapshot, null, 2)}`);
-  console.log(`\n--- history entry ---\n${JSON.stringify(entry, null, 2)}\n`);
+  if (!guarded) {
+    log(
+      `would keep published snapshot ${previous?.commit ?? 'none'} — candidate ${snapshot.commit} is older or did not report test and coverage numbers.`
+    );
+  } else if (previous?.commit && guarded.commit !== snapshot.commit) {
+    log(`would keep published commit ${previous.commit} and record infection on that tip.`);
+  } else {
+    log(`would publish commit ${guarded.commit}.`);
+  }
+  logHistoryEdits(original, points);
+  console.log(`\n--- snapshot ---\n${JSON.stringify(guarded ?? previous, null, 2)}`);
+  console.log(`\n--- history ---\n${JSON.stringify(points, null, 2)}\n`);
 }
 
 function publish(snapshot) {
   if (DRY_RUN) return dryRunPublish(snapshot);
 
-  const body = `${JSON.stringify(snapshot, null, 2)}\n`;
   ensureGitIdentity();
   ensureDataBranch();
   sh(`git fetch origin ${DATA_BRANCH}`);
   sh(`git checkout -B ${DATA_BRANCH} origin/${DATA_BRANCH}`);
-  writeFileSync(SNAPSHOT_PATH, body);
 
-  // The checkout above put the branch's own history on disk, so this compares against exactly what is
-  // about to be amended. An unchanged tuple still lets the snapshot refresh its updatedAt / runIds —
-  // only the series stays put.
-  const points = readHistoryFile();
-  const entry = historyEntry(snapshot);
-  if (historyChanged(points.at(-1) ?? null, entry)) {
-    writeHistoryFile([...points, entry].slice(-HISTORY_CAP));
-    log(`appended history point (${points.length + 1} total, cap ${HISTORY_CAP}).`);
+  const previous = readSnapshotFile();
+  const guarded = guardSnapshot(previous, snapshot, isAncestorCommit);
+  const original = readHistoryFile();
+  const points = nextHistory(original, guarded);
+  const historyDirty = JSON.stringify(points) !== JSON.stringify(original);
+
+  if (!guarded && !historyDirty) {
+    log(
+      `keeping published snapshot ${previous?.commit ?? 'none'} — candidate ${snapshot.commit} is older or did not report test and coverage numbers.`
+    );
+    return;
+  }
+  if (!guarded) {
+    log(
+      `keeping published snapshot ${previous.commit}; history ${original.length} → ${points.length}.`
+    );
+  } else if (previous?.commit && guarded.commit !== snapshot.commit) {
+    log(`keeping published commit ${previous.commit}; recording infection from the new nightly.`);
+    writeFileSync(SNAPSHOT_PATH, `${JSON.stringify(guarded, null, 2)}\n`);
+  } else {
+    writeFileSync(SNAPSHOT_PATH, `${JSON.stringify(guarded, null, 2)}\n`);
+  }
+
+  // The checkout above put the branch's own history on disk. An unchanged tuple still
+  // lets the snapshot refresh its updatedAt / runIds — only the series stays put.
+  if (historyDirty) {
+    writeHistoryFile(points);
+    logHistoryEdits(original, points);
   } else {
     log('watched metrics unchanged — history not extended.');
   }

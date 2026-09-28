@@ -92,6 +92,8 @@ Top-level shape (see `quality-snapshot.json` for a full example):
 
 An unchanged collection still refreshes the snapshot's `updatedAt` and run IDs; the series stays put. The file keeps the last **90** points so the dashboard can fetch it on every page load.
 
+A collect never replaces the published tip with an older commit, or with a run that did not report test and coverage numbers. A newer Nightly MSI is applied to that tip instead. History drops a point that is missing those numbers, whose commit is older than the previous point, or that repeats the previous point's watched metrics.
+
 ## Collect triggers
 
 `quality-collect.yml` runs on any successful non-PR run of:
