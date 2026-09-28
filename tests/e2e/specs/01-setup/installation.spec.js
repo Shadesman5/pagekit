@@ -2,7 +2,8 @@
  * Complete Installation Test for Pagekit
  * Tests the actual multi-step installation process
  *
- * Prerequisites: Pagekit must NOT be installed (no config.php or pagekit.db)
+ * Prerequisites: Pagekit must NOT be installed (no config.php, no data/pagekit.db).
+ * A pagekit.db in the project root is not the installation database.
  * Configuration: Uses test-config.json for installation settings
  */
 
@@ -33,11 +34,11 @@ test.describe('Pagekit Installation Process', { tag: '@ci' }, () => {
 
     // Quick check if Pagekit is already installed
     const configPath = path.join(process.cwd(), 'config.php');
-    const dbPath = path.join(process.cwd(), 'pagekit.db');
+    const dbPath = path.join(process.cwd(), 'data', 'pagekit.db');
 
     if (fs.existsSync(configPath) || fs.existsSync(dbPath)) {
       testConfig.error('Pagekit is already installed!');
-      testConfig.info('Remove config.php and pagekit.db for fresh installation test', '💡');
+      testConfig.info('Remove config.php and data/pagekit.db for fresh installation test', '💡');
       throw new Error(
         'Installation test requires clean state - remove existing installation files'
       );
@@ -215,10 +216,10 @@ test.describe('Pagekit Installation Process', { tag: '@ci' }, () => {
     expect(configExists).toBeTruthy();
     testConfig.success('config.php created', '📄');
 
-    // Check that database was created
-    const dbExists = fs.existsSync('pagekit.db');
+    // A root pagekit.db is a leftover, not the file this install writes.
+    const dbExists = fs.existsSync(path.join(process.cwd(), 'data', 'pagekit.db'));
     expect(dbExists).toBeTruthy();
-    testConfig.success('pagekit.db created', '🗃️');
+    testConfig.success('data/pagekit.db created', '🗃️');
 
     // ========================================
     // Critical: Test admin access
@@ -281,7 +282,7 @@ test.describe('Pagekit Installation Process', { tag: '@ci' }, () => {
     const summary = `📋 Installation Summary:
 • Site: ${siteTitle}
 • Admin: ${adminCreds.username}
-• Database: SQLite (pagekit.db)
+• Database: SQLite (data/pagekit.db)
 • Language: ${testConfig.getInstallationLanguage()}
 • Demo content: ${testConfig.getInstallationDemoContent() ? 'Enabled' : 'Disabled'}
 • Total time: ${totalTime}

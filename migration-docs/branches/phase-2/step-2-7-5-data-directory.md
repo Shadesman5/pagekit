@@ -60,6 +60,23 @@ Boot names `path.data` as `$path.'/data'`, with snapshots and the failure record
 
 Gates: production verifier PASS; production tester PASS; test-writer done; test verifier PASS; coverage tester PASS. No deviations.
 
+### Upgrade note and living instructions (Checklist Step 2)
+
+Living instructions and the installation spec point at `data/`. A fresh install writes `data/pagekit.db`. The spec and its README treat a root `pagekit.db` as a leftover, not the installation database. The printed setup line removes that root file as well as `data/pagekit.db`.
+
+| File | Change |
+|---|---|
+| `README.md` | `data/` is writable and mode `0700`; `tmp/` and `storage/` stay writable; `packages/` stays writable. Three lifetimes, and a one-time hand copy of `tmp/snapshots` to `data/snapshots` and `tmp/system` to `data/state`. An existing `config.php` that names `pagekit.db` keeps that file. Shared hosting lists `data/` beside `config.php`. `pagekit_data` mounts at `/var/www/html/data` with no `tmp/snapshots` link. A volume that already exists keeps its files at the volume root; a `config.php` that still says `/var/www/data/pagekit.db` is overridden while `PAGEKIT_DB_PATH` is set, and the container-local failure record has to be copied to `data/state` before recreate. Runtime package location is Step 2.8. The `archive --dir` example is `/var/www/html/data`. |
+| `AGENTS.md` | A first run writes `/workspace/data/pagekit.db`. The prod image uses `PAGEKIT_DATA_DIR=/var/www/html/data` and refuses to start unless `data/` is writable. The Windows `PAGEKIT_DB_PATH` example is `/var/www/html/data/pagekit.db`. |
+| `.cursor/agents/tester.md` | Both clean-state commands are `rm -f config.php pagekit.db data/pagekit.db`. |
+| `.cursor/skills/e2e-test-architect/runtime-patterns.md` | The installation-spec clean state includes `data/pagekit.db`. |
+| `tests/e2e/README.md` | The installation spec needs no `config.php` and no `data/pagekit.db`. A root `pagekit.db` is not that database. The default SQLite file is `data/pagekit.db`. The clean-state command includes it. |
+| `tests/e2e/config/test-config.example.json` | SQLite `path` is `data/pagekit.db`. |
+| `tests/e2e/helpers/test-config.js` | The SQLite default path is `data/pagekit.db`. `printSetupInstructions` also names a root `pagekit.db`. |
+| `tests/e2e/specs/01-setup/installation.spec.js` | Not installed means no `config.php` and no `data/pagekit.db`. After a SQLite install the file is `data/pagekit.db`. A root `pagekit.db` is not the installation database. |
+
+No PHPUnit tests. Gates: production verifier PASS; production tester PASS; test-writer skip. No deviations.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -67,6 +84,8 @@ Gates: production verifier PASS; production tester PASS; test-writer done; test 
 - **The failure names the directory and the warning the failed call left.** `RuntimeDirectories::failure` throws the directory path, or `{directory}: {warning}` when `error_get_last()` left a message. A fixed sentence in place of that warning was rejected. The message contains the directory, and contains that warning text when the failed call left one.
 - **The package-boundary stand-in names the three private paths inside its temp tree.** `PackageModuleBoundaryTest::managerRegisteredBy` sets `path.data`, `path.snapshots`, and `path.system` under that root. Leaving them unset was rejected: the installer include calls `ensure()` on those keys, and a missing key type-errors before registration. `registrationRoot()` creates `data` there before the include, and the three paths stay inside that temp tree.
 - **The installer baseline keeps its two identifiers.** Undefined `$config` and `$path` in `app/installer/app.php` are counted 4 and 4. A new ignore was rejected. Those counts match the reads of the boot variables the include injects.
+- **The installation README and the spec agree on the two files that mean installed.** `tests/e2e/README.md` requires no `config.php` and no `data/pagekit.db`, and says a root `pagekit.db` is not that database. Leaving the old "no pagekit.db" sentence was rejected: it would still treat the root file as the install. That README and `installation.spec.js` name the same two files.
+- **The printed fresh-install line follows the clean-state command.** `TestConfig::printSetupInstructions` names `config.php`, `pagekit.db`, and `data/pagekit.db`. Naming only the SQLite default there was rejected: the clean-state command also removes a leftover root `pagekit.db`. The default path and `test-config.example.json` are `data/pagekit.db`.
 
 ---
 

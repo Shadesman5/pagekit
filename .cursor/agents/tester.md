@@ -24,10 +24,10 @@ You are the **exclusive test runner** in the workflow. No other agent (Refactore
 
 ## Clean-state rule (CRITICAL)
 
-Before **any** fresh installation — whether via `php pagekit setup` or Playwright E2E tests — you MUST remove stale state files from the workspace root. Failing to do so causes installation errors.
+Before **any** fresh installation — whether via `php pagekit setup` or Playwright E2E tests — you MUST remove the stale installation files below. Failing to do so causes installation errors.
 
 ```bash
-rm -f pagekit.db config.php
+rm -f config.php pagekit.db data/pagekit.db
 ```
 
 Run this **every time** before:
@@ -65,9 +65,9 @@ Triggers: Execute `(XL)` after Bugbot and Security are clean; Finalize fix-loop 
 Do **not** wait on CI yourself; the Orchestrator owns `gh run watch`.
 
 1. **Run Playwright E2E (locally)**:
-   - Clean state: `rm -f pagekit.db config.php`
+   - Clean state: `rm -f config.php pagekit.db data/pagekit.db`
    - Smoke tests: `php pagekit setup` (installation smoke) and `php pagekit list` (console smoke).
-   - Clean state again: `rm -f pagekit.db config.php` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
+   - Clean state again: `rm -f config.php pagekit.db data/pagekit.db` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
    - Run the 3 stable E2E specs sequentially:
      ```bash
      npx playwright test tests/e2e/specs/01-setup/installation.spec.js

@@ -14,7 +14,7 @@
   "database": {
     "sqlite": {
       "enabled": true,
-      "path": "pagekit.db",
+      "path": "data/pagekit.db",
       "prefix": "pk_"
     },
     "mysql": {

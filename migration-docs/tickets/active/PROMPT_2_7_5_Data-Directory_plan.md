@@ -31,7 +31,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (L) — Move writable state to data/ and mount it
-- [ ] Step 2 (M) — Upgrade note, living docs, installation spec
+- [x] Step 2 (M) — Upgrade note, living docs, installation spec
 - [ ] Step 3 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
@@ -55,6 +55,7 @@
 - `PackageModuleBoundaryTest::managerRegisteredBy` — the stand-in `$config` names `path.data`, `path.snapshots`, and `path.system` under the temp root. Leaving them unset was rejected: the installer include calls `ensure()` on those keys and a missing key type-errors before registration. Invariant: the three paths stay inside that temp tree, and `registrationRoot()` creates `data` there before the include.
 - `phpstan-baseline.neon` — the existing undefined-`$config` and undefined-`$path` counts in `app/installer/app.php` are 4 and 4. A new ignore was rejected. Invariant: no new baseline identifier; those counts match the reads of the boot variables the include injects.
 ### Step 2
-_none yet_
+- `tests/e2e/README.md` — the installation-spec prerequisite is no `config.php` and no `data/pagekit.db`, and a root `pagekit.db` is not that database. Leaving the old "no pagekit.db" sentence was rejected because it would still treat the root file as the install. Invariant: that README and `installation.spec.js` agree on those two files.
+- `test-config.js::printSetupInstructions` — the fresh-install line names `config.php`, `pagekit.db`, and `data/pagekit.db`. The ticket named the SQLite default in this file and the clean-state command elsewhere; the printed line follows that command. Invariant: the default path and `test-config.example.json` are `data/pagekit.db`.
 ### Step 3
 _none yet_
