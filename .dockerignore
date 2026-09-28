@@ -3,7 +3,7 @@
 # /var/www/html at runtime - while the production build takes the sources and
 # produces the rest of the image from them.
 
-# Dependencies — installed in the image or in the running container
+# Dependencies — installed in the image or in the running container.
 node_modules
 vendor/
 
