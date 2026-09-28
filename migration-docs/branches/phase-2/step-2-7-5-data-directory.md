@@ -21,27 +21,52 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme>
+### Private state under `data/` (Checklist Step 1)
+
+Boot names `path.data` as `$path.'/data'`, with snapshots and the failure record inside it. `RuntimeDirectories::ensure()` leaves those three directories present and mode `0700`: `system` and `console` call it before their apps load, and the installer calls it only after the requirements list is empty. A fresh SQLite install uses `data/pagekit.db`. The image keeps that directory at `/var/www/html/data` on `pagekit_data`.
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `app/modules/filesystem/src/RuntimeDirectories.php` (new) | `ensure()` creates a missing directory, then `chmod` `0700`. A failed `mkdir` or `chmod`, or a mode that is not `0700`, throws `\RuntimeException`. |
+| `public/index.php` | Adds `path.data`. `path.snapshots` is `$path.'/data/snapshots'` and `path.system` is `$path.'/data/state'`. `system` and `console` call `ensure()` on those three paths before their apps are required. |
+| `app/installer/app.php` | After the requirements list is empty, `ensure()` runs on the three paths, before `new App`. |
+| `app/installer/requirements.php` | The writable list includes `$path/data`. |
+| `app/modules/database/index.php` | SQLite `'path'` is `data/pagekit.db`. |
+| `app/console/src/Commands/BuildCommand.php` | Release exclude `^data\/[^\/]+\.db`. |
+| `phpstan-baseline.neon` | Undefined `$config` and `$path` counts in `app/installer/app.php` are 4 and 4. |
+| `data/.htaccess`, `data/snapshots/.htaccess`, `data/state/.htaccess` | `Require all denied`. |
+| `data/.gitignore` | Ignores `*` and keeps its guards plus `snapshots/` and `state/` and the guards inside each. |
+| `data/snapshots/.gitignore`, `data/state/.gitignore` | Ignore `*` and keep `.htaccess` and `.gitignore`. |
+| `tmp/snapshots/.htaccess`, `tmp/snapshots/.gitignore`, `tmp/system/.htaccess`, `tmp/system/.gitignore` | Deleted. |
+| `Dockerfile` | `PAGEKIT_DATA_DIR` is `/var/www/html/data`. Copies `data/`, `chmod 0700` that directory, and `chown`s it to `www-data` with `tmp` and `storage`. `PAGEKIT_DB_PATH` follows the variable. The `config.php` symlink stays aimed at `$PAGEKIT_DATA_DIR/config.php`. |
+| `docker/entrypoint.sh` | Fallback data directory is `/var/www/html/data`. `chmod 0700` when the account can, then exits unless the serving user can write it. |
+| `docker-compose.prod.yml` | `pagekit_data` mounts at `/var/www/html/data`. |
+| `prod.env.example` | Example `PAGEKIT_DATA_DIR` and `PAGEKIT_DB_PATH` are `/var/www/html/data` and `/var/www/html/data/pagekit.db`. |
+| `.dockerignore` | Ignores the contents of `data/` except the guards, and ignores `**/db.dump`. |
+| `.github/workflows/docker-image.yml` | Asserts the database file and `config.php` use `/var/www/html/data/pagekit.db`, and that `/var/www/html/data` is a directory the serving user can write. |
 
-_TBD_
-
-#### Tests (only if added or changed)
+#### Tests (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `tests/Unit/Filesystem/RuntimeDirectoriesTest.php` (new) | `ensure()` leaves mode `0700`. A create, chmod, or mode that cannot stay owner-only throws. The message is the directory, and includes the warning when the failed call left one. |
+| `tests/Unit/Filesystem/WritablePathPostureTest.php` (new) | Reads boot paths and image wiring without booting. Temp, cache, and logs stay under `tmp/`; data, snapshots, and state stay under `data/`; storage stays under `storage/`. Shipped `data/` guards deny requests. `system` and `console` call `ensure()` before their apps; the installer calls it after the requirements exit and before `new App`. `requirements.php` lists `$path/data`. The image workflow asserts `/var/www/html/data`. |
+| `tests/Unit/Snapshot/SnapshotPathWiringTest.php` | Deleted. |
+| `app/modules/database/src/Tests/SqlitePathResolutionTest.php` | With the working directory on `public/`, the module default resolves to `<root>/data/pagekit.db` and stays outside `public/`. `tearDown` removes that file and the `data/` directory. |
+| `tests/Unit/Console/BuildCommandExcludeTest.php` | `data/pagekit.db` and `data/other.db` match the exclude. Guards, a dump, and a nested `data/` do not. |
+| `tests/Unit/Installer/SelfUpdaterCleanupTest.php` | Clean folders stay `app` and `vendor`. Ignore folders stay `packages` and `storage`. |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | `registrationRoot()` creates `data`. The stand-in config names the three private paths under that temp root. The installer include leaves them mode `0700`; the other boots leave `data` at `0755` and do not create the children. |
+| `app/modules/kernel/src/Tests/EnvConfigLoaderTest.php` | The single-variable case expects the module default `data/pagekit.db`. |
 
-_TBD_
+Gates: production verifier PASS; production tester PASS; test-writer done; test verifier PASS; coverage tester PASS. No deviations.
 
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **The failure names the directory and the warning the failed call left.** `RuntimeDirectories::failure` throws the directory path, or `{directory}: {warning}` when `error_get_last()` left a message. A fixed sentence in place of that warning was rejected. The message contains the directory, and contains that warning text when the failed call left one.
+- **The package-boundary stand-in names the three private paths inside its temp tree.** `PackageModuleBoundaryTest::managerRegisteredBy` sets `path.data`, `path.snapshots`, and `path.system` under that root. Leaving them unset was rejected: the installer include calls `ensure()` on those keys, and a missing key type-errors before registration. `registrationRoot()` creates `data` there before the include, and the three paths stay inside that temp tree.
+- **The installer baseline keeps its two identifiers.** Undefined `$config` and `$path` in `app/installer/app.php` are counted 4 and 4. A new ignore was rejected. Those counts match the reads of the boot variables the include injects.
 
 ---
 

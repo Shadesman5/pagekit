@@ -56,6 +56,26 @@ final class BuildCommandExcludeTest extends TestCase
         self::assertSame(0, preg_match($filter, 'app/vendor/acme/widget/tests/Foo.php'));
     }
 
+    public function testADatabaseFileUnderDataIsLeftOutOfTheRelease(): void
+    {
+        $patterns = $this->excludes();
+
+        self::assertContains('^data\\/[^\\/]+\\.db', $patterns);
+
+        $filter = '/'.implode('|', $patterns).'/i';
+
+        self::assertSame(1, preg_match($filter, 'data/pagekit.db'));
+        self::assertSame(1, preg_match($filter, 'data/other.db'));
+        self::assertSame(0, preg_match($filter, 'nested/data/pagekit.db'));
+        self::assertSame(0, preg_match($filter, 'data/.htaccess'));
+        self::assertSame(0, preg_match($filter, 'data/.gitignore'));
+        self::assertSame(0, preg_match($filter, 'data/snapshots/.htaccess'));
+        self::assertSame(0, preg_match($filter, 'data/snapshots/.gitignore'));
+        self::assertSame(0, preg_match($filter, 'data/state/.htaccess'));
+        self::assertSame(0, preg_match($filter, 'data/state/.gitignore'));
+        self::assertSame(0, preg_match($filter, 'data/snapshots/db.dump'));
+    }
+
     /**
      * @return list<string>
      */

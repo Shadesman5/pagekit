@@ -15,6 +15,14 @@ if ($failed = $requirements->getFailedRequirements()) {
     exit;
 }
 
+// A directory this process cannot write is already a row above. One it can
+// write but cannot leave owner-only must still not serve the installer.
+require_once $path.'/app/modules/filesystem/src/RuntimeDirectories.php';
+
+\Pagekit\Filesystem\RuntimeDirectories::ensure($config['path.data']);
+\Pagekit\Filesystem\RuntimeDirectories::ensure($config['path.snapshots']);
+\Pagekit\Filesystem\RuntimeDirectories::ensure($config['path.system']);
+
 $app = new App($config);
 $app->set('autoloader', $loader);
 

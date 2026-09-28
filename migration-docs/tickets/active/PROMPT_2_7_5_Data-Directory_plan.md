@@ -30,7 +30,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (L) — Move writable state to data/ and mount it
+- [x] Step 1 (L) — Move writable state to data/ and mount it
 - [ ] Step 2 (M) — Upgrade note, living docs, installation spec
 - [ ] Step 3 (XL) — Review (Bugbot + Security) + E2E
 
@@ -51,7 +51,9 @@
      `File::symbol` — chosen vs. rejected, why, the invariant a test must hold. Files that follow the
      plan get no line; a step with no open decision gets `none`. Architect leaves every step `_none yet_`. -->
 ### Step 1
-_none yet_
+- `RuntimeDirectories::failure` — message is the directory, and when `error_get_last()` left a message it is `{directory}: {warning}`. A fixed sentence in place of that warning was rejected. Invariant: the message contains the directory path, and contains that warning text when the failed call left one.
+- `PackageModuleBoundaryTest::managerRegisteredBy` — the stand-in `$config` names `path.data`, `path.snapshots`, and `path.system` under the temp root. Leaving them unset was rejected: the installer include calls `ensure()` on those keys and a missing key type-errors before registration. Invariant: the three paths stay inside that temp tree, and `registrationRoot()` creates `data` there before the include.
+- `phpstan-baseline.neon` — the existing undefined-`$config` and undefined-`$path` counts in `app/installer/app.php` are 4 and 4. A new ignore was rejected. Invariant: no new baseline identifier; those counts match the reads of the boot variables the include injects.
 ### Step 2
 _none yet_
 ### Step 3

@@ -55,14 +55,11 @@ $config = [
     'path.temp' => $path.'/tmp/temp',
     'path.cache' => $path.'/tmp/cache',
     'path.logs' => $path.'/tmp/logs',
-    // State the application has to find again after a fault, kept apart from the
-    // temp and cache directories because clearing the cache empties those - and
-    // outside storage/, which the webroot links to.
-    'path.system' => $path.'/tmp/system',
-    // What a removed package can be restored from. Same posture as the state
-    // above and for a stronger reason: a snapshot has to survive weeks of cache
-    // clears, and it carries a database dump that may not be reachable over HTTP.
-    'path.snapshots' => $path.'/tmp/snapshots',
+    // The only private copy. Snapshots and the failure record have to survive a
+    // cache clear, and neither may be reachable through the public storage link.
+    'path.data' => $path.'/data',
+    'path.snapshots' => $path.'/data/snapshots',
+    'path.system' => $path.'/data/state',
     'path.vendor' => $path.'/vendor',
     'config.file' => realpath($path.'/config.php'),
     'system.api' => 'https://pagekit.com',
@@ -74,6 +71,16 @@ if (!$config['config.file'] || !file_exists($config['config.file'])) {
 
 if (PHP_SAPI == 'cli') {
     $env = 'console';
+}
+
+// Loaded before the autoload: the class has no imports and no constructor work.
+// The installer checks writability first and creates these directories itself.
+require_once "$path/app/modules/filesystem/src/RuntimeDirectories.php";
+
+if ($env === 'system' || $env === 'console') {
+    \Pagekit\Filesystem\RuntimeDirectories::ensure($config['path.data']);
+    \Pagekit\Filesystem\RuntimeDirectories::ensure($config['path.snapshots']);
+    \Pagekit\Filesystem\RuntimeDirectories::ensure($config['path.system']);
 }
 
 require_once "$path/app/$env/app.php";

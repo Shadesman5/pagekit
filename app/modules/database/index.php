@@ -177,7 +177,7 @@ $config = [
 
                 'driver' => 'pdo_sqlite',
                 // Relative to application root (container "path"); resolved at connection time.
-                'path' => 'pagekit.db',
+                'path' => 'data/pagekit.db',
                 'charset' => 'utf8',
                 'prefix' => 'pk_',
                 'driverOptions' => [

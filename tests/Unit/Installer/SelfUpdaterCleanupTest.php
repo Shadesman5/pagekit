@@ -133,6 +133,16 @@ final class SelfUpdaterCleanupTest extends TestCase
         self::assertSame('File not found.', $failed->getMessage());
     }
 
+    public function testAnUpdateReplacesApplicationCodeAndNotThePrivateState(): void
+    {
+        $updater = new SelfUpdater($this->workspace, new BufferedOutput());
+        $clean = new \ReflectionProperty(SelfUpdater::class, 'cleanFolder');
+        $ignore = new \ReflectionProperty(SelfUpdater::class, 'ignoreFolder');
+
+        self::assertSame(['app', 'vendor'], $clean->getValue($updater));
+        self::assertSame(['packages', 'storage'], $ignore->getValue($updater));
+    }
+
     private function install(): string
     {
         $root = $this->workspace.'/install';

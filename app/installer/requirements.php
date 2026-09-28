@@ -461,7 +461,7 @@ class PagekitRequirements extends RequirementCollection
             );
         }
 
-        $writable_directories = ["$path/tmp", "$path/tmp/cache", "$path/tmp/logs", "$path/tmp/sessions"];
+        $writable_directories = ["$path/tmp", "$path/tmp/cache", "$path/tmp/logs", "$path/tmp/sessions", "$path/data"];
 
         // An installation without config.php has to be able to create it, so the
         // directory receiving the file must be writable.

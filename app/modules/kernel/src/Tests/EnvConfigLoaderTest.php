@@ -251,7 +251,7 @@ final class EnvConfigLoaderTest extends TestCase
         self::assertSame(3307, $database->config('connections.mysql.port'));
         self::assertSame('sqlite', $database->config('default'));
         self::assertSame('localhost', $database->config('connections.mysql.host'));
-        self::assertSame('pagekit.db', $database->config('connections.sqlite.path'));
+        self::assertSame('data/pagekit.db', $database->config('connections.sqlite.path'));
     }
 
     /**

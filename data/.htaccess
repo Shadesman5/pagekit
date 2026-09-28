@@ -1,0 +1,5 @@
+# Deny access to the private runtime state kept here. This directory lies
+# outside the webroot, so nothing in it is reachable to begin with; the denial
+# holds for an installation whose document root was pointed at the application
+# instead.
+Require all denied

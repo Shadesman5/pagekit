@@ -42,6 +42,18 @@ final class SqlitePathResolutionTest extends TestCase
             @unlink($file);
         }
 
+        $data = $this->appRoot.'/data';
+
+        if (is_dir($data)) {
+            foreach (glob($data.'/*') ?: [] as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+
+            @rmdir($data);
+        }
+
         @rmdir($this->appRoot.'/public');
         @rmdir($this->appRoot.'/www');
         @rmdir($this->appRoot);
@@ -62,6 +74,32 @@ final class SqlitePathResolutionTest extends TestCase
             $this->appRoot.'/public/pagekit.db',
             'resolving against CWD would leave the database under the webroot',
         );
+    }
+
+    public function testTheModuleDefaultResolvesUnderDataWhenCwdIsPublic(): void
+    {
+        chdir($this->appRoot.'/public');
+        // The connection does not create this parent.
+        self::assertTrue(mkdir($this->appRoot.'/data', 0777, true));
+
+        $path = $this->moduleSqlitePath();
+        self::assertSame('data/pagekit.db', $path);
+
+        $connection = $this->bootSqliteConnection($path);
+
+        try {
+            $params = $connection->getParams();
+            self::assertArrayHasKey('path', $params);
+            $resolved = $params['path'];
+            self::assertSame($this->appRoot.'/data/pagekit.db', $resolved);
+            self::assertFalse(str_starts_with($resolved, $this->appRoot.'/public/'));
+            self::assertTrue($connection->connect());
+            self::assertFileExists($this->appRoot.'/data/pagekit.db');
+            self::assertFileDoesNotExist($this->appRoot.'/public/pagekit.db');
+            self::assertFileDoesNotExist($this->appRoot.'/public/data/pagekit.db');
+        } finally {
+            $connection->close();
+        }
     }
 
     public function testAbsoluteSqlitePathIsLeftUnchanged(): void
@@ -152,6 +190,26 @@ final class SqlitePathResolutionTest extends TestCase
         $this->fail(
             'Expected InvalidArgumentException in previous-chain, got: '.implode(' → ', $chain),
         );
+    }
+
+    private function moduleSqlitePath(): string
+    {
+        $definition = require dirname(__DIR__, 2).'/index.php';
+        self::assertIsArray($definition);
+
+        $config = $definition['config'] ?? null;
+        self::assertIsArray($config);
+
+        $connections = $config['connections'] ?? null;
+        self::assertIsArray($connections);
+
+        $sqlite = $connections['sqlite'] ?? null;
+        self::assertIsArray($sqlite);
+
+        $path = $sqlite['path'] ?? null;
+        self::assertIsString($path);
+
+        return $path;
     }
 
     /**

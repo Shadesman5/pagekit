@@ -151,17 +151,13 @@ RUN pnpm build
 
 FROM base AS prod
 
-# Where the writable state that has to outlive the container lives: config.php
-# and, for an SQLite installation, the database file.
-ENV PAGEKIT_DATA_DIR=/var/www/data
+# Where the writable state that has to outlive the container lives: config.php,
+# snapshots, the failure record and, for an SQLite installation, the database.
+ENV PAGEKIT_DATA_DIR=/var/www/html/data
 
-# The database module puts the SQLite file next to config.php, in an application
-# root this image leaves unwritable on purpose - an installation on SQLite would
-# fail on a file it is not allowed to create, and the file is the one thing about
-# a database server-less deployment that has to outlive the container anyway. It
-# is named here rather than left to the deployment because the image is what
-# knows where it can be written: the startup script hands the value to setup,
-# which writes it into config.php with the rest of the connection.
+# The module default is data/pagekit.db, joined to the application root. That
+# root is left unwritable, so the file would fail to appear. This records the
+# absolute path on the volume; setup writes it into config.php.
 ENV PAGEKIT_DB_PATH=$PAGEKIT_DATA_DIR/pagekit.db
 
 # php.ini-production is the shipped baseline; docker/php/php-prod.ini below
@@ -245,6 +241,10 @@ COPY --from=assets /build/public ./public
 COPY public/index.php public/.htaccess ./public/
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+# Guards only. A new volume is seeded from the image at this path, so the denial
+# and the ignore rules are there before anything is written.
+COPY data ./data
+
 # Only the state directories belong to www-data; the application tree stays
 # root-owned and read-only, so a compromised request cannot rewrite the code it
 # is served from. config.php is a link into the data directory: the settings
@@ -253,6 +253,7 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN set -eux; \
     mkdir -p tmp/cache tmp/logs tmp/sessions tmp/temp storage \
     "$PAGEKIT_DATA_DIR" /var/run/apache2 /var/lock/apache2; \
+    chmod 0700 "$PAGEKIT_DATA_DIR"; \
     ln -sfn ../storage public/storage; \
     ln -sfn "$PAGEKIT_DATA_DIR/config.php" config.php; \
     # The base image leaves the application root world-writable and sticky. On
