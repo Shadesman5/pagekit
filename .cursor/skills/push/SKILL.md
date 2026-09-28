@@ -73,7 +73,6 @@ Body ends with:
 ```markdown
 <!-- metadata
 labels: phase-2, bug, migration
-milestone: Phase 2: Developer Experience
 closes: #42
 -->
 ```

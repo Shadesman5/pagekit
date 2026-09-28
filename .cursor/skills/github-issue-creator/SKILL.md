@@ -5,401 +5,151 @@ description: Creates GitHub issues on Shadesman5/pagekit with correct labels, mi
 
 # GitHub Issue Creator
 
-Universal skill for creating GitHub issues on `Shadesman5/pagekit`.
-Any agent or user can trigger this.
+Creates issues on `Shadesman5/pagekit`. The body is the skeleton below. Labels and the milestone come from the `<!-- metadata -->` block. `sync-metadata.yml` applies them. Do not pass `--label` or `--milestone`. The Cloud Agent token ignores both, and it cannot edit, label, close, or comment on an issue after creation.
 
-## Safety Limits
-
-> **The Cloud Agent can CREATE issues but CANNOT close, edit, or delete them.**
-> A runaway batch can only be cleaned up manually or via `issue-cleanup.yml`.
+## Limits
 
 | Rule | Limit |
 |------|-------|
-| **Max issues per session** | **10** without explicit user confirmation |
-| **Batch mode** | ALWAYS show preview table and wait for user approval before creating |
-| **Duplicate check** | MANDATORY before every `gh issue create` (see "Check Before Creating") |
-| **Cleanup workflow** | `.github/workflows/issue-cleanup.yml` — trigger from GitHub UI to bulk-close |
+| Max per session | 10, then stop and ask |
+| Batch | Preview table, then wait |
+| Duplicate check | Before every `gh issue create` |
+| Cleanup | `.github/workflows/issue-cleanup.yml` from the GitHub UI |
 
-If a batch exceeds 10 issues, the agent MUST pause and list all planned issues
-for user review before proceeding. Never auto-create more than 10 issues.
+## When
 
-## When to Use
+A user asks for one issue or a batch. A tester has a regression. A verifier has legacy debt. An architect is missing a ROADMAP step. A refactorer hit something out of scope.
 
-- **User asks** to create issues from a markdown/TODO file (batch mode)
-- **User asks** to create a single issue for any reason
-- **Tester** discovers a bug or regression that needs its own issue
-- **Verifier** finds legacy debt or compliance gap needing a future fix
-- **Architect** identifies a missing ROADMAP sub-step (e.g. 2.0.5b)
-- **Refactorer** encounters an out-of-scope problem during work
+## Labels and milestone
 
-## Prerequisites
+One phase label, one type label, one or two area labels. Full list: `.cursor/rules/github-labels.mdc`.
 
-- `gh` CLI authenticated (`gh auth status`)
-- Issues enabled on repo
-- For project operations: `gh auth refresh -s read:project,project` (adds project scope)
+| Steps | Phase label | Milestone |
+|-------|-------------|-----------|
+| 0.x–1.x | `phase-1` | `Phase 1: Foundation` |
+| 2.x | `phase-2` | `Phase 2: Developer Experience` |
+| 3.x | `phase-3` | `Phase 3: Frontend Modernization & Cross-Stack Alignment` |
+| 4.x | `phase-4` | `Phase 4: Production Ready` |
+| 5.x | `phase-5` | `Phase 5: Advanced Features` |
 
-## Cloud Agent Permission Model
+Type: `migration` (modernization), `enhancement`, `bug`, `performance`, `security`, `documentation`, `breaking-change`.
 
-The Cursor Cloud Agent `ghs_` token has asymmetric permissions:
+Area: `backend` (PHP, Symfony, ORM, auth, API, Docker, CI), `frontend` (Vue, UIkit, JS, CSS, Vite), `database`, `module`, `theme`.
 
-| Operation | Works? |
-|-----------|--------|
-| Create issue (title + body) | YES |
-| Create with `--label` / `--milestone` | NO (silently ignored) |
-| Edit issue body | NO |
-| Add/remove labels | NO |
-| Set milestone | NO |
-| Close/reopen issue | NO |
-| Add comment | NO |
-| Push code | YES |
+`Phase 2` in the metadata block expands to the full milestone name. Create a missing milestone with `gh api repos/Shadesman5/pagekit/milestones`. No version numbers in milestone titles.
 
-**This is why the `<!-- metadata -->` block exists:** the agent writes it into the body
-at creation time, and `sync-metadata.yml` applies labels/milestone using `PROJECT_TOKEN`.
+`sync-metadata.yml` reads the block, then `auto-add-to-project-phase.yml` sets the project Phase. The same block works on PR bodies (push skill), including `closes: #42`.
 
-## What Gets Set on Every Issue
+## Skeleton
 
-Every issue should have as many of these as applicable:
+Title for a ROADMAP step: `Step X.Y: Name`. That form is for issues only. PR titles follow `.cursor/skills/push/SKILL.md`.
 
-| Field | How to set | When |
-|-------|-----------|------|
-| **Title** | `--title` | Always — ROADMAP issues: `Step X.Y: Name`. That form is **not** a PR title (PRs: `.cursor/skills/push/SKILL.md`) |
-| **Body** | `--body-file` (with `<!-- metadata -->` block) | Always |
-| **Labels** | Automatic via `<!-- metadata -->` block in body | Always (see formula below) |
-| **Milestone** | Automatic via `<!-- metadata -->` block in body | Always for ROADMAP steps |
-| **PR Link** | `Related: #17` in body | When a PR exists or will exist |
-| **Parent Issue** | Add as sub-issue after creation | When step has sub-steps in ROADMAP |
-| **Assignee** | `--assignee Shadesman5` | Optional |
-
-> **How it works:** The `sync-metadata.yml` GitHub Action automatically parses the
-> `<!-- metadata -->` block from the issue body and applies labels + milestone.
-> Agents only need `gh issue create --title "..." --body-file "..."`.
-> Do NOT use `--label` or `--milestone` flags — they are silently ignored by the Cloud Agent token.
-
-## Label Formula
-
-**1 phase label + 1 type label + 1-2 area labels**
-
-Read `.cursor/rules/github-labels.mdc` for full list.
-
-### Phase
-
-| Step range | Label |
-|------------|-------|
-| 0.x – 1.x | `phase-1` |
-| 2.x        | `phase-2` |
-| 3.x        | `phase-3` |
-| 4.x        | `phase-4` |
-| 5.x        | `phase-5` |
-| Unknown    | Infer from context or ask user |
-
-### Type (pick one)
-
-| Situation | Label |
-|-----------|-------|
-| Modernization / refactoring | `migration` |
-| New feature | `enhancement` |
-| Bug | `bug` |
-| Performance | `performance` |
-| Security | `security` |
-| Documentation | `documentation` |
-| Breaking change (API, internal) | `breaking-change` |
-
-### Area (pick one or more)
-
-| Keywords in title/description | Label |
-|-------------------------------|-------|
-| PHP, Controller, Service, Container, PSR, Symfony, ORM, Auth, API, Docker, CI/CD | `backend` |
-| Vue, UIkit, JavaScript, TypeScript, Component, CSS, Vite | `frontend` |
-| Database, DBAL, Schema, Query | `database` |
-| Extension, Module, Plugin | `module` |
-| Theme, Template styling | `theme` |
-
-## Milestones
-
-| Phase | Milestone name |
-|-------|---------------|
-| Phase 1 | `Phase 1: Foundation` |
-| Phase 2 | `Phase 2: Developer Experience` |
-| Phase 3 | `Phase 3: Frontend Modernization & Cross-Stack Alignment` |
-| Phase 4 | `Phase 4: Production Ready` |
-| Phase 5 | `Phase 5: Advanced Features` |
-
-No version numbers — versioning is dynamic (see `version-bump` SKILL).
-
-If a milestone doesn't exist yet:
-```bash
-echo '{"title":"Phase X: Name","state":"open","description":"..."}' | gh api repos/Shadesman5/pagekit/milestones --input -
-```
-
-## Issue Body Template
-
-Every issue body **MUST** end with a `<!-- metadata -->` block. This block is parsed by
-`sync-metadata.yml` which automatically applies labels and milestones.
+Sections in this order. Drop a section or a Context line that has nothing to say. No other headings. No task list, no acceptance checklist, no `- [ ]` / `- [x]` anywhere in the body.
 
 ```markdown
-## Goal
+## Problem
 
-[One clear sentence describing what needs to happen]
+What is wrong now. A few paragraphs. Name the mechanism, not a history of how it was found.
+
+## Outcome
+
+What is true when the work is done. End with one sentence that starts `This is done when`.
+
+## Constraints
+
+The rules the change must not break. Short prose.
+
+## Out of scope
+
+- One plain bullet per excluded piece of work
 
 ## Context
 
-- **ROADMAP Step**: [X.Y]
-- **Phase**: [Phase number and name]
-- **Depends on**: [Previous step or "None"]
-- **Branch**: `[branch-name]` (if known, otherwise omit)
+- **ROADMAP Step**: X.Y
+- **Phase**: Phase N - Name
+- **Depends on**: #N, or a one-line fact
+- **Parent**: #N
+- **Before**: what must land first, in one line
+- **Risk**: Low, Medium, or High, then one sentence on why
 
-## Tasks
+## Related
 
-- [ ] [Concrete task 1]
-- [ ] [Concrete task 2]
-- [ ] Write/update tests
-- [ ] Update documentation if needed
-
-## Acceptance Criteria
-
-- [ ] All existing tests pass
-- [ ] No regressions
-- [ ] [Step-specific criteria]
+- #N one line on why it is related
 
 <!-- metadata
-labels: [phase-X], [type], [area1], [area2]
-milestone: [Phase X: Name]
+labels: phase-2, migration, backend
+milestone: Phase 2: Developer Experience
 -->
 ```
 
-### Metadata Block Reference
+A bug with no ROADMAP step uses the same sections. Title: `Bug: short failure`. Context keeps Phase and Risk. Drop ROADMAP Step.
 
-The `<!-- metadata -->` block is an HTML comment — **invisible** in rendered markdown but
-parsed by the `sync-metadata.yml` GitHub Action.
+## Writing
 
-| Field | Required | Format | Example |
-|-------|----------|--------|---------|
-| `labels` | Yes | Comma-separated label names | `phase-2, migration, backend` |
-| `milestone` | Yes (ROADMAP) | Full name or shorthand | `Phase 2: Developer Experience` or `Phase 2` |
-| `pr` | No | `#number` | `#71` |
+- Problem is the present behaviour. Outcome is the result, not a procedure.
+- Out of scope and Related are plain bullets. A related issue is `#N` plus a few words. A parent link is the Context line and the GraphQL sub-issue link, not a checkbox.
+- No `migration-docs/` paths, no `PHASE_*.md`, no ticket or agent-prompt paths, no branch names unless the branch is the subject of the issue.
+- Deferred work is named in words, or as `#N`. A step id belongs in **ROADMAP Step**, not as a cross-link.
+- A file path only when it is the bug site.
+- The metadata block is last. It is an HTML comment. Fields: `labels` (required), `milestone` (required for a ROADMAP step), `pr` (`#number`, optional).
+- After the work ships, do not convert the body into a checked-off list. The PR is the record. `Closes #N` in the PR body is what fills GitHub's Development link. A `Related` line in the issue does not.
 
-**Milestone shorthand:** `Phase 1` → `Phase 1: Foundation`, `Phase 2` → `Phase 2: Developer Experience`, etc.
+## Parent and sub-issues
 
-### Automation chain
-
-```
-Issue created/edited with <!-- metadata --> block
-  → sync-metadata.yml parses body → applies labels + milestone
-    → labeled event triggers auto-add-to-project-phase.yml → add to project + set Phase
-```
-
-**Body rules:**
-- Every issue body **MUST** include the `<!-- metadata -->` block at the end
-- Do NOT link to agent-prompt files
-- Do NOT include internal agent workflow details
-- Keep readable for any developer (human or agent)
-- Reference ROADMAP step IDs when applicable (**only** in Context as the issue identity, e.g. `ROADMAP Step: 2.4` — not as cross-links to other work)
-- Link related PRs in the "Related" section
-- **No docs-path or branch-doc references** in the issue body (no `migration-docs/…`, no `PHASE_*.md`, no ticket/plan paths)
-- **No Step cross-references** when noting deferred / out-of-scope / incomplete work — describe the work in plain language (e.g. "Vue 3 core migration", not "Step 3.3.3")
-- **Code file paths only when necessary** (e.g. a concrete runtime bug site); prefer behaviour/API descriptions over paths
-- Same rules apply when **updating** an issue after implementation (check off tasks, note deviations) — never paste doc/step links as the audit trail; the PR is the link
-
-## PR Linking
-
-> **Important:** GitHub's "Development" sidebar link on an issue is created by the **PR**, not the issue.
-> A `Related: #17` in the issue body is only documentation — it does NOT create the Development sidebar link.
-> The real linking happens when a PR body contains `Closes #X` or `Fixes #X`.
-
-### In the Issue Body (documentation only)
-
-Reference related PRs in the issue body for context. This is **not** the GitHub Development link:
-```markdown
-## Related
-
-- PR: #17
-```
-
-### In the PR Body (creates Development link)
-
-When creating a PR, include the issue reference in the **PR body** to create the real GitHub Development sidebar link:
-```markdown
-Closes #42
-```
-This auto-closes the issue when the PR merges and links it in the Development sidebar.
-
-The push skill handles this when creating PRs.
-
-### Multiple PRs
-
-Some steps may have multiple PRs. Reference them in the issue body for documentation:
-```markdown
-## Related
-
-- PR: #60 (Symfony HttpFoundation upgrade)
-- PR: #61 (Symfony HttpKernel upgrade)
-```
-Each PR should contain `Closes #X` or `Related: #X` in its own body for the Development link.
-
-## Parent Issues and Sub-Issues
-
-### When to use
-
-Use parent/sub-issue structure when a ROADMAP step has sub-steps:
-- Step 3.4 (Vue 3 Migration) → parent issue
-  - Step 3.4.1 (vue-resource → axios) → sub-issue
-  - Step 3.4.2 (vue-event-manager → mitt) → sub-issue
-  - Step 3.4.3 (Vue 3 Core) → sub-issue
-
-### How to create
-
-1. Create the **parent issue** first (e.g. "Step 3.4: Vue 3 Migration")
-2. Create each **sub-issue** (e.g. "Step 3.4.1: HTTP Client Migration")
-3. Link sub-issues to parent using the **GraphQL API** (the `gh issue edit --add-sub-issue` flag does not exist in gh CLI):
+Use this when a ROADMAP step has sub-steps. Create the parent, then each sub-issue, then link. Standalone steps have no parent.
 
 ```bash
-# 1. Get node IDs of parent and sub-issue
 PARENT_ID=$(gh issue view PARENT_NUMBER --repo Shadesman5/pagekit --json id -q .id)
 SUB_ID=$(gh issue view SUB_NUMBER --repo Shadesman5/pagekit --json id -q .id)
-
-# 2. Write GraphQL mutation to temp file (avoids PowerShell escaping issues)
-echo '{"query":"mutation { addSubIssue(input: { issueId: \"PARENT_ID_HERE\", subIssueId: \"SUB_ID_HERE\" }) { issue { id } subIssue { id } } }"}' > temp-graphql.json
-# Replace PARENT_ID_HERE and SUB_ID_HERE with actual values
-
-# 3. Execute mutation
+echo "{\"query\":\"mutation { addSubIssue(input: { issueId: \\\"$PARENT_ID\\\", subIssueId: \\\"$SUB_ID\\\" }) { issue { id } } }\"}" > temp-graphql.json
 gh api graphql --input temp-graphql.json
-
-# 4. Clean up
 rm temp-graphql.json
 ```
 
-> **Note:** On PowerShell, inline JSON escaping with `gh api graphql -f query="..."` is unreliable.
-> Always use `--input` with a temp file for GraphQL mutations.
+`gh issue edit --add-sub-issue` does not exist. On PowerShell, pass GraphQL with `--input`, not `-f`.
 
-Also mention sub-issues in the parent body for visibility:
-```markdown
-## Sub-Issues
-
-- [ ] #43 Step 3.4.1: vue-resource → axios
-- [ ] #44 Step 3.4.2: vue-event-manager → mitt
-- [ ] #45 Step 3.4.3: Vue 3 Core + @vue/compat
-```
-
-The "Sub-issues progress" field in the GitHub Project then shows progress (e.g. 2/5).
-
-### When NOT to use
-
-Steps without sub-steps (e.g. Step 1.1 Mailer Migration, Step 2.1 Static Analysis) are standalone issues — no parent needed.
-
-## Creating an Issue
+## Create
 
 ```bash
-# Write body to temp file
+gh issue list --repo Shadesman5/pagekit --search "Step 2.7.5" --json number,title --limit 5
+
 cat > temp-issue-body.md << 'EOF'
-## Goal
-Migrate Swift Mailer to Symfony Mailer 5.4.
+## Problem
+…
+
+## Outcome
+…
+This is done when …
+
+## Constraints
+…
+
+## Out of scope
+
+- …
 
 ## Context
-- **ROADMAP Step**: 1.1
-- **Phase**: Phase 1 - Foundation
 
-## Tasks
-- [ ] Replace Swift Mailer with Symfony Mailer
-- [ ] Update transport configuration
-- [ ] Write unit and integration tests
-
-## Acceptance Criteria
-- [ ] Email sending works (SMTP + Sendmail)
-- [ ] 42 tests passing
-
-## Related
-- PR: #17
+- **ROADMAP Step**: 2.7.5
+- **Phase**: Phase 2 - Developer Experience
 
 <!-- metadata
-labels: phase-1, migration, backend
-milestone: Phase 1: Foundation
+labels: phase-2, migration, backend
+milestone: Phase 2: Developer Experience
 -->
 EOF
 
-# Create issue (--label/--milestone are optional: sync-metadata.yml reads the metadata block)
 gh issue create --repo Shadesman5/pagekit \
-  --title "Step 1.1: Mailer Migration" \
-  --body-file "temp-issue-body.md"
-
-# Clean up
+  --title "Step 2.7.5: Data Directory" \
+  --body-file temp-issue-body.md
 rm temp-issue-body.md
 ```
 
-> **Do NOT use** `--label` or `--milestone` flags — they are silently ignored by the
-> Cloud Agent token. The `<!-- metadata -->` block is the only reliable way.
+## Batch
 
-## Batch Mode
-
-> **Safety limit: max 10 issues per session without explicit user approval** (see Safety Limits table).
-> The agent CANNOT close or delete issues it creates. A runaway batch is irreversible.
-> Use `issue-cleanup.yml` (GitHub UI) to bulk-close accidental issues.
-
-1. Read source file (e.g. `MODERNISATION_STRATEGY.md` or `ROADMAP.md`)
-2. Parse each step: number, title, status, sub-steps, related PR
-3. **Skip** `✅` completed steps unless user says otherwise
-4. **Duplicate check** for every issue (MANDATORY, see "Check Before Creating")
-5. **Show preview table** to user and **WAIT for approval** before creating
-6. Create issues one by one (max 10 per batch without re-confirmation; pause for user approval if more)
-7. For steps with sub-steps: create parent first, then sub-issues, then link
-8. Report summary with issue numbers and URLs
-
-## GitHub Project Integration (fully automatic)
-
-No manual project management needed. Three automations handle everything:
-
-1. **"Auto-add to project"** (built-in Project workflow) — adds every new issue to the board with Status: "Todo"
-2. **`sync-metadata.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from **issue and PR bodies** and applies labels + milestone automatically
-3. **`auto-add-to-project-phase.yml`** (GitHub Action) — on `phase-X` label: adds issue to project (if needed) and sets Phase field in one run (no timing issues)
-
-The `<!-- metadata -->` block in the issue/PR body is the only input needed. Everything else is derived from it:
-```
-Issue/PR body contains multi-line <!-- metadata --> block
-  → sync-metadata.yml parses labels + milestone from block
-    → auto-add-to-project-phase.yml adds to project and sets Phase field
-      → Auto-add workflow sets Status: "Todo"
-```
-
-> **PRs also supported:** The same `<!-- metadata -->` block works in PR bodies.
-> Agents creating PRs (via the push skill) should include the metadata block to get
-> automatic labels and milestones. Add `closes: #42, #43` for issue references.
-
-## Check Before Creating
-
-Always verify the issue doesn't already exist:
-```bash
-gh issue list --repo Shadesman5/pagekit --search "Step 2.0.5" --json number,title --limit 5
-```
-
-## Sub-Agent Examples
-
-**Tester finds regression:**
-> Title: "Bug: UserController loginAction missing CSRF validation"
-> Metadata block in body:
-```html
-<!-- metadata
-labels: phase-2, bug, security, backend
-milestone: Phase 2
--->
-```
-
-**Verifier finds legacy debt:**
-> Title: "Step 2.0.5b: Config service still uses array-access"
-> Parent: Step 2.0.5 issue.
-> Metadata block in body:
-```html
-<!-- metadata
-labels: phase-2, migration, backend
-milestone: Phase 2
--->
-```
-
-**Architect adds missing sub-step:**
-> Title: "Step 2.0.5b: Config Service Modernization"
-> Sub-issue of Step 2.0.5.
-> Metadata block in body:
-```html
-<!-- metadata
-labels: phase-2, migration, backend
-milestone: Phase 2
--->
-```
+1. Read the source. Skip steps already marked done unless the user says otherwise.
+2. Duplicate-check each title.
+3. Show a preview table. Wait.
+4. Create at most 10. Ask again before the next 10.
+5. Parents first, then sub-issues, then the GraphQL link.
+6. Report number and URL for each issue.
