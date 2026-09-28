@@ -77,6 +77,17 @@ Instructions and the editor search exclude name Composer's default `./vendor`. `
 
 No tests. Gates: production verifier PASS; production tester PASS; test-writer skipped (docs and editor settings only). No deviations.
 
+### Review (Bugbot + Security) + E2E (Checklist Step 3)
+
+Bugbot's first pass found a leftover `app/vendor` directory on disk and a `.dockerignore` gap. A retry that would also ignore `app/vendor` was rejected: this layout has one vendor directory. The leftover directory was removed from disk. The ignore rules stay `/vendor/` and `vendor/`; only the comments were clarified. Step 3 left no open decision.
+
+| File | Change |
+|---|---|
+| `.gitignore` | The comment above `/vendor/` names Composer dependencies at the repository root. |
+| `.dockerignore` | The dependencies comment is closed with a period. |
+
+No tests. Gates: Bugbot re-run clean. Security clean. E2E PASS. PHPUnit + PHPStan PASS on the fix.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
