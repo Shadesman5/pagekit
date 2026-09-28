@@ -398,8 +398,10 @@ final class KernelFoundationOwnershipTest extends TestCase
 
     private function composerLoader(): ClassLoader
     {
-        foreach (ClassLoader::getRegisteredLoaders() as $vendorDir => $loader) {
-            if (str_ends_with(strtr($vendorDir, '\\', '/'), 'app/vendor')) {
+        $vendorDir = strtr($this->root().'/vendor', '\\', '/');
+
+        foreach (ClassLoader::getRegisteredLoaders() as $registeredDir => $loader) {
+            if (strtr($registeredDir, '\\', '/') === $vendorDir) {
                 return $loader;
             }
         }

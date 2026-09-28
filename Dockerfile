@@ -237,7 +237,7 @@ RUN sed -ri 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
 COPY app ./app
 COPY packages ./packages
 COPY autoload.php pagekit .htaccess ./
-COPY --from=composer-deps /var/www/html/app/vendor ./app/vendor
+COPY --from=composer-deps /var/www/html/vendor ./vendor
 COPY --from=assets /build/public ./public
 
 # The front controller and the server configuration are committed, not built:

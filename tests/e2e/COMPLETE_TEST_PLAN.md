@@ -11,7 +11,7 @@
 - **Nicht die komplette E2E-Suite bei jedem Schritt laufen lassen.**  
   Pro Modernisierungs-Schritt: **nur** Installationstest + die Specs der betroffenen Feature-Bereiche ausführen.  
   Siehe `AGENTS.md` → „Modernisation Workflow Rules“.
-- Vor Arbeit: `npx playwright test tests/e2e/specs/01-setup/installation.spec.js` + `./app/vendor/bin/phpunit`
+- Vor Arbeit: `npx playwright test tests/e2e/specs/01-setup/installation.spec.js` + `./vendor/bin/phpunit`
 - Nach jedem Schritt: frische Installation + betroffene Feature-Tests + PHPUnit (alle grün vor PR).
 
 ---

@@ -12,9 +12,9 @@
 # are never masked wholesale.
 includes:
     - phpstan-baseline.neon
-    - app/vendor/phpstan/phpstan-doctrine/extension.neon
-    - app/vendor/phpstan/phpstan-symfony/extension.neon
-    - app/vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
 
 parameters:
     level: 8
@@ -28,11 +28,11 @@ parameters:
         - packages
 
     excludePaths:
-        - app/vendor
+        - vendor
         - app/modules/*/vendor
         - */node_modules/*
         - tmp
         - storage
 
     bootstrapFiles:
-        - app/vendor/autoload.php
+        - vendor/autoload.php

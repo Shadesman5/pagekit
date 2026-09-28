@@ -12,5 +12,5 @@ alwaysApply: false
 - **Strings:** null-check before `strpos`, `strstr`, `ltrim`, `substr_count`.
 - **Reflection:** `getType()`, not `ReflectionParameter::getClass()`.
 - **Errors:** Symfony ErrorHandler, not `App::exception()`.
-- **Vendor dir:** `app/vendor/` (`composer.json` `vendor-dir`). PHPUnit: `./app/vendor/bin/phpunit`.
+- **Vendor dir:** Composer's default `vendor/` (`vendor-dir` unset). PHPUnit: `./vendor/bin/phpunit`. PHPStan: `./vendor/bin/phpstan`.
 - **Comments:** `pagekit.mdc` § Prose — traps + contract only, not architecture essays.

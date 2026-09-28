@@ -1,5 +1,13 @@
 # Changelog
 
+## Pagekit 1.2.46 - Standard Composer Layout (September 28, 2026)
+
+### 💥 Breaking Changes
+
+- **Dependencies install in `vendor/` at the repository root** — `composer.json` does not set `vendor-dir` or `bin-dir`. `autoload.php` loads `vendor/autoload.php`. `path.vendor` is that directory, and nothing falls back to `app/vendor`. The image, the suite, and the release read `vendor/`. A self-update deletes files under `vendor/` that the new archive does not list, and still does so under `app/`. `packages/` and `public/` stay. (Closes #271)
+
+---
+
 ## Pagekit 1.2.45 - Static Module Registration (September 27, 2026)
 
 ### 💥 Breaking Changes

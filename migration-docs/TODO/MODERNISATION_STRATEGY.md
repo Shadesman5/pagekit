@@ -59,7 +59,7 @@ at 326 by design — pure typing work adds no tests.
 ```bash
 grep -c "message:" phpstan-baseline.neon                          # baseline blocks
 grep -oP 'count:\s*\K[0-9]+' phpstan-baseline.neon | awk '{s+=$1} END{print s+0}'   # suppressed errors (awk: portable, bc is not always installed)
-./app/vendor/bin/phpunit --colors=never 2>&1 | grep -E '^(OK \(|Tests:)'  # unit test total (green: "OK (N tests…)"; issues: "Tests: N…")
+./vendor/bin/phpunit --colors=never 2>&1 | grep -E '^(OK \(|Tests:)'  # unit test total (green: "OK (N tests…)"; issues: "Tests: N…")
 ```
 
 ---

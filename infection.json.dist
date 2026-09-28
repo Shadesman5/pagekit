@@ -1,5 +1,5 @@
 {
-    "$schema": "app/vendor/infection/infection/resources/schema.json",
+    "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
             "app/modules/auth/src",
@@ -20,7 +20,7 @@
     "tmpDir": "tmp/infection",
     "phpUnit": {
         "configDir": ".",
-        "customPath": "app/vendor/bin/phpunit"
+        "customPath": "vendor/bin/phpunit"
     },
     "mutators": {
         "@default": true,

@@ -65,6 +65,10 @@ fi
 # PHP dependencies (lock file is tracked — install exact versions)
 composer install --no-interaction --optimize-autoloader --working-dir=.
 
+# Composer writes ./vendor and leaves a tree at the previous path in place.
+# That directory is not gitignored, so a boot would show a second copy.
+rm -rf app/vendor
+
 # Node dependencies (--frozen-lockfile prevents silent lockfile mutation)
 pnpm install --frozen-lockfile
 
@@ -83,8 +87,8 @@ npx playwright install chromium
 echo "--- Tool verification ---"
 php -v | head -1
 composer --version 2>/dev/null || echo "WARNING: Composer not available"
-./app/vendor/bin/phpunit --version 2>/dev/null || echo "WARNING: PHPUnit not available"
-./app/vendor/bin/phpstan --version 2>/dev/null || echo "WARNING: PHPStan not available"
+./vendor/bin/phpunit --version 2>/dev/null || echo "WARNING: PHPUnit not available"
+./vendor/bin/phpstan --version 2>/dev/null || echo "WARNING: PHPStan not available"
 php -m 2>/dev/null | grep -qi '^pcov$' && echo "PCOV: enabled" || echo "WARNING: PCOV not available (coverage/Infection may fail)"
 command -v pnpm >/dev/null 2>&1 && echo "pnpm: $(pnpm --version)" || echo "WARNING: pnpm not available"
 command -v rg >/dev/null 2>&1 && rg --version | head -1 || echo "WARNING: ripgrep (rg) not available"

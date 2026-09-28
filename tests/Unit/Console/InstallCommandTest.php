@@ -168,7 +168,7 @@ final class InstallCommandTest extends TestCase
         });
         $app->set('path.temp', $this->workspace.'/tmp/temp');
         $app->set('path.cache', $this->workspace.'/tmp/cache');
-        $app->set('path.vendor', $this->workspace.'/app/vendor');
+        $app->set('path.vendor', $this->workspace.'/vendor');
         $app->set('path.packages', $this->packages);
         $app->set('system.api', 'https://example.test');
 

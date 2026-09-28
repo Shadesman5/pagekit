@@ -3,9 +3,9 @@
 # /var/www/html at runtime - while the production build takes the sources and
 # produces the rest of the image from them.
 
-# Dependencies — installed in the image or in the running container
+# Dependencies — installed in the image or in the running container.
 node_modules
-app/vendor/
+vendor/
 
 # Webroot build output — the production build runs its own, and a copy from the
 # host would shadow it. The front controller and the server configuration below

@@ -11,10 +11,9 @@ class SelfUpdater
 {
     // TODO: Must be refactored in Step 2.9 (Automated Update System) - an update cannot leave the
     // webroot consistent yet: it neither recreates the public/storage link an archive drops nor
-    // removes published assets under public/ that the new release renamed, and the clean pass
-    // below reaches app/ only.
+    // removes published assets under public/ that the new release renamed.
     /** @var array<int, string> */
-    protected array $cleanFolder = ['app'];
+    protected array $cleanFolder = ['app', 'vendor'];
 
     /** @var array<int, string> */
     protected array $ignoreFolder = ['packages', 'storage'];

@@ -49,15 +49,15 @@ jobs:
           coverage: pcov
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor) and the PHPUnit result cache
+      - name: Cache Composer dependencies (vendor) and the PHPUnit result cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            app/vendor
+            vendor
             .phpunit.cache
-          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php }}-composer-
+            ${{ runner.os }}-php-${{ matrix.php }}-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -66,7 +66,7 @@ jobs:
         run: mkdir -p tmp/logs tmp/cache tmp/temp storage
 
       - name: Run PHPUnit with coverage
-        run: ./app/vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml --log-junit=junit.xml
+        run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml --log-junit=junit.xml
 
       - name: Upload coverage artifact
         if: matrix.php == '8.5'
@@ -182,13 +182,13 @@ jobs:
           extensions: pdo_mysql
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (vendor)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: app/vendor
-          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-8.5-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.5-composer-
+            ${{ runner.os }}-php-8.5-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -200,7 +200,7 @@ jobs:
       # globals; the config is what supplies them. The database itself is the tests'
       # to make — SnapshotDatabase drops and recreates it per connection.
       - name: Run the Snapshot suite against MySQL
-        run: ./app/vendor/bin/phpunit -c phpunit-mysql.xml.dist tests/Unit/Snapshot
+        run: ./vendor/bin/phpunit -c phpunit-mysql.xml.dist tests/Unit/Snapshot
 
   # Non-blocking MySQL leg. Runs the whole suite against a real MySQL server via
   # phpunit-mysql.xml.dist, which wires the db_*/tmpdb_* globals DbUtil needs. The
@@ -244,13 +244,13 @@ jobs:
           extensions: pdo_mysql
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (vendor)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: app/vendor
-          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-8.5-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.5-composer-
+            ${{ runner.os }}-php-8.5-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -259,7 +259,7 @@ jobs:
         run: mkdir -p tmp/logs tmp/cache tmp/temp storage
 
       - name: Run PHPUnit against MySQL
-        run: ./app/vendor/bin/phpunit -c phpunit-mysql.xml.dist
+        run: ./vendor/bin/phpunit -c phpunit-mysql.xml.dist
 
   phpstan:
     name: phpstan
@@ -275,26 +275,26 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (vendor)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: app/vendor
-          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-8.5-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.5-composer-
+            ${{ runner.os }}-php-8.5-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run PHPStan (Level 8 + baseline)
-        run: ./app/vendor/bin/phpstan analyse --no-progress --error-format=github
+        run: ./vendor/bin/phpstan analyse --no-progress --error-format=github
 
       # Machine-readable copy for the sticky PR comment / quality snapshot renderers.
       # PHPStan reuses its result cache, so this re-render is near-instant; || true
       # keeps the artifact step green because the github-format run above is the gate.
       - name: Generate PHPStan JSON report
         if: always()
-        run: ./app/vendor/bin/phpstan analyse --no-progress --error-format=json > phpstan.json || true
+        run: ./vendor/bin/phpstan analyse --no-progress --error-format=json > phpstan.json || true
 
       - name: Upload PHPStan report artifact
         if: always()
@@ -319,13 +319,13 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (vendor)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: app/vendor
-          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-8.5-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.5-composer-
+            ${{ runner.os }}-php-8.5-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -334,7 +334,7 @@ jobs:
         # --allow-risky=yes is required because .php-cs-fixer.php enables risky rules
         # (modernize_types_casting, declare_strict_types). Matches the local invocation.
         # CS-Fixer runs dry-run only in CI (no autofix) — any violation fails the gate.
-        run: ./app/vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --show-progress=none --allow-risky=yes
+        run: ./vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --show-progress=none --allow-risky=yes
 
   security-audit:
     name: security-audit

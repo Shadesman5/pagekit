@@ -17,8 +17,8 @@
 /app/system/modules/theme/js/theme.js
 /app/system/modules/theme/assets/css/theme.css
 
-# Ignore vendor folder
-/app/vendor/*
+# Composer dependencies at the repository root.
+/vendor/
 
 # Ignore database and logs
 /docker/logs/*

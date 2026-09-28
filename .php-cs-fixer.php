@@ -5,7 +5,7 @@ declare(strict_types=1);
 $finder = PhpCsFixer\Finder::create()
     ->in(__DIR__)
     ->exclude([
-        'app/vendor',
+        'vendor',
         'app/assets',
         'node_modules',
         'docker',

@@ -39,13 +39,13 @@
     },
     "search.exclude": {
         "**/node_modules": true,
-        "**/app/vendor": true,
+        "**/vendor": true,
         "**/app/assets": true,
         "**/*.min.js": true,
         "**/*.min.css": true
     },
-    // NOTE: Do NOT add "**/app/vendor" to files.exclude. intelephense honours files.exclude when
-    // indexing, so hiding the (non-standard) app/vendor path makes it unable to resolve Symfony/
+    // NOTE: Do NOT add "**/vendor" to files.exclude. intelephense honours files.exclude when
+    // indexing, so hiding vendor makes it unable to resolve Symfony/
     // Composer types and produces false "Undefined type" errors. vendor stays in search.exclude only.
     "files.exclude": {
         "**/node_modules": true
