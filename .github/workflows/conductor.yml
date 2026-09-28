@@ -26,6 +26,8 @@ run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1
 # then re-dispatch Conductor (same session_id) for FINALIZE. The XL tick commit imports
 # that V1 parent agent's tokens into the session (import-xl-handoff-metrics.yml).
 # handoff_xl=false forces a cloud XL batch. Alone when budget stays under 8.
+# skip_gh_bugbot / skip_gh_security (default false) tell FINALIZE not to post
+# `bugbot run` / `security run`. XL /review-bugbot and /review-security still run.
 #
 # Security:
 #   - workflow_dispatch only -> only users with write access can start it (no public trigger).
@@ -70,6 +72,16 @@ on:
         description: "Stop before the XL Review+E2E step (default true). Cloud Agents API cannot run /review-bugbot or /review-security yet — run XL on cursor.com/agents, tick it, re-dispatch for FINALIZE. Set false to launch XL in the cloud."
         required: false
         default: true
+        type: boolean
+      skip_gh_bugbot:
+        description: "FINALIZE does not post `bugbot run` (default false). Does not skip XL /review-bugbot."
+        required: false
+        default: false
+        type: boolean
+      skip_gh_security:
+        description: "FINALIZE does not post `security run` (default false). Does not skip XL /review-security."
+        required: false
+        default: false
         type: boolean
       model:
         description: "Orchestrator model. Empty = account default (user/team/system). 'auto' or 'default' = Cursor's dynamic Auto model. Or an explicit id, e.g. claude-opus-4-8, composer-2.5, opus-latest."
@@ -131,6 +143,8 @@ jobs:
           BRANCH: ${{ inputs.branch }}
           BATCH_BUDGET: ${{ inputs.batch_budget }}
           HANDOFF_XL: ${{ inputs.handoff_xl }}
+          SKIP_GH_BUGBOT: ${{ inputs.skip_gh_bugbot }}
+          SKIP_GH_SECURITY: ${{ inputs.skip_gh_security }}
           MODEL: ${{ inputs.model }}
           MODE: ${{ inputs.mode }}
           AUTO_CHAIN: ${{ inputs.auto_chain }}
