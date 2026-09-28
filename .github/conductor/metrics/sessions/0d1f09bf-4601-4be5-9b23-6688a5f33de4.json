@@ -9,21 +9,38 @@
   "branch": "feature/data-directory",
   "model": null,
   "status": "in_progress",
-  "startedAt": "2026-09-28T21:22:36.406Z",
-  "completedAt": null,
+  "startedAt": "2026-09-28T21:22:44.066Z",
+  "completedAt": "2026-09-28T22:17:03.357Z",
   "phases": [
     {
       "phaseKey": "36485646462-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-28T21:22:42.774Z",
-      "durationMs": 3266833,
+      "startedAt": "2026-09-28T21:22:44.066Z",
+      "durationMs": 3258733,
       "agent": {
         "id": "bc-591ade65-3013-41f3-a7a4-777f09f72617",
         "runId": "run-b0ab5ecb-db10-435d-88d6-2833a2341028",
         "url": "https://cursor.com/agents/bc-591ade65-3013-41f3-a7a4-777f09f72617",
-        "model": null
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-b0ab5ecb-db10-435d-88d6-2833a2341028",
+            "index": 1,
+            "startedAt": "2026-09-28T21:22:44.066Z",
+            "completedAt": "2026-09-28T22:17:03.357Z",
+            "durationMs": 3258733,
+            "tokens": {
+              "input": 42827,
+              "output": 7880,
+              "cacheRead": 568576,
+              "cacheWrite": 0,
+              "total": 619283
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36485646462,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_5_Data-Directory_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-28T22:17:03.357Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 0,
       "total": 619283
     },
-    "durationMs": 3266833,
+    "durationMs": 3258733,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
