@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-09-27T23:52:19.219Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "36360122803-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-09-27T23:52:25.112Z",
+      "durationMs": 1780630,
+      "agent": {
+        "id": "bc-13a40ea1-ad1d-401f-b827-f0ca15bef5d1",
+        "runId": "run-1c8bcdb9-87a7-4488-8b58-f0f00b5df285",
+        "url": "https://cursor.com/agents/bc-13a40ea1-ad1d-401f-b827-f0ca15bef5d1",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 36360122803,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/36360122803",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 41781,
+        "output": 8941,
+        "cacheRead": 728832,
+        "cacheWrite": 0,
+        "total": 779554
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_4_Standard-Composer-Layout_plan.md",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
+      "input": 41781,
+      "output": 8941,
+      "cacheRead": 728832,
       "cacheWrite": 0,
-      "total": 0
+      "total": 779554
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 1780630,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
