@@ -56,4 +56,4 @@ none
 ### Step 2
 none
 ### Step 3
-none
+- `.cursor/install.sh` — after `composer install`, `rm -rf app/vendor` (directory or symlink). Rejected a `/app/vendor/` gitignore line: that would hide a second tree. Invariant: after install, `app/vendor` is neither a directory nor a symlink, and `./vendor/autoload.php` is the only autoload.

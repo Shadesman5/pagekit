@@ -65,6 +65,10 @@ fi
 # PHP dependencies (lock file is tracked — install exact versions)
 composer install --no-interaction --optimize-autoloader --working-dir=.
 
+# Composer writes ./vendor and leaves a tree at the previous path in place.
+# That directory is not gitignored, so a boot would show a second copy.
+rm -rf app/vendor
+
 # Node dependencies (--frozen-lockfile prevents silent lockfile mutation)
 pnpm install --frozen-lockfile
 
