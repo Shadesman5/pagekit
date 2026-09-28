@@ -9,21 +9,38 @@
   "branch": "feature/standard-composer-layout",
   "model": "grok-4.7",
   "status": "in_progress",
-  "startedAt": "2026-09-27T23:52:19.219Z",
-  "completedAt": null,
+  "startedAt": "2026-09-27T23:52:26.541Z",
+  "completedAt": "2026-09-28T00:22:00.074Z",
   "phases": [
     {
       "phaseKey": "36360122803-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-27T23:52:25.112Z",
-      "durationMs": 1780630,
+      "startedAt": "2026-09-27T23:52:26.541Z",
+      "durationMs": 1772920,
       "agent": {
         "id": "bc-13a40ea1-ad1d-401f-b827-f0ca15bef5d1",
         "runId": "run-1c8bcdb9-87a7-4488-8b58-f0f00b5df285",
         "url": "https://cursor.com/agents/bc-13a40ea1-ad1d-401f-b827-f0ca15bef5d1",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-1c8bcdb9-87a7-4488-8b58-f0f00b5df285",
+            "index": 1,
+            "startedAt": "2026-09-27T23:52:26.541Z",
+            "completedAt": "2026-09-28T00:22:00.074Z",
+            "durationMs": 1772920,
+            "tokens": {
+              "input": 41781,
+              "output": 8941,
+              "cacheRead": 728832,
+              "cacheWrite": 0,
+              "total": 779554
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36360122803,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_4_Standard-Composer-Layout_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-28T00:22:00.074Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 0,
       "total": 779554
     },
-    "durationMs": 1780630,
+    "durationMs": 1772920,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
