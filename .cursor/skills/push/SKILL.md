@@ -65,6 +65,9 @@ against the 50-character description:
 Tooling / Conductor / Cursor-rules PRs that do **not** close a ROADMAP row: conventional
 title only — no ` (Step …)` and no `v1-metrics`.
 
+No markdown task list in the body. No `- [ ]` / `- [x]`, and no `## Test plan` section.
+Prose bullets are fine.
+
 Body ends with:
 
 ```markdown
