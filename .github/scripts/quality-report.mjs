@@ -411,7 +411,7 @@ function renderComment(d) {
     '| ------ | ------- | ---------- |',
     ...rows,
     '',
-    `<sub>${baselineNote(b)} · commit \`${d.sha.slice(0, 7)}\` · updated ${new Date().toISOString()}.<br>`,
+    `<sub>${baselineNote(b)} · PR \`${d.sha.slice(0, 7)}\` · reported ${new Date().toISOString()}.<br>`,
     'PASS/FAIL lives in the GitHub Checks below · project health: ' +
       '[Quality Dashboard](https://shadesman5.github.io/pagekit/quality/).</sub>',
     ''
@@ -426,7 +426,8 @@ function row(label, checks, checkName, cell, delta) {
 
 function baselineNote(baseline) {
   if (!baseline) return 'No develop baseline yet — PR numbers only';
-  return `Baseline: develop snapshot @ ${baseline.updatedAt}`;
+  const sha = typeof baseline.commit === 'string' ? ` \`${baseline.commit.slice(0, 7)}\`` : '';
+  return `Baseline: develop snapshot @ ${baseline.updatedAt}${sha}`;
 }
 
 // ---------------------------------------------------------------- metric cells
