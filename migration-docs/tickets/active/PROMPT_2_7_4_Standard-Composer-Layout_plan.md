@@ -31,7 +31,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (L) — Cut over to `./vendor` (boot, suite, CI, image, release paths)
+- [x] Step 1 (L) — Cut over to `./vendor` (boot, suite, CI, image, release paths)
 - [ ] Step 2 (S) — Living docs and editor exclude
 - [ ] Step 3 (XL) — Review (Bugbot + Security) + E2E
 
@@ -52,7 +52,7 @@
      `File::symbol` — chosen vs. rejected, why, the invariant a test must hold. Files that follow the
      plan get no line; a step with no open decision gets `none`. Architect leaves every step `_none yet_`. -->
 ### Step 1
-_none yet_
+none
 ### Step 2
 _none yet_
 ### Step 3

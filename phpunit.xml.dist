@@ -28,7 +28,7 @@
     deterministic (Infection randomizes the order only when this is unset).
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="app/vendor/phpunit/phpunit/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
@@ -59,7 +59,6 @@
         <exclude>
             <directory>app/modules/*/src/Tests</directory>
             <directory>app/system/modules/*/src/Tests</directory>
-            <directory>app/vendor</directory>
             <!-- No meaningful unit-test surface (align with codecov.yml ignore) -->
             <file>app/system/config.php</file>
             <file>public/index.php</file>

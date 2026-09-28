@@ -2,4 +2,4 @@
 
 declare(strict_types=1);
 
-return require __DIR__ . '/app/vendor/autoload.php';
+return require __DIR__ . '/vendor/autoload.php';

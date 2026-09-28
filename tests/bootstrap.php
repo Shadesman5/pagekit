@@ -16,7 +16,7 @@ declare(strict_types=1);
  * uninitialized state must clear and restore via pagekit_phpunit_install_intl_locator().
  */
 
-require_once dirname(__DIR__) . '/app/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 require_once dirname(__DIR__) . '/app/system/modules/intl/functions.php';
 require_once dirname(__DIR__) . '/app/system/modules/intl/functions-pagekit-namespace.php';

@@ -75,7 +75,7 @@ final class PackageArchiveRequirementTest extends TestCase
         $this->app->set('file', $this->files);
         $this->app->set('path.temp', $this->workspace . '/tmp/temp');
         $this->app->set('path.cache', $this->workspace . '/tmp/cache');
-        $this->app->set('path.vendor', $this->workspace . '/app/vendor');
+        $this->app->set('path.vendor', $this->workspace . '/vendor');
         $this->app->set('path.packages', $this->packages);
         $this->app->set('system.api', 'https://example.test');
     }

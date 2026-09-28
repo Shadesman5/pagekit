@@ -989,7 +989,8 @@ final class PackageModuleBoundaryTest extends TestCase
         $autoload = file_get_contents($this->root().'/autoload.php');
         self::assertIsString($autoload);
         self::assertStringNotContainsString('packages/', $autoload);
-        self::assertStringContainsString("return require __DIR__ . '/app/vendor/autoload.php';", $autoload);
+        self::assertStringContainsString("return require __DIR__ . '/vendor/autoload.php';", $autoload);
+        self::assertStringNotContainsString('app/vendor', $autoload);
     }
 
     public function testTheRuntimeLockDoesNotInstallComposer(): void

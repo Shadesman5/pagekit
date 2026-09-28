@@ -18,7 +18,7 @@
 /app/system/modules/theme/assets/css/theme.css
 
 # Ignore vendor folder
-/app/vendor/*
+/vendor/
 
 # Ignore database and logs
 /docker/logs/*

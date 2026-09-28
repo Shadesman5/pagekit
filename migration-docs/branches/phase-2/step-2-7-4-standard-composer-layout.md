@@ -21,21 +21,46 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme>
+### Root `vendor/` (Checklist Step 1)
+
+Composer installs at the repository root. `vendor-dir` is unset. Boot, the suite, CI, the image, and the release paths read `vendor/`.
+
+The five workflows cache that directory under the key prefix `composer-root-vendor-`. A cache stored for `app/vendor` is not restored as `vendor`.
+
+`SelfUpdater` deletes files the new archive does not list under `vendor/` as well as under `app/`. `packages/` and `public/` stay. The Step 2.9 note still covers the `public/storage` link and renamed files under `public/`.
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `composer.json` | `config.vendor-dir` removed. `platform` and `allow-plugins` stay. |
+| `autoload.php` | Requires `__DIR__ . '/vendor/autoload.php'`. |
+| `public/index.php` | `path.vendor` is `$path.'/vendor'`. |
+| `tests/bootstrap.php` | Requires the root `vendor/autoload.php`. |
+| `app/system/modules/cache/src/Tests/bootstrap.php` | The require climbs six segments to the root `vendor/autoload.php`. |
+| `phpunit.xml.dist`, `phpunit-mysql.xml.dist` | Schema is `vendor/phpunit/phpunit/phpunit.xsd`. The `app/vendor` coverage exclude is gone and is not replaced with a `vendor` directory exclude. |
+| `phpstan.neon` | Doctrine, Symfony, and PHPUnit extensions, the `vendor` exclude, and the bootstrap autoload are under `vendor/`. `app/modules/*/vendor` stays excluded. |
+| `infection.json.dist` | Schema and `phpUnit.customPath` are under `vendor/`. |
+| `.php-cs-fixer.php` | Finder exclude is `vendor`. |
+| `.gitignore` | Ignores `/vendor/`. |
+| `.dockerignore` | Ignores `vendor/`. |
+| `.cursorignore` | The commented vendor line is `# /vendor`. The directory stays indexed. |
+| `Dockerfile` | The `composer-deps` copy is `./vendor`. |
+| `.github/workflows/php-tests.yml`, `infection.yml`, `nightly.yml`, `e2e.yml`, `e2e-weekly.yml` | Composer cache path is `vendor`, cache keys use `composer-root-vendor-`, and PHPUnit, PHPStan, Infection, and PHP CS Fixer run from `./vendor/bin/`. |
+| `.cursor/install.sh`, `.cursor/agents/tester.md`, `.cursor/rules/php.mdc` | PHPUnit and PHPStan are `./vendor/bin/…`. The PHP rule names Composer's default `vendor/`. |
+| `app/console/src/Commands/BuildCommand.php` | Release excludes that named `app/vendor` now start with `^vendor\/`. |
+| `app/installer/src/SelfUpdater.php` | `$cleanFolder` is `['app', 'vendor']`. |
 
-_TBD_
-
-#### Tests (only if added or changed)
+#### Tests (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `tests/Unit/Composer/RootVendorLayoutTest.php` (new) | `composer.json` has no `vendor-dir` or `bin-dir`. Boot, the front controller, and the cache bootstrap read the root `vendor/`. `app/vendor` is not a directory or a link. The suite, image, and workflow files above do not contain `app/vendor`, and the scan skips this file. |
+| `tests/Unit/Console/BuildCommandExcludeTest.php` (new) | Vendor excludes start with `^vendor\/`. `vendor/<a>/<b>/tests/Foo.php` matches; `src/Foo.php` and the same path under `app/vendor` do not. |
+| `tests/Unit/Installer/SelfUpdaterCleanupTest.php` (new) | An update removes files the archive omits under `vendor/` and `app/`, and leaves `packages/` and `public/`. A failed requirements check, and a missing archive, leave the install in place. |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | `autoload.php` requires the root autoload and does not contain `app/vendor`. |
+| `app/modules/kernel/src/Tests/KernelFoundationOwnershipTest.php` | The Composer loader is the one registered for `<root>/vendor`. |
+| `tests/Unit/Console/InstallCommandTest.php`, `tests/Unit/Console/UninstallCommandTest.php`, `tests/Unit/Package/PackageArchiveRequirementTest.php`, `tests/Unit/Package/PackageInstallFromArchiveTest.php`, `tests/Unit/Package/PackageSnapshotGateTest.php`, `tests/Unit/Package/PackageTreeRemovalTest.php`, `tests/Unit/Package/PackageUploadBoundaryTest.php` | `path.vendor` is `<workspace>/vendor`. |
 
-_TBD_
+Gates: production verifier PASS; production tester PASS; test-writer done; test verifier PASS; coverage tester PASS. No deviations.
 
 ---
 

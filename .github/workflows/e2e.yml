@@ -51,13 +51,13 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (vendor)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: app/vendor
-          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-8.5-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.5-composer-
+            ${{ runner.os }}-php-8.5-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -151,13 +151,13 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (vendor)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: app/vendor
-          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          path: vendor
+          key: ${{ runner.os }}-php-8.5-composer-root-vendor-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.5-composer-
+            ${{ runner.os }}-php-8.5-composer-root-vendor-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
