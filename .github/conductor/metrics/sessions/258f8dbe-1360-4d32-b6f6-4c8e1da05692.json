@@ -10,7 +10,7 @@
   "model": "grok-4.7",
   "status": "failed",
   "startedAt": "2026-09-27T23:52:26.541Z",
-  "completedAt": "2026-09-28T03:15:55.331Z",
+  "completedAt": "2026-09-28T03:15:27.178Z",
   "phases": [
     {
       "phaseKey": "36360122803-1-PLAN",
@@ -166,13 +166,30 @@
       "type": "FINALIZE",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-28T01:46:42.037Z",
-      "durationMs": 1980736,
+      "startedAt": "2026-09-28T01:46:43.067Z",
+      "durationMs": 1970693,
       "agent": {
         "id": "bc-e2af25ab-9658-4dfc-bcc1-1c916544df18",
         "runId": "run-db302772-4308-4fc9-b574-2bd05ba368a3",
         "url": "https://cursor.com/agents/bc-e2af25ab-9658-4dfc-bcc1-1c916544df18",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-db302772-4308-4fc9-b574-2bd05ba368a3",
+            "index": 1,
+            "startedAt": "2026-09-28T01:46:43.067Z",
+            "completedAt": "2026-09-28T02:19:34.323Z",
+            "durationMs": 1970693,
+            "tokens": {
+              "input": 127277,
+              "output": 12168,
+              "cacheRead": 1993344,
+              "cacheWrite": 0,
+              "total": 2132789
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36367267939,
@@ -190,20 +207,39 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: no security review after security run.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-28T02:19:34.323Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "36367267939-1-FINALIZE (retry 1)",
       "type": "FINALIZE",
       "attempt": 1,
       "batchSteps": null,
-      "startedAt": "2026-09-28T02:19:48.228Z",
-      "durationMs": 1612246,
+      "startedAt": "2026-09-28T02:19:49.128Z",
+      "durationMs": 1602413,
       "agent": {
         "id": "bc-488706b2-ab46-4a7e-854b-bc0bfc524e8a",
         "runId": "run-3ef27f8f-d487-40d1-b246-8b2f6ba0f503",
         "url": "https://cursor.com/agents/bc-488706b2-ab46-4a7e-854b-bc0bfc524e8a",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-3ef27f8f-d487-40d1-b246-8b2f6ba0f503",
+            "index": 1,
+            "startedAt": "2026-09-28T02:19:49.128Z",
+            "completedAt": "2026-09-28T02:46:32.312Z",
+            "durationMs": 1602413,
+            "tokens": {
+              "input": 156400,
+              "output": 9831,
+              "cacheRead": 1577856,
+              "cacheWrite": 0,
+              "total": 1744087
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36367267939,
@@ -221,20 +257,39 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: no security review after security run.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-28T02:46:32.312Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "36367267939-1-FINALIZE (retry 2)",
       "type": "FINALIZE",
       "attempt": 2,
       "batchSteps": null,
-      "startedAt": "2026-09-28T02:46:46.303Z",
-      "durationMs": 1742605,
+      "startedAt": "2026-09-28T02:46:47.327Z",
+      "durationMs": 1719317,
       "agent": {
         "id": "bc-212db5fa-09aa-43bb-9887-714b6e2e27d9",
         "runId": "run-81824b1f-762f-4c6b-8172-6cc637a404d0",
         "url": "https://cursor.com/agents/bc-212db5fa-09aa-43bb-9887-714b6e2e27d9",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-81824b1f-762f-4c6b-8172-6cc637a404d0",
+            "index": 1,
+            "startedAt": "2026-09-28T02:46:47.327Z",
+            "completedAt": "2026-09-28T03:15:27.178Z",
+            "durationMs": 1719317,
+            "tokens": {
+              "input": 115345,
+              "output": 11386,
+              "cacheRead": 1982336,
+              "cacheWrite": 0,
+              "total": 2109067
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36367267939,
@@ -252,7 +307,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: no security review after security run.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-28T03:15:27.178Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -263,7 +320,7 @@
       "cacheWrite": 0,
       "total": 15780467
     },
-    "durationMs": 11583762,
+    "durationMs": 11540598,
     "phaseCount": 6,
     "escalations": 3,
     "ghaJobs": 3,
