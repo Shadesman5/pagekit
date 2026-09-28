@@ -10,7 +10,7 @@
   "model": null,
   "status": "in_progress",
   "startedAt": "2026-09-28T21:22:44.066Z",
-  "completedAt": "2026-09-28T22:17:03.357Z",
+  "completedAt": "2026-09-28T23:46:32.948Z",
   "phases": [
     {
       "phaseKey": "36485646462-1-PLAN",
@@ -70,13 +70,30 @@
         1,
         2
       ],
-      "startedAt": "2026-09-28T22:17:28.047Z",
-      "durationMs": 5350433,
+      "startedAt": "2026-09-28T22:17:29.789Z",
+      "durationMs": 5342771,
       "agent": {
         "id": "bc-81f46790-7d47-41a9-aca2-c03ecf24072d",
         "runId": "run-53c53982-01e8-437c-984b-be9c6124091c",
         "url": "https://cursor.com/agents/bc-81f46790-7d47-41a9-aca2-c03ecf24072d",
-        "model": null
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-53c53982-01e8-437c-984b-be9c6124091c",
+            "index": 1,
+            "startedAt": "2026-09-28T22:17:29.789Z",
+            "completedAt": "2026-09-28T23:46:32.948Z",
+            "durationMs": 5342771,
+            "tokens": {
+              "input": 102975,
+              "output": 9658,
+              "cacheRead": 1218048,
+              "cacheWrite": 0,
+              "total": 1330681
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36491478779,
@@ -94,7 +111,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Batch done. Steps: 1, 2. Last commit: f5feececc9cfddd5eca5c57a5e3dd70ed30dea4f.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-28T23:46:32.948Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -105,7 +124,7 @@
       "cacheWrite": 0,
       "total": 1949964
     },
-    "durationMs": 8609166,
+    "durationMs": 8601504,
     "phaseCount": 2,
     "escalations": 0,
     "ghaJobs": 2,
