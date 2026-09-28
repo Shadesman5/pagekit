@@ -236,11 +236,12 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
       gh api "repos/{owner}/{repo}/issues/comments/$id" \
         --jq '[.user.login, (.performed_via_github_app.slug // "none")] | @tsv'
       ```
-      Anything but a human login with `none` → `ESCALATE: review trigger posted as <login> via
+      Anything but a human login with `none` → `ESCALATE (decision): review trigger posted as <login> via
       <app>` — never poll for a review that cannot come. Same procedure for `security run`.
    2. Poll with `gh` only. **No** homemade `node`/`[eval]` poll scripts, HEAD filters, or
       `OPEN_BUG`/`CLEAN`/`DIRTY` state machines. Exit when a `<!-- BUGBOT_REVIEW -->` review has
-      `submitted_at` after the trigger (ceiling ~10 min).
+      `submitted_at` after the trigger (ceiling ~10 min). None →
+      `ESCALATE (decision): no bugbot review after bugbot run`.
    3. **Stop polling** once that review exists. Body text only:
       - **Dirty** (fix-loop now) if any leftover phrase:
         `potential issue` / `remains unresolved` / `from previous review` / `total unresolved issues`
@@ -331,4 +332,4 @@ driver does not relaunch on that form.
 
 ## Report exactly one line
 
-`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — append `Bugbot skipped.` and/or `Security skipped.` when the launch prompt said so — or `ESCALATE (snapshot): environment build <sha> does not contain origin/<Base> <sha>.` — or `ESCALATE: <reason>.` — or `ESCALATE (decision): <reason>.` for a Verifier `ESCALATE:` bullet or a step-5 security stop.
+`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — append `Bugbot skipped.` and/or `Security skipped.` when the launch prompt said so — or `ESCALATE (snapshot): environment build <sha> does not contain origin/<Base> <sha>.` — or `ESCALATE: <reason>.` — or `ESCALATE (decision): <reason>.` for a Verifier `ESCALATE:` bullet, a step-4 Bugbot stop, or a step-5 security stop.
