@@ -8,9 +8,9 @@
   "issue": 271,
   "branch": "feature/standard-composer-layout",
   "model": "grok-4.7",
-  "status": "in_progress",
+  "status": "failed",
   "startedAt": "2026-09-27T23:52:26.541Z",
-  "completedAt": "2026-09-28T01:45:32.003Z",
+  "completedAt": "2026-09-28T03:15:55.331Z",
   "phases": [
     {
       "phaseKey": "36360122803-1-PLAN",
