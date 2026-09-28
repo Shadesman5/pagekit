@@ -6,16 +6,18 @@
 **Branch:** `feature/standard-composer-layout`
 **ROADMAP Step:** 2.7.4 (Standard Composer Layout (vendor/))
 **GitHub Issue:** [#271](https://github.com/Shadesman5/pagekit/issues/271)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#308](https://github.com/Shadesman5/pagekit/pull/308)
+**Status:** ✅ Complete
 **Started:** 2026-09-28 00:18
-**Completed:** _TBD_
+**Completed:** 2026-09-28 19:07
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Composer installs at the repository root. `config.vendor-dir` is unset, so the directory is `vendor/` and the binaries are `vendor/bin`. Boot, the suite, CI, the image, and the release read that directory. `autoload.php` requires `vendor/autoload.php`. `path.vendor` is `$path.'/vendor'`. Nothing falls back to `app/vendor`.
+
+A self-update deletes files the new archive does not list under `vendor/` and under `app/`. `packages/` and `public/` stay. After `composer install`, the install script removes a leftover `app/vendor` directory or symlink.
 
 ---
 
@@ -91,31 +93,34 @@ No tests. Gates: Bugbot clean after one fix-loop (leftover `app/vendor`). Securi
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **A leftover `app/vendor` is removed after install, not ignored.** `.cursor/install.sh` runs `rm -rf app/vendor` after `composer install`. A `/app/vendor/` gitignore line was rejected: it would hide a second tree. After install, `app/vendor` is neither a directory nor a symlink, and `./vendor/autoload.php` is the only autoload.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+None. An extension archive still installs under `packages/<vendor>/<name>`. This step moves this repository's Composer directory.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+- A checkout that still has `app/vendor` and no `vendor/` does not boot until `composer install` writes `./vendor`. The install script then removes `app/vendor`. Commands are `./vendor/bin/…`.
+- Workflow caches use the prefix `composer-root-vendor-`. A cache stored for `app/vendor` is not restored as `vendor/`.
+- A self-update deletes omitted files under `vendor/` and `app/`. The `public/storage` link and renamed files under `public/` stay Step 2.9.
+- Historical docs and past changelog sentences still name `app/vendor` for the layout those changes ran against.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+`vendor/` stays outside `public/`. Boot loads `vendor/autoload.php` only. The image does not give `www-data` ownership of `vendor/`. A self-update still requires an authenticated administrator. The clean pass on `vendor/` deletes a file the new archive does not list, the same model already used for `app/`.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+`vendor-dir` is unset. There is no second path and no fallback that reads `app/vendor` when `./vendor` is missing. The Step 2.9 TODO still names the webroot gap (`public/storage`, renamed files under `public/`) and no longer says the clean pass reaches `app/` only. `setUpdateMode()` and its Step 5.6 TODO are unchanged.
 
 ---
 
@@ -124,14 +129,31 @@ _TBD_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PHP Tests | ✅ success — [run 36468622437](https://github.com/Shadesman5/pagekit/actions/runs/36468622437) (phpunit 8.5, phpunit-mysql, phpunit-mysql-snapshot, phpstan, cs-fixer, security-audit, version-ssot) |
+| CI — Infection | ✅ success — [run 36468622510](https://github.com/Shadesman5/pagekit/actions/runs/36468622510) (infection-diff) |
+| CI — Frontend | ✅ success — [run 36468622516](https://github.com/Shadesman5/pagekit/actions/runs/36468622516) |
+| CI — Docker Image | ✅ success — [run 36468622540](https://github.com/Shadesman5/pagekit/actions/runs/36468622540) (hadolint, docker-image; publish-image skipped on pull request) |
+| CI — E2E workflow | [run 36468622360](https://github.com/Shadesman5/pagekit/actions/runs/36468622360) — e2e-smoke and e2e-merge skipped by repository policy |
+| Pull request | [#308](https://github.com/Shadesman5/pagekit/pull/308) |
+| codecov/patch | ✅ pass — [PR 308](https://app.codecov.io/gh/Shadesman5/pagekit/pull/308) |
+| Coverage gap pass | skipped — the latest codecov comment lists no uncovered production files |
+| Cursor Bugbot (PR) | findings fixed |
+| Cursor Security Reviewer (PR) | ✅ clean |
+| E2E | PASS |
+
+**CI head:** `479dce5834cd9a89263e207628f5ed1a2f912f59`
+
+**Metrics (CI-owned):** [PR #308 quality-report comment](https://github.com/Shadesman5/pagekit/pull/308#issuecomment-5861879946) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Step 1: none. Step 2: none. Step 3: Bugbot found a leftover `app/vendor` tree; the install script removes it; then clean. Security clean. E2E PASS. Finalize: no fix-loop. Coverage gap pass skipped. `e2e-smoke` and `e2e-merge` skipped by repository policy. `publish-image` skipped on the pull request.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -140,7 +162,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -149,13 +171,23 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.8** — the extension package contract, author tooling, and upload archives pack and document root `vendor/`.
+- **Step 2.9** — release automation, and the updater beyond this clean-pass directory: the webroot `public/storage` link, and pruning renamed files under `public/`.
+- **Step 5.6** — `SelfUpdater::setUpdateMode()` is still empty. The maintenance-mode toggle stays that step's work.
+- **Step 4.13** — splitting the repository.
+- **Non-goal:** renaming the `app/` directory. No ROADMAP row.
+- **Historical records** stay as written. Past changelog sentences name the layout of that change.
+- **Bridges:** none.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- 2.7.5 — Data Directory (`data/`)
+- 2.8 — Extension Packaging & Prebuilt Assets
+- 2.9 — Automated Update System
+- 4.13 — Repo Topology Spike
+- 5.6 — Marketplace & Extensions (maintenance-mode toggle)
 
 ---
 
@@ -257,7 +289,7 @@ The diff does not introduce concrete, exploitable issues in authorization, injec
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -266,7 +298,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -275,7 +307,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -284,7 +316,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -293,22 +325,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_4_Standard-Composer-Layout_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_4_Standard-Composer-Layout_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_4_Standard-Composer-Layout.md`
 - Predecessor: Step 2.7.3 — Static Module Registration
 - Successor: Step 2.7.5 — Data Directory (data/)
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
