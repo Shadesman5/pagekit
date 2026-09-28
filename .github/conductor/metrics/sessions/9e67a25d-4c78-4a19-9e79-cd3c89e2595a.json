@@ -436,11 +436,11 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
-        "input": 3774486,
-        "output": 771442,
-        "cacheRead": 43838053,
+        "input": 4533832,
+        "output": 838844,
+        "cacheRead": 47638218,
         "cacheWrite": 0,
-        "total": 48383981
+        "total": 53010894
       },
       "tokensSource": "cursor-dashboard-csv",
       "result": "Finalized. PR: #306. Version: 1.2.45. Ticket archived to done/.",
@@ -494,17 +494,31 @@
             "total": 4626913
           },
           "agentId": "bc-73b90dac-cc06-4285-b0ee-869cb8eaa621"
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 759346,
+            "output": 67402,
+            "cacheRead": 3800165,
+            "cacheWrite": 0,
+            "total": 4626913
+          },
+          "agentId": "bc-73b90dac-cc06-4285-b0ee-869cb8eaa621"
         }
       ]
     }
   ],
   "totals": {
     "tokens": {
-      "input": 8258917,
-      "output": 1752421,
-      "cacheRead": 115468773,
+      "input": 9018263,
+      "output": 1819823,
+      "cacheRead": 119268938,
       "cacheWrite": 0,
-      "total": 125480111
+      "total": 130107024
     },
     "durationMs": 14478936,
     "phaseCount": 6,
@@ -519,9 +533,9 @@
     "note": "Post-hoc V1 UI / Automations import (parent agent usage)"
   },
   "csvImport": {
-    "at": "2026-09-27T18:59:32.188Z",
+    "at": "2026-09-28T19:48:19.880Z",
     "source": "import-usage-csv.mjs",
-    "events": 107,
-    "phasesUpdated": 7
+    "events": 132,
+    "phasesUpdated": 3
   }
 }
