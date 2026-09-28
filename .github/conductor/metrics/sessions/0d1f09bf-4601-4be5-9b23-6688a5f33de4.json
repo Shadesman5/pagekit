@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "0d1f09bf-4601-4be5-9b23-6688a5f33de4",
+  "roadmapStepId": "2.7.5",
+  "title": "Step 2.7.5: Data Directory",
+  "taskSlug": "PROMPT_2_7_5_Data-Directory",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_5_Data-Directory.md",
+  "issue": 299,
+  "branch": "feature/data-directory",
+  "model": null,
+  "status": "in_progress",
+  "startedAt": "2026-09-28T21:22:36.406Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}
