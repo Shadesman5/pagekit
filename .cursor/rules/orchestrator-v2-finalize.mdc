@@ -176,11 +176,11 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 
 ## Sequence
 
-> **Finalize PR reviews:** Bugbot's verdict is the newest `<!-- BUGBOT_REVIEW -->` review **body**.
-> Security's verdict is the newest `cursor[bot]` review **body** that contains
-> `Sent by Cursor Security Agent`. Never a check row (a Security `success` is not clean), HEAD SHA,
-> `commit_id`, `details_url`, an XL Task review, or CI `security-audit`. Both triggers must be posted
-> by a human account (step 4.1). Details: steps 4–5.
+> **Finalize PR reviews:** Bugbot's verdict is the newest `<!-- BUGBOT_REVIEW -->` review **body** —
+> never its check row. Security's verdict is the latest run `result` of the agent linked from the
+> check `details_url`. The check `conclusion` is not the verdict, and a missing GitHub review is not
+> clean. Never HEAD SHA, `commit_id`, an XL Task review, or CI `security-audit`. Both triggers must
+> be posted by a human account (step 4.1). Details: steps 4–5.
 > Rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
@@ -220,7 +220,8 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    **At most one** coverage-gap iteration per Finalize run (Stuck-breaker still applies). If test-writer
    returns `UNTESTABLE` for all gaps, skip the commit and proceed to step 4.
 4. **PR-Bugbot (mandatory)** — sole source of truth: newest `cursor[bot]` PR **review** with
-   `<!-- BUGBOT_REVIEW -->`. Ignore checks, HEAD, `commit_id`.
+   `<!-- BUGBOT_REVIEW -->`. Ignore checks, HEAD, `commit_id`. If the launch prompt contains
+   `Skip GitHub Bugbot.`, do not post or poll. Go to step 5.
    1. **Post as a human account, then prove it.** Bugbot and Security ignore comments authored by
       `cursor[bot]`, so a trigger that leaves through the Cursor GitHub App is dropped without a
       reply. `gh api user` is **not** proof — the agent VM holds both credentials, and that call can
@@ -248,20 +249,23 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
       - Dirty → fix open Bugbot comments → push → re-CI → 4.1. Thread-resolve without a fix ≠ clean.
       - Clean → step 5.
    4. Forbidden limbo: `issues=0` + `unresolvedMention` = **Dirty**, not “wait more”.
-5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: newest `cursor[bot]` PR
-   **review** whose body contains `Sent by Cursor Security Agent`. Ignore the check run and do not
-   open `details_url`. Not CI `security-audit`.
+5. **PR-Security (mandatory)** — after Bugbot clean, or after a skipped step 4. Verdict: `result`
+   on the latest run of the agent in the check `details_url` (`bc-…`). Not the check `conclusion`,
+   not a GitHub review. Not CI `security-audit`. A review, when one exists, is only the finding to
+   fix. If the launch prompt contains `Skip GitHub Security.`, do not post or poll. Go to step 6.
    1. Post `security run` and verify its author per 4.1 (same PAT path, same read-back).
-   2. Poll with `gh` only. **No** homemade poll scripts. Exit when that review has `submitted_at`
-      after the trigger and the body is not a `Stale comment` (ceiling ~20 min). None →
-      `ESCALATE: no security review after security run`.
-   3. **Stop polling** once that review exists. Body text only:
-      - **Dirty** if it reports a finding (`found` … `HIGH` / `MEDIUM` / `CRITICAL` / `LOW` /
-        `severity` … `issue`). Fix the open `Agentic Security Review` comments → push → re-CI →
-        **restart step 4**. Thread-resolve without a fix ≠ clean.
-      - **Clean** only if it reports none (`no new security` / `no findings` / `no new issues` /
-        `0 issue`) and it is not a `Stale comment`.
-      - Clean → step 6.
+   2. Poll the check `Cursor Security Agent: Security Reviewer` on the head with `gh` until
+      `status == "completed"` (ceiling ~20 min). None →
+      `ESCALATE (decision): no security check after security run`.
+   3. Read the run. `curl -sS -u "$CURSOR_API_KEY:" https://api.cursor.com/v1/agents/{id}`, then
+      `…/runs/{latestRunId}`. Missing key, non-200, or empty `result` →
+      `ESCALATE (decision): security result unreadable`.
+   4. `result` text only:
+      - **Dirty** if it contains `HIGH-Befund`, `MEDIUM-Befund`, or `CRITICAL-Befund`. Fix the open
+        `Agentic Security Review` comments → push → re-CI → **restart step 4**.
+      - **Clean** if it contains `keine meldbaren Findings` or `keine neuen` … `Findings`, and none
+        of those Befund phrases → step 6.
+      - Neither → `ESCALATE (decision): security result unclear`.
 6. **Finalize** (follow `.cursor/skills/push/SKILL.md` + version-bump skill; delegate writing) — in this order:
    1. **Version bump** (you) — version-bump skill. Product delivery → `app/system/config.php` once per PR.
       Tooling-only / `NO BUMP` → skip config + CHANGELOG; still archive the ticket.
@@ -320,10 +324,11 @@ driver does not relaunch on that form.
 ## Boundaries
 
 - Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `post-close-reviewer`. Finalize steps 4–5:
-  post `bugbot run` / `security run` from a human account, then judge only the verdict source each
-  step names — Bugbot's review body, Security's review body. Do not spawn Task `bugbot` /
+  post `bugbot run` / `security run` from a human account, unless the launch prompt contains
+  `Skip GitHub Bugbot.` or `Skip GitHub Security.`, then judge only the verdict source each
+  step names — Bugbot's review body, Security's run `result`. Do not spawn Task `bugbot` /
   `security-review` here.
 
 ## Report exactly one line
 
-`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE (snapshot): environment build <sha> does not contain origin/<Base> <sha>.` — or `ESCALATE: <reason>.` — or, for a Verifier `ESCALATE:` bullet only, `ESCALATE (decision): <bullet>.`
+`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — append `Bugbot skipped.` and/or `Security skipped.` when the launch prompt said so — or `ESCALATE (snapshot): environment build <sha> does not contain origin/<Base> <sha>.` — or `ESCALATE: <reason>.` — or `ESCALATE (decision): <reason>.` for a Verifier `ESCALATE:` bullet or a step-5 security stop.

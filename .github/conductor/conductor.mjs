@@ -57,6 +57,9 @@ const AUTO_CHAIN = parseBool(process.env.AUTO_CHAIN, true, 'AUTO_CHAIN'); // whe
 // expose yet (CLI coming soon). Default on: stop before launching XL; V1 on cursor.com/agents
 // ticks the box; re-dispatch Conductor with the same session_id for FINALIZE.
 const HANDOFF_XL = parseBool(process.env.HANDOFF_XL, true, 'HANDOFF_XL');
+// GitHub PR reviews in FINALIZE only. XL /review-bugbot and /review-security still run.
+const SKIP_GH_BUGBOT = parseBool(process.env.SKIP_GH_BUGBOT, false, 'SKIP_GH_BUGBOT');
+const SKIP_GH_SECURITY = parseBool(process.env.SKIP_GH_SECURITY, false, 'SKIP_GH_SECURITY');
 const TITLE = (process.env.TITLE || '').trim(); // optional run display title (passed through on chain)
 const WORKFLOW_FILE = (process.env.WORKFLOW_FILE || 'conductor.yml').trim();
 const WORKFLOW_REF = (process.env.WORKFLOW_REF || BASE).trim();
@@ -128,7 +131,7 @@ const metrics = createMetricsCollector({
   // branch (not just the base checkout) is honored.
   const { mode: MODE, audit: AUDIT } = resolveRun();
   log(
-    `Conductor start — slug=${SLUG} branch=${BRANCH} ticket=${TICKET} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN} handoff_xl=${HANDOFF_XL} phase_repeats=${MAX_PHASE_REPEATS}${AUDIT ? ' (audit/report)' : ''}`
+    `Conductor start — slug=${SLUG} branch=${BRANCH} ticket=${TICKET} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN} handoff_xl=${HANDOFF_XL} skip_gh_bugbot=${SKIP_GH_BUGBOT} skip_gh_security=${SKIP_GH_SECURITY} phase_repeats=${MAX_PHASE_REPEATS}${AUDIT ? ' (audit/report)' : ''}`
   );
   // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
   if (!AUDIT && !ISSUE)
@@ -551,6 +554,8 @@ function finalizePrompt(ticketPath) {
     `Branch: ${BRANCH} (verify you are on it first).`,
     `Base branch: ${BASE} (open the PR against this base).`,
     ISSUE ? `GitHub issue: #${ISSUE}` : '',
+    SKIP_GH_BUGBOT ? 'Skip GitHub Bugbot.' : '',
+    SKIP_GH_SECURITY ? 'Skip GitHub Security.' : '',
     'Do NOT merge. Report exactly one line as that rule specifies.'
   ]
     .filter(Boolean)
@@ -847,6 +852,8 @@ function chainWorkflow(reason) {
   field('session_id', metrics.getSessionId());
   args.push('-f', `auto_chain=${AUTO_CHAIN ? 'true' : 'false'}`);
   args.push('-f', `handoff_xl=${HANDOFF_XL ? 'true' : 'false'}`);
+  args.push('-f', `skip_gh_bugbot=${SKIP_GH_BUGBOT ? 'true' : 'false'}`);
+  args.push('-f', `skip_gh_security=${SKIP_GH_SECURITY ? 'true' : 'false'}`);
   try {
     execFileSync('gh', args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
     log('  next workflow run dispatched.');

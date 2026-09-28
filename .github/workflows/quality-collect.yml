@@ -50,7 +50,8 @@ jobs:
     # Tests / E2E, or a SCHEDULED / dispatched Nightly whose full-suite Infection MSI would otherwise
     # sit unread until the next merge. PR runs and failed runs are ignored; workflow_dispatch always
     # proceeds (the operator collects on demand). Collecting twice is harmless — an unchanged snapshot
-    # publishes nothing.
+    # publishes nothing. A pair older than the published tip, or one missing test and coverage
+    # numbers, does not replace that tip; a newer Nightly MSI can still update the tip in place.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
