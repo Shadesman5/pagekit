@@ -288,7 +288,8 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    reads the finished work against the code and writes only documentation: the branch doc's
    `## 🧊 Parked (unplanned)`, `## 🛡️ Audit`, `## 🔍 Research` (and `## 🎁 Bonus` / `## 🧹 Cleanup`
    where the diff shows what the handover missed), forward-only amendments in the PHASE sections and
-   task prompts of the steps that own each finding, README where an operator consequence was missing. On `… done.` with changed
+   task prompts of the steps that own each finding, README where an operator consequence was missing.
+   It also consumes `## 📥 Review inbox` (verify, then set the section to `None.`). On `… done.` with changed
    files: `git add` its files, commit `docs(review): post-close review Step X.Y.Z`, `git push`. On
    `clean.`: nothing to commit. Any `DECISION:` bullets are already recorded in the Parked section — do
    not act on them, do not add them to your final line. One pass, no fix-loop, no re-spawn on wording.

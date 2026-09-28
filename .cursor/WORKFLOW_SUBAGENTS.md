@@ -44,7 +44,8 @@ EXECUTE  per batch (Conductor) / all remaining steps (V1)
          S/M/L: refactorer → verifier → tester → [test-writer…] → doc-writer → tick
          last (XL): Conductor **stops** (`handoff_xl`, default on) — `/review-bugbot` /
          `/review-security` are not on the Cloud Agents API yet (CLI coming soon).
-         Run XL on cursor.com/agents (V1): Bugbot → Security → E2E → doc-writer → tick.
+         Run XL on cursor.com/agents (V1): Bugbot → Security → E2E → doc-writer
+         (non-verdict notes into the branch-doc review inbox) → tick.
          The tick commit imports that V1 parent agent's tokens into the Conductor
          session (`import-xl-handoff-metrics.yml`). Re-dispatch Conductor with the
          same `session_id` for FINALIZE. (`handoff_xl=false` launches XL as a cloud batch.)
@@ -52,7 +53,7 @@ EXECUTE  per batch (Conductor) / all remaining steps (V1)
         ▼
 FINALIZE PR → CI → [coverage] → PR Bugbot → PR Security
          → version (product only) → CHANGELOG/ROADMAP → archive ticket
-         → post-close-reviewer (docs only: Parked + PHASE/prompt amendments) → commit
+         → post-close-reviewer (docs only: review inbox + Parked + PHASE/prompt amendments) → commit
 ```
 
 Weights: `S=1` `M=2` `L=4` `XL=8`. Last checklist step is always `(XL)` Review + E2E; alone when `batch_budget` < 8 (default 6).

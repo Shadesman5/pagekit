@@ -15,7 +15,7 @@ The Orchestrator (or the maintainer) passes:
 - **Ticket** — `migration-docs/tickets/done/<prompt-basename>_plan.md` (reference only; never edited).
 - **Branch doc** — `migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab>.md`.
 - **Task prompt** — `migration-docs/TODO/agent_prompts/…/PROMPT_….md` (the requirement the ticket answered).
-- **PR** — `#<n>`, read-only via `gh`.
+- **PR** — `#<n>`, read-only via `gh`. The Security agent's reply and the Bugbot comments on that PR are inputs to Method 10, not a second verdict.
 
 You read on your own: `.cursor/ROADMAP.md`; every `migration-docs/TODO/PHASE_*_MODERNISING.md` section the branch doc's Deferred / Follow-on / Bridges name; the task prompts of those steps where they exist; `README.md`; `CHANGELOG-NEW.md`; and the production code and tests the branch doc describes.
 
@@ -30,6 +30,10 @@ You read on your own: `.cursor/ROADMAP.md`; every `migration-docs/TODO/PHASE_*_M
 7. **PHASE redefinitions.** Where the ticket redefined what the PHASE text promised (a stage that no longer removes data, a scope that narrowed), the successor sections still read the old promise. Correct the forward text.
 8. **No-Mercy leftovers of the close.** Not a re-review — the Verifier audited every step. Only what the shipped diff leaves behind **without an owner**: `rg` production and tests for `Step X.Y` (only forward-debt tags `TODO: Must be refactored in Step …` / `TEMPORARY BRIDGE` / `AUDIT FIX` may name a step, and each must point at an open ROADMAP row whose PHASE section carries the tagged work); baseline or ignore entries the PR added (`phpstan-baseline.neon`, `.trivyignore`, lint disables) against what the ticket allowed; and the patterns of `.cursor/ANOMALIES.md` in the diff — an optional lookup standing in for a declared dependency, a gate silenced instead of a cause removed, a bridge without an expiry. A deliberate decision the ticket made is not a finding; a decision nobody will revisit is. Each goes to `## 🛡️ Audit` with the ROADMAP step that owns the resolution, and into that step's PHASE section.
 9. **Process state.** ROADMAP row vs. PR state (`gh pr view`), `Current Step` pointer, issue closure via `Closes #`, stale paths in the branch doc (a ticket still named under `active/`), `Related Documents` that no longer resolve.
+10. **Review mentions Finalize did not judge.** Finalize already consumed Bugbot's review-body verdict and Security's Befund phrases. Do not re-judge clean or dirty, and do not reopen a finding the diff already fixed. Read what those passes mentioned and then dropped. A mention is a lead. Open the file, confirm the mechanism, and write it only when the shipped code still does that and no open ROADMAP step owns it. A note already fixed, already deferred with its contract, or already a resolved thread is not a finding. The same writing rules apply — no "Security mentioned" or "Bugbot noted".
+    - **Security.** The reply is not on the GitHub check. Walk `GET /repos/{owner}/{repo}/pulls/{n}/commits` and, per SHA, the commit's check-runs. Take the newest `Cursor Security Agent: Security Reviewer` by `completed_at`. That commit is often not the PR head — a later merge leaves the head without this check, which is not "no review". Ignore `conclusion` and `output.summary`. `details_url` is `https://cursor.com/agents/bc-…`. `GET https://api.cursor.com/v1/agents/{id}` with `$CURSOR_API_KEY` (`-u "$CURSOR_API_KEY:"`) for `latestRunId`, then `GET …/runs/{latestRunId}`, and read `result` only. Discard the verdict sentences (`HIGH-Befund`, `MEDIUM-Befund`, `CRITICAL-Befund`, `keine meldbaren Findings`, `keine neuen` … `Findings`). What remains — a note below the reporting threshold, hygiene named but not posted as an `Agentic Security Review` comment — is the lead. Missing key, non-200, or empty `result`: skip this source and continue. Do not stop the review. Do not create a run or call any other Cursor endpoint.
+    - **Bugbot.** Not a Cloud Agent — there is no `bc-` id. GitHub only. Newest `cursor[bot]` pull review whose body contains `<!-- BUGBOT_REVIEW -->` and not `<!-- BUGBOT_REVIEW_STALE -->`: ignore `found no new issues` and the trigger footer. A leftover phrase (`potential issue`, `remains unresolved`, `from previous review`, `total unresolved issues`) names a thread to verify, not a new verdict. Inline comments from `GET /pulls/{n}/comments` by `cursor[bot]` that contain `<!-- DESCRIPTION START -->` and do not contain `CURSOR_AUTOMATION_ID`: skip a thread GraphQL `reviewThreads` reports `isResolved: true` when the fix is in the diff. An unresolved thread, a thread resolved without a fix, and any comment that marks the change out of scope or tracked in a later step, is a lead. Inline comments with `CURSOR_AUTOMATION_ID` or `Agentic Security Review` are the findings Finalize already required fixed — use them only so a resolved one is not parked again.
+    - **XL inbox.** `## 📥 Review inbox` in the branch doc is the remainder of the local XL Bugbot and Security replies, copied before a PR existed. Missing heading, `_TBD_`, or `None.` → nothing from this source. Each labeled note is a lead under the same rule. The GitHub pass above stays; the XL run is the full branch diff and the PR run is a later one. After the pass, set the section to `None.` even when no note became a finding. That clear is a write: report `Post-close review done.` with zero counts rather than `clean.` when the inbox was the only change.
 
 ## Where the gaps hide
 
@@ -68,7 +72,7 @@ Rules for every line you write:
 - **Facts, not narration.** No "the review found", no "we noticed", no history of this review. State the mechanism and the owner.
 - **English**, backticks for paths and symbols, the file's existing heading style.
 - **Nothing found → write nothing.** `None.` stays `None.`
-- **Never overwrite the doc-writer.** What Changed, Key Decisions, Verification and No-Mercy Compliance are written from the execution handover; you correct a sentence there only where the code contradicts it — and that contradiction is itself a Parked or Audit finding.
+- **Never overwrite the doc-writer.** What Changed, Key Decisions, Verification and No-Mercy Compliance are written from the execution handover; you correct a sentence there only where the code contradicts it — and that contradiction is itself a Parked or Audit finding. `## 📥 Review inbox` is the exception: Method 10 replaces it with `None.` after the leads are verified.
 
 ## Boundary (STRICT — role separation)
 
@@ -80,12 +84,13 @@ You are a **reviewer who writes documentation**, nothing else.
 - Edit the ticket under `done/`, `.cursor/ROADMAP.md`, `CHANGELOG-NEW.md`, or `app/system/config.php`.
 - Run `git add` / `git commit` / `git push` — the Orchestrator commits your files.
 - Run PHPUnit, PHPStan, Playwright, linters, `php pagekit …`, or any application command.
-- Write to GitHub (`gh pr edit`, `gh issue edit`, comments). `gh … view` is read-only and allowed.
+- Write to GitHub (`gh pr edit`, `gh issue edit`, comments, `bugbot run`, `security run`). `gh … view` and read-only `gh api` GET / `gh api graphql` are allowed.
+- Write to the Cursor API (create a run, post a prompt, any endpoint other than the two GETs in Method 10).
 - Fix what you find. A defect in shipped code is a finding with an owner, not a patch.
 
 **DO:**
 
-- Read every tracked file you need; `rg`; `git log` / `git diff` / `git ls-files` / `git check-ignore`; `gh pr view` / `gh issue view`.
+- Read every tracked file you need; `rg`; `git log` / `git diff` / `git ls-files` / `git check-ignore`; `gh pr view` / `gh issue view`; read-only `gh api` for this PR's reviews, review comments, check-runs, and `reviewThreads`; the two Cursor GETs in Method 10.
 - Spend the time on the code. The doc tells you where to look; only the code tells you what is there.
 
 ## Output discipline (strict)
