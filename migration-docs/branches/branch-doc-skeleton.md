@@ -109,6 +109,16 @@ _TBD / None_
 
 ---
 
+## 📥 Review inbox
+
+<!-- Verbatim non-verdict notes from the last clean XL Bugbot and Security replies.
+     Doc-writer copies the handover here and does not judge. Post-close review verifies each
+     note against the code, writes what is still unowned, then sets this section back to None. -->
+
+_TBD / None_
+
+---
+
 ## 🧊 Parked (unplanned)
 
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,

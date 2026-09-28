@@ -187,6 +187,7 @@ Production files: <refactorer list, or "none" for XL with no fixes>
 Test files: <test-writer list, or "none">
 Implementation notes: ticket `## IMPLEMENTATION NOTES › Step <N>` (Refactorer's open decisions — condense, do not copy)
 Gate outcomes: <PASS/FAIL per gate; for XL: Bugbot/Security/E2E outcomes + fix-loop notes; one-line deviations only — no metric numbers>
+Review mentions: <XL only. Verbatim remainder of the last clean Bugbot reply and the last clean Security reply, labeled `Bugbot:` / `Security:`, or `none`. Omit on S/M/L steps.>
 ```
 
 **doc-writer** (ESCALATE) — `description`: `Step <N> ESCALATE record`
@@ -219,6 +220,7 @@ re-emit over harmless phrasing.
 Re-emit is a last resort: ask again **only** when the signal itself is missing (no `PASS`/`FAIL`, no
 `done`/completion line, no `UNTESTABLE`, no clean/findings signal from review) or is buried in prose —
 never for a wording variant. Do not paraphrase. Extra prose after a present Refactorer completion line is not a missing signal: paste it into the verifier (production) `Feedback (verbatim):` field.
+Prose after a present Bugbot or Security clean signal is not a finding and not a missing signal. Keep it for R4. Do not ask the subagent to re-emit.
 
 ### Review fix-loop spawn order
 
@@ -307,7 +309,13 @@ Project review rules: `.cursor/BUGBOT.md`. Compute `Full Repository Path` once v
 ### R4 — Docs, commit, tick
 
 10. Spawn **doc-writer** (per-step template; include Bugbot/Security/E2E outcomes). Once after all
-    reviews + E2E PASS — never mid-loop.
+    reviews + E2E PASS — never mid-loop. Gate outcomes stay one line each. Separately fill
+    `Review mentions:` from the **last clean** Bugbot reply and the **last clean** Security reply
+    only — not from earlier fix-loop runs, whose findings are already fixed. Strip the verdict
+    sentence (`found no bugs`, `found no issues`, `no findings`, `keine meldbaren Findings`,
+    `keine neuen` … `Findings`) and any findings table on that same reply, plus a Bugbot trigger
+    footer. Pass what remains verbatim, labeled `Bugbot:` and `Security:`. Do not summarize and do
+    not judge. Nothing left under a label → omit that label. Both empty → `none`.
 11. Commit + tick + push (**one commit for the tick + branch doc**; fix-loop commits already pushed):
     - Flip `- [ ] Step N` to `- [x] Step N` in `## EXECUTION STATE`.
     - `git add` the ticket + branch doc (+ any leftover fix files), commit, `git push`.
