@@ -79,14 +79,13 @@ No tests. Gates: production verifier PASS; production tester PASS; test-writer s
 
 ### Review (Bugbot + Security) + E2E (Checklist Step 3)
 
-Bugbot's first pass found a leftover `app/vendor` directory on disk and a `.dockerignore` gap. A retry that would also ignore `app/vendor` was rejected: this layout has one vendor directory. The leftover directory was removed from disk. The ignore rules stay `/vendor/` and `vendor/`; only the comments were clarified. Step 3 left no open decision.
+Bugbot's first pass found a leftover `app/vendor` tree. After `composer install`, the install script removes that directory or symlink. A `/app/vendor/` gitignore line was rejected: it would hide a second tree. After install, `app/vendor` is neither a directory nor a symlink, and `./vendor/autoload.php` is the only autoload.
 
 | File | Change |
 |---|---|
-| `.gitignore` | The comment above `/vendor/` names Composer dependencies at the repository root. |
-| `.dockerignore` | The dependencies comment is closed with a period. |
+| `.cursor/install.sh` | After `composer install`, `rm -rf app/vendor`. |
 
-No tests. Gates: Bugbot re-run clean. Security clean. E2E PASS. PHPUnit + PHPStan PASS on the fix.
+No tests. Gates: Bugbot clean after one fix-loop (leftover `app/vendor`). Security clean. E2E PASS.
 
 ---
 
@@ -157,6 +156,99 @@ _TBD / None_
 ## 📌 Follow-on (ROADMAP)
 
 _TBD / None_
+
+---
+
+## 📥 Review inbox
+
+<!-- Verbatim non-verdict notes from the last clean XL Bugbot and Security replies.
+     Doc-writer copies the handover here and does not judge. Post-close review verifies each
+     note against the code, writes what is still unowned, then sets this section back to None. -->
+
+Security:
+## Security review: Step 2.7.4 (standard Composer layout)
+
+**Scope reviewed:** Composer vendor relocation from `app/vendor` to root `./vendor`, plus related boot/CI/Docker/release/updater path updates in the diff.
+
+---
+
+### Summary
+
+This diff is a structural/layout migration. Production boot still loads a single autoload entry point (`autoload.php` → `./vendor/autoload.php`), the web document root remains `public/`, and the self-updater change (`SelfUpdater::$cleanFolder` includes `vendor`) aligns cleanup with existing `app/` behavior rather than introducing a new trust boundary.
+
+---
+
+### Areas examined
+
+#### 1. HTTP exposure of `vendor/`
+
+**Changed:** `public/index.php` sets `'path.vendor' => $path.'/vendor'`.
+
+**Finding:** No new web exposure.
+
+- Apache/Docker use `DocumentRoot` = `public/`; requests for `/vendor/...` resolve under `public/`, not the repo-root tree.
+- Root `.htaccess` rewrites all requests to `public/` when the host points at the repo root with mod_rewrite enabled.
+- CI already probes denial of out-of-webroot paths (`/config.php`, `/composer.json`, etc.) in `docker-image.yml`.
+
+Moving from `app/vendor` to `vendor` does not place dependencies inside the served tree. Misconfigured hosts that expose the repo root could already leak dependency files under `app/vendor`; the conventional `vendor/` path is not a new vulnerability class and requires the same misconfiguration.
+
+#### 2. Autoload integrity / dual-vendor confusion
+
+**Changed:** `composer.json` (removed `vendor-dir`), `autoload.php`, bootstraps, Dockerfile copy path.
+
+**Finding:** Single autoload path; no fallback to `app/vendor`.
+
+Console and system boot use `$path.'/autoload.php'`, which requires root `vendor/autoload.php` only. Grep shows no production `app/**/*.php` reads `path.vendor` today; the config key is inert for runtime authorization or file access.
+
+`.cursor/install.sh` adding `rm -rf app/vendor` reduces stale duplicate trees after install. That is local workspace maintenance on a trusted install path, not a cross-user boundary.
+
+#### 3. SelfUpdater: `vendor` added to `$cleanFolder`
+
+**Changed:** `app/installer/src/SelfUpdater.php` — `$cleanFolder = ['app', 'vendor']`.
+
+**Finding:** Security-neutral to positive; not newly exploitable.
+
+- Update flow remains admin-gated: `UpdateController` has `#[Access('system: software updates', admin: true)]` and CSRF on update actions.
+- Cleanup deletes files under `vendor/` (and `app/`) that are absent from the archive file list—the same model that already applied to `app/`. An incomplete malicious archive could brick the install; that requires an authenticated updater-capable admin and matches pre-existing `app/` cleanup risk, not a new attacker path from this diff.
+- Removing stale vendor files after updates reduces the chance orphaned vulnerable dependency code persists— a hygiene win.
+
+Pre-existing updater concerns (zip path validation, empty `setUpdateMode()`, SSRF in `downloadAction(string $url)`) are unchanged by this diff and were not re-reported.
+
+#### 4. Release packaging (`BuildCommand`)
+
+**Changed:** Exclude regexes from `^app\/vendor` to `^vendor`.
+
+**Finding:** No regression.
+
+Vendor junk exclusions (oauth examples, debugbar resources, package tests/docs) were ported to the new path prefix. `BuildCommandExcludeTest` locks the behavior. Release contents are equivalent, just under `vendor/` instead of `app/vendor/`.
+
+#### 5. Docker / filesystem permissions
+
+**Changed:** `Dockerfile` copies `./vendor`; test asserts no `chown` on `vendor/`.
+
+**Finding:** Consistent with existing hardening—application tree stays root-owned/read-only; `vendor/` is not writable by `www-data`. No privilege-escalation path introduced.
+
+#### 6. CI cache keys
+
+**Changed:** Cache path `vendor` with `composer-root-vendor-*` keys.
+
+**Finding:** Operational correctness change. Avoids restoring an `app/vendor` cache into `./vendor`. No cross-tenant or unauthenticated amplification path.
+
+#### 7. Coverage / static analysis config
+
+**Changed:** Removed `<directory>app/vendor</directory>` from PHPUnit coverage excludes.
+
+**Finding:** No impact. Coverage `<include>` roots are only under `app/`; `vendor/` was never in scope.
+
+#### 8. Security-related TODOs in the diff
+
+The trimmed `SelfUpdater` TODO still defers `public/storage` link and renamed assets under `public/` to Step 2.9. That is forward debt on an admin-only update path and was not introduced or worsened by adding `vendor` to the clean pass.
+
+---
+
+### Conclusion
+
+The diff does not introduce concrete, exploitable issues in authorization, injection, credential exposure, cross-user access, webroot bypass, or agent/tool trust boundaries. The meaningful production touchpoints (`autoload.php`, `public/index.php`, `SelfUpdater`, `BuildCommand`, Docker layout) preserve or slightly improve the prior security posture.
 
 ---
 
