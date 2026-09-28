@@ -32,7 +32,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (L) — Cut over to `./vendor` (boot, suite, CI, image, release paths)
-- [ ] Step 2 (S) — Living docs and editor exclude
+- [x] Step 2 (S) — Living docs and editor exclude
 - [ ] Step 3 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
@@ -54,6 +54,6 @@
 ### Step 1
 none
 ### Step 2
-_none yet_
+none
 ### Step 3
 _none yet_

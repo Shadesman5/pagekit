@@ -62,6 +62,21 @@ The five workflows cache that directory under the key prefix `composer-root-vend
 
 Gates: production verifier PASS; production tester PASS; test-writer done; test verifier PASS; coverage tester PASS. No deviations.
 
+### Living docs and editor exclude (Checklist Step 2)
+
+Instructions and the editor search exclude name Composer's default `./vendor`. `vendor` stays out of `files.exclude` so Intelephense still indexes it. Historical docs and past changelog sentences were left as written.
+
+| File | Change |
+|---|---|
+| `README.md` | PHPUnit examples are `./vendor/bin/phpunit`. |
+| `AGENTS.md` | PHPUnit cell, the vendor-directory bullet (`vendor-dir` unset, binaries `./vendor/bin/…`), and the prod-image copy sentence name `vendor`. |
+| `.vscode/settings.json` | `search.exclude` is `**/vendor`. The note says not to put `**/vendor` in `files.exclude`. |
+| `.cursor/BUGBOT.md` | Ignore list uses `vendor/`. |
+| `tests/e2e/COMPLETE_TEST_PLAN.md` | Pre-work PHPUnit command is `./vendor/bin/phpunit`. |
+| `migration-docs/TODO/MODERNISATION_STRATEGY.md` | The baseline count command is `./vendor/bin/phpunit`. |
+
+No tests. Gates: production verifier PASS; production tester PASS; test-writer skipped (docs and editor settings only). No deviations.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)

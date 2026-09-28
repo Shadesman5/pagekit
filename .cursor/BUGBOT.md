@@ -30,7 +30,7 @@ Conductor `*.test.mjs` **are** in scope. PHPUnit and Playwright test bodies are 
 - `tests/`, `**/Tests/**`, `**/*Test.php`, `**/*.spec.js`, `phpunit*.xml*`, `infection.json.dist`
 - `migration-docs/`, `docs-site/`, `README.md`, `CHANGELOG.md`, `CHANGELOG-NEW.md`, `AGENTS.md`
 - `.github/conductor/metrics/`, `.github/quality/quality-snapshot.json`
-- `*.css`, `*.less`, `node_modules/`, `app/vendor/`, `tmp/`
+- `*.css`, `*.less`, `node_modules/`, `vendor/`, `tmp/`
 
 Coverage: §6, changed-file list of this diff only.
 

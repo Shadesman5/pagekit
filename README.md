@@ -552,9 +552,9 @@ pnpm build:assets                        # Copy static assets and link the media
 # Testing
 
 ## Unit Tests
-./app/vendor/bin/phpunit                 # Run PHPUnit test suite (275 tests)
-./app/vendor/bin/phpunit --testdox       # Run tests with detailed output
-./app/vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
+./vendor/bin/phpunit                     # Run PHPUnit test suite (275 tests)
+./vendor/bin/phpunit --testdox           # Run tests with detailed output
+./vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
 
 ## E2E Tests
 pnpm test:e2e                            # Run all E2E tests
