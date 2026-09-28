@@ -160,21 +160,52 @@
       "startedAt": "2026-09-28T01:12:28.927Z",
       "durationMs": 1982536,
       "completedAt": "2026-09-28T01:45:32.003Z"
+    },
+    {
+      "phaseKey": "36367267939-1-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-09-28T01:46:42.037Z",
+      "durationMs": 1980736,
+      "agent": {
+        "id": "bc-e2af25ab-9658-4dfc-bcc1-1c916544df18",
+        "runId": "run-db302772-4308-4fc9-b574-2bd05ba368a3",
+        "url": "https://cursor.com/agents/bc-e2af25ab-9658-4dfc-bcc1-1c916544df18",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 36367267939,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/36367267939",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 127277,
+        "output": 12168,
+        "cacheRead": 1993344,
+        "cacheWrite": 0,
+        "total": 2132789
+      },
+      "tokensSource": "cursor-api",
+      "result": "ESCALATE: no security review after security run.",
+      "outcome": "escalate"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 645427,
-      "output": 64969,
-      "cacheRead": 9084128,
+      "input": 772704,
+      "output": 77137,
+      "cacheRead": 11077472,
       "cacheWrite": 0,
-      "total": 9794524
+      "total": 11927313
     },
-    "durationMs": 6248175,
-    "phaseCount": 3,
-    "escalations": 0,
-    "ghaJobs": 2,
-    "cloudAgents": 3
+    "durationMs": 8228911,
+    "phaseCount": 4,
+    "escalations": 1,
+    "ghaJobs": 3,
+    "cloudAgents": 4
   },
   "v1Continued": true,
   "manualImport": {
