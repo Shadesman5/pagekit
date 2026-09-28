@@ -197,90 +197,7 @@ None.
      Doc-writer copies the handover here and does not judge. Post-close review verifies each
      note against the code, writes what is still unowned, then sets this section back to None. -->
 
-Security:
-## Security review: Step 2.7.4 (standard Composer layout)
-
-**Scope reviewed:** Composer vendor relocation from `app/vendor` to root `./vendor`, plus related boot/CI/Docker/release/updater path updates in the diff.
-
----
-
-### Summary
-
-This diff is a structural/layout migration. Production boot still loads a single autoload entry point (`autoload.php` → `./vendor/autoload.php`), the web document root remains `public/`, and the self-updater change (`SelfUpdater::$cleanFolder` includes `vendor`) aligns cleanup with existing `app/` behavior rather than introducing a new trust boundary.
-
----
-
-### Areas examined
-
-#### 1. HTTP exposure of `vendor/`
-
-**Changed:** `public/index.php` sets `'path.vendor' => $path.'/vendor'`.
-
-**Finding:** No new web exposure.
-
-- Apache/Docker use `DocumentRoot` = `public/`; requests for `/vendor/...` resolve under `public/`, not the repo-root tree.
-- Root `.htaccess` rewrites all requests to `public/` when the host points at the repo root with mod_rewrite enabled.
-- CI already probes denial of out-of-webroot paths (`/config.php`, `/composer.json`, etc.) in `docker-image.yml`.
-
-Moving from `app/vendor` to `vendor` does not place dependencies inside the served tree. Misconfigured hosts that expose the repo root could already leak dependency files under `app/vendor`; the conventional `vendor/` path is not a new vulnerability class and requires the same misconfiguration.
-
-#### 2. Autoload integrity / dual-vendor confusion
-
-**Changed:** `composer.json` (removed `vendor-dir`), `autoload.php`, bootstraps, Dockerfile copy path.
-
-**Finding:** Single autoload path; no fallback to `app/vendor`.
-
-Console and system boot use `$path.'/autoload.php'`, which requires root `vendor/autoload.php` only. Grep shows no production `app/**/*.php` reads `path.vendor` today; the config key is inert for runtime authorization or file access.
-
-`.cursor/install.sh` adding `rm -rf app/vendor` reduces stale duplicate trees after install. That is local workspace maintenance on a trusted install path, not a cross-user boundary.
-
-#### 3. SelfUpdater: `vendor` added to `$cleanFolder`
-
-**Changed:** `app/installer/src/SelfUpdater.php` — `$cleanFolder = ['app', 'vendor']`.
-
-**Finding:** Security-neutral to positive; not newly exploitable.
-
-- Update flow remains admin-gated: `UpdateController` has `#[Access('system: software updates', admin: true)]` and CSRF on update actions.
-- Cleanup deletes files under `vendor/` (and `app/`) that are absent from the archive file list—the same model that already applied to `app/`. An incomplete malicious archive could brick the install; that requires an authenticated updater-capable admin and matches pre-existing `app/` cleanup risk, not a new attacker path from this diff.
-- Removing stale vendor files after updates reduces the chance orphaned vulnerable dependency code persists— a hygiene win.
-
-Pre-existing updater concerns (zip path validation, empty `setUpdateMode()`, SSRF in `downloadAction(string $url)`) are unchanged by this diff and were not re-reported.
-
-#### 4. Release packaging (`BuildCommand`)
-
-**Changed:** Exclude regexes from `^app\/vendor` to `^vendor`.
-
-**Finding:** No regression.
-
-Vendor junk exclusions (oauth examples, debugbar resources, package tests/docs) were ported to the new path prefix. `BuildCommandExcludeTest` locks the behavior. Release contents are equivalent, just under `vendor/` instead of `app/vendor/`.
-
-#### 5. Docker / filesystem permissions
-
-**Changed:** `Dockerfile` copies `./vendor`; test asserts no `chown` on `vendor/`.
-
-**Finding:** Consistent with existing hardening—application tree stays root-owned/read-only; `vendor/` is not writable by `www-data`. No privilege-escalation path introduced.
-
-#### 6. CI cache keys
-
-**Changed:** Cache path `vendor` with `composer-root-vendor-*` keys.
-
-**Finding:** Operational correctness change. Avoids restoring an `app/vendor` cache into `./vendor`. No cross-tenant or unauthenticated amplification path.
-
-#### 7. Coverage / static analysis config
-
-**Changed:** Removed `<directory>app/vendor</directory>` from PHPUnit coverage excludes.
-
-**Finding:** No impact. Coverage `<include>` roots are only under `app/`; `vendor/` was never in scope.
-
-#### 8. Security-related TODOs in the diff
-
-The trimmed `SelfUpdater` TODO still defers `public/storage` link and renamed assets under `public/` to Step 2.9. That is forward debt on an admin-only update path and was not introduced or worsened by adding `vendor` to the clean pass.
-
----
-
-### Conclusion
-
-The diff does not introduce concrete, exploitable issues in authorization, injection, credential exposure, cross-user access, webroot bypass, or agent/tool trust boundaries. The meaningful production touchpoints (`autoload.php`, `public/index.php`, `SelfUpdater`, `BuildCommand`, Docker layout) preserve or slightly improve the prior security posture.
+None.
 
 ---
 
@@ -289,7 +206,7 @@ The diff does not introduce concrete, exploitable issues in authorization, injec
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-None.
+- **A leftover `app/vendor` is packed into a release and baked into the production image.** `composer install` leaves a directory at `app/vendor` in place. The removal is `rm -rf app/vendor` in `.cursor/install.sh`. `.gitignore` anchors `/vendor/` and `.dockerignore` names `vendor/`, so the old directory is untracked and travels with a build context. `BuildCommand::execute()` lists files with `Finder` (`ignoreVCS(true)`) and drops paths matching `$excludes`, which are prefixed `^vendor\/`; `app/vendor/acme/widget/tests/Foo.php` does not match, and `BuildCommandExcludeTest` locks that. The `prod` stage copies that tree with `COPY app ./app`. `SelfUpdater::doCleanup()` deletes a file under `app/` when the archive's name list lacks it, and keeps it when the archive lists it, so a release that packed the directory keeps it on every updated site. Recorded default: a release archive and a production image contain no `app/vendor`. The other exit is to leave the packer as it is and treat a clean checkout as the only build input. → **2.9**
 
 ---
 
@@ -325,7 +242,15 @@ None.
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-None.
+**A leftover `app/vendor` in a release.**
+
+- `composer.json` `config` holds `platform` and `allow-plugins` and has no `scripts` entry. `composer install` writes `vendor/` and leaves `app/vendor` on disk.
+- `.cursor/install.sh` runs that install, then `rm -rf app/vendor`.
+- `.gitignore` ignores `/vendor/`. `.dockerignore` ignores `vendor/`.
+- `BuildCommand::$excludes` vendor patterns start with `^vendor\/`. `BuildCommand::execute()` builds `Finder::create()->files()->in($path)->ignoreVCS(true)` and filters with that list. `ignoreVCSIgnored()` is not called, so `.gitignore` does not drop the directory. `BuildCommandExcludeTest` asserts the combined filter does not match `app/vendor/acme/widget/tests/Foo.php`.
+- The `prod` stage of `Dockerfile` runs `COPY app ./app` and then `COPY --from=composer-deps /var/www/html/vendor ./vendor`. A context that contains `app/vendor` lands in the image beside the builder's `vendor/`.
+- `SelfUpdater::$cleanFolder` is `['app', 'vendor']`. `update()` takes the archive name list from `getFileList()`, `extract()` writes those names, and `cleanup()` calls `doCleanup()` for each clean directory. A file under `app/vendor/` whose relative path is absent from the list is unlinked. A path the archive lists is kept.
+- Exit A — the release zip and the image omit or refuse `app/vendor` before packing. The junk excludes stay prefixed `^vendor\/`; the lock in `BuildCommandExcludeTest` changes only if that same filter starts matching the old path. Exit B — builds run from a tree with no `app/vendor`, and the packer stays. Recorded default: A.
 
 ---
 

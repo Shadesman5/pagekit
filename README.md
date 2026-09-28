@@ -209,6 +209,8 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
     The image contains PHP, Apache and Composer only — the project itself is bind-mounted. The `node` service installs its own dependencies, builds the frontend assets and then starts the watcher when it comes up.
 
+    Delete a leftover `app/vendor` directory on the host after that install. `composer install` leaves it in place, Git does not ignore it, and a production image built from the same checkout copies it in with the application sources.
+
 5. **Install Pagekit**
 
     - **MySQL path**: open http://localhost:8080 and complete the web installer. Database host is `mysql`, port `3306`; database name, user and password are the `MYSQL_*` values from your `.env`.
@@ -231,6 +233,8 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     ```bash
     composer install
     ```
+
+    Composer installs dependencies in `vendor/` at the repository root. Delete a leftover `app/vendor` directory after installing. `composer install` leaves it in place, Git does not ignore it, and `php pagekit build` packs it into the release zip.
 
 2. **Install Node.js dependencies**
 
@@ -302,6 +306,8 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
     ```
 
     Building under the published name is what lets the compose file below find the result; if neither a pull nor a build has happened, `docker compose … up` builds the `prod` stage itself.
+
+    Build from a checkout with no `app/vendor` directory. The image copies `app/` from the build context, and that path is outside `.dockerignore`, so a leftover directory is baked in beside `vendor/`.
 
 2. **Write the environment file**
 
