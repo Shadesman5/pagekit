@@ -317,11 +317,11 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
-        "input": 800690,
-        "output": 45003,
-        "cacheRead": 3218149,
+        "input": 1474103,
+        "output": 77838,
+        "cacheRead": 4442954,
         "cacheWrite": 0,
-        "total": 4063842
+        "total": 5994895
       },
       "tokensSource": "cursor-dashboard-csv",
       "result": "ESCALATE: no security review after security run.",
@@ -348,6 +348,20 @@
             "cacheWrite": 0,
             "total": 2132789
           }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 673413,
+            "output": 32835,
+            "cacheRead": 1224805,
+            "cacheWrite": 0,
+            "total": 1931053
+          },
+          "agentId": "bc-a3b06831-c3f9-4aed-9437-3136c9047ff5"
         },
         {
           "role": "subagent",
@@ -403,11 +417,11 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
-        "input": 1000539,
-        "output": 42766,
-        "cacheRead": 3392613,
+        "input": 1844678,
+        "output": 75701,
+        "cacheRead": 5207370,
         "cacheWrite": 0,
-        "total": 4435918
+        "total": 7127749
       },
       "tokensSource": "cursor-dashboard-csv",
       "result": "ESCALATE: no security review after security run.",
@@ -434,6 +448,20 @@
             "cacheWrite": 0,
             "total": 1744087
           }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 844139,
+            "output": 32935,
+            "cacheRead": 1814757,
+            "cacheWrite": 0,
+            "total": 2691831
+          },
+          "agentId": "bc-35c1580e-07d9-4bd1-be4d-fe7e376fb0c9"
         },
         {
           "role": "subagent",
@@ -489,11 +517,11 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
-        "input": 841202,
-        "output": 44634,
-        "cacheRead": 3786085,
+        "input": 1567059,
+        "output": 77882,
+        "cacheRead": 5589834,
         "cacheWrite": 0,
-        "total": 4671921
+        "total": 7234775
       },
       "tokensSource": "cursor-dashboard-csv",
       "result": "ESCALATE: no security review after security run.",
@@ -520,6 +548,20 @@
             "cacheWrite": 0,
             "total": 2109067
           }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 725857,
+            "output": 33248,
+            "cacheRead": 1803749,
+            "cacheWrite": 0,
+            "total": 2562854
+          },
+          "agentId": "bc-6c6501b9-f5fa-47bb-8a4b-80708045a1e0"
         },
         {
           "role": "subagent",
@@ -625,11 +667,11 @@
   ],
   "totals": {
     "tokens": {
-      "input": 6777814,
-      "output": 556846,
-      "cacheRead": 44772367,
+      "input": 9021223,
+      "output": 655864,
+      "cacheRead": 49615678,
       "cacheWrite": 0,
-      "total": 52107027
+      "total": 59292765
     },
     "durationMs": 12905670,
     "phaseCount": 7,
@@ -644,9 +686,9 @@
     "note": "Post-hoc V1 UI / Automations import (parent agent usage)"
   },
   "csvImport": {
-    "at": "2026-09-28T19:48:19.882Z",
+    "at": "2026-09-29T03:48:25.035Z",
     "source": "import-usage-csv.mjs",
-    "events": 132,
-    "phasesUpdated": 10
+    "events": 105,
+    "phasesUpdated": 6
   }
 }
