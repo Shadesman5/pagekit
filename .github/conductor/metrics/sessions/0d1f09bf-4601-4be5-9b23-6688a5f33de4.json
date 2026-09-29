@@ -10,7 +10,7 @@
   "model": null,
   "status": "completed",
   "startedAt": "2026-09-28T21:22:44.066Z",
-  "completedAt": "2026-09-29T03:19:09.222Z",
+  "completedAt": "2026-09-29T03:18:56.826Z",
   "phases": [
     {
       "phaseKey": "36485646462-1-PLAN",
@@ -166,13 +166,30 @@
       "type": "FINALIZE",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-29T02:16:48.324Z",
-      "durationMs": 3735898,
+      "startedAt": "2026-09-29T02:16:49.368Z",
+      "durationMs": 3726862,
       "agent": {
         "id": "bc-66039263-46d9-44d8-bc92-4b87dfbbe57e",
         "runId": "run-8864c261-e3f7-4691-bc7e-678ee1fbb800",
         "url": "https://cursor.com/agents/bc-66039263-46d9-44d8-bc92-4b87dfbbe57e",
-        "model": null
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-8864c261-e3f7-4691-bc7e-678ee1fbb800",
+            "index": 1,
+            "startedAt": "2026-09-29T02:16:49.368Z",
+            "completedAt": "2026-09-29T03:18:56.826Z",
+            "durationMs": 3726862,
+            "tokens": {
+              "input": 423439,
+              "output": 23647,
+              "cacheRead": 4103680,
+              "cacheWrite": 0,
+              "total": 4550766
+            }
+          }
+        ]
       },
       "github": {
         "runId": 36511829883,
@@ -190,7 +207,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Finalized. PR: #313. Version: 1.2.47. Ticket archived to done/. Bugbot skipped. Security skipped.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-29T03:18:56.826Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -201,7 +220,7 @@
       "cacheWrite": 0,
       "total": 18558749
     },
-    "durationMs": 14961311,
+    "durationMs": 14952275,
     "phaseCount": 4,
     "escalations": 0,
     "ghaJobs": 3,
