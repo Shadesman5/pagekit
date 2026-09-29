@@ -10,7 +10,7 @@
   "model": null,
   "status": "in_progress",
   "startedAt": "2026-09-28T21:22:44.066Z",
-  "completedAt": "2026-09-28T23:46:32.948Z",
+  "completedAt": "2026-09-29T01:57:35.459Z",
   "phases": [
     {
       "phaseKey": "36485646462-1-PLAN",
@@ -114,20 +114,72 @@
       "outcome": "success",
       "completedAt": "2026-09-28T23:46:32.948Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "manual-bc-8bad39f9-bf17-45ea-81c1-f03e50a5fc62-EXECUTE",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-8bad39f9-bf17-45ea-81c1-f03e50a5fc62",
+        "url": "https://cursor.com/agents/bc-8bad39f9-bf17-45ea-81c1-f03e50a5fc62",
+        "model": null,
+        "runId": "run-b953ea32-24e8-4b41-96f6-f529bf760a3e",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-b953ea32-24e8-4b41-96f6-f529bf760a3e",
+            "index": 1,
+            "startedAt": "2026-09-29T01:13:51.156Z",
+            "completedAt": "2026-09-29T01:57:35.459Z",
+            "durationMs": 2623909,
+            "tokens": {
+              "input": 946203,
+              "output": 103304,
+              "cacheRead": 11008512,
+              "cacheWrite": 0,
+              "total": 12058019
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 946203,
+        "output": 103304,
+        "cacheRead": 11008512,
+        "cacheWrite": 0,
+        "total": 12058019
+      },
+      "tokensSource": "cursor-api-v1",
+      "result": "Imported post-hoc (cursor.com/agents UI / Automations)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Import via import-manual-agents.mjs · Timing from Cursor API (single agent run)",
+      "v1": true,
+      "startedAt": "2026-09-29T01:13:51.156Z",
+      "durationMs": 2623909,
+      "completedAt": "2026-09-29T01:57:35.459Z"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 145802,
-      "output": 17538,
-      "cacheRead": 1786624,
+      "input": 1092005,
+      "output": 120842,
+      "cacheRead": 12795136,
       "cacheWrite": 0,
-      "total": 1949964
+      "total": 14007983
     },
-    "durationMs": 8601504,
-    "phaseCount": 2,
+    "durationMs": 11225413,
+    "phaseCount": 3,
     "escalations": 0,
     "ghaJobs": 2,
-    "cloudAgents": 2
+    "cloudAgents": 3
+  },
+  "v1Continued": true,
+  "manualImport": {
+    "at": "2026-09-29T01:57:44.834Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Post-hoc V1 UI / Automations import (parent agent usage)"
   }
 }
