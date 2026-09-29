@@ -6,16 +6,18 @@
 **Branch:** `feature/data-directory`
 **ROADMAP Step:** 2.7.5 (Data Directory (data/))
 **GitHub Issue:** [#299](https://github.com/Shadesman5/pagekit/issues/299)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#313](https://github.com/Shadesman5/pagekit/pull/313)
+**Status:** ✅ Complete
 **Started:** 2026-09-28 22:15
-**Completed:** _TBD_
+**Completed:** 2026-09-29 02:54
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Private runtime state lives under `data/`. Boot names `path.data` as `<root>/data`, snapshots as `data/snapshots`, and the failure record as `data/state`. `RuntimeDirectories::ensure()` leaves those three directories mode `0700` or throws. A fresh SQLite install writes `data/pagekit.db`. An existing `config.php` that already names a database file keeps it.
+
+`tmp/` holds cache, temp, logs, and sessions. Nothing copies `tmp/snapshots` or `tmp/system`. The production image mounts `pagekit_data` at `/var/www/html/data` and refuses to start unless that directory is writable. A release excludes live files under `data/` and any `db.dump`, and packs the six guard files by name.
 
 ---
 
@@ -104,25 +106,29 @@ Gates: Bugbot clean. Security: one medium (release ZIP could pack live `data/sna
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+None. Callers still read `path.snapshots` and `path.system`. Those directories now sit under `data/`.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+- An installation that still has `tmp/snapshots` or `tmp/system` is moved once by hand: copy to `data/snapshots` and `data/state`. The application does not copy them.
+- An existing `config.php` that names `pagekit.db` keeps that file. Only a new install writes `data/pagekit.db`.
+- A `pagekit_data` volume created at `/var/www/data` keeps its files at the volume root; recreating the container mounts that root at `/var/www/html/data`. While `PAGEKIT_DB_PATH` is set, a `config.php` that still says `/var/www/data/pagekit.db` is overridden. The failure record under `tmp/system` was container-local and is not on the volume.
+- System and console throw before they load when `data/`, `data/snapshots`, or `data/state` cannot be left at mode `0700`. The installer lists an unwritable `data/` on the requirements page and calls `ensure()` only after that list is empty.
+- The entrypoint narrows `data/` to `0700` when the account can, and still starts when that `chmod` fails and the directory is writable. The first PHP boot then throws if the process owns the directory and cannot hold `0700`.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+`data/`, `data/snapshots`, and `data/state` sit beside `public/`, not under it, and nothing under `public/` links to them. Each ships `Require all denied`. `ensure()` leaves them mode `0700` or throws, so system and console do not serve on a missing or wider only-copy directory. The SQLite resolver still rejects a path under the public webroot. A release and the image build context leave out live files under `data/` and any `db.dump`, and the release still packs the six guards.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+No dual read and no copy-on-boot. `tmp/snapshots` and `tmp/system` are not created and are not named in production boot, the entrypoint, or the image workflow. `RuntimeDirectories::ensure()` is the one place that sets mode `0700`. `SelfUpdater` does not list `data/` in the clean or ignore folders, so an update does not delete that tree and a release can still extract the guards. No bridge.
 
 ---
 
@@ -131,14 +137,30 @@ _TBD_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PHP Tests | ✅ success — [run 36514367498](https://github.com/Shadesman5/pagekit/actions/runs/36514367498) (phpunit 8.5, phpunit-mysql, phpunit-mysql-snapshot, phpstan, cs-fixer, security-audit, version-ssot) |
+| CI — Infection | ✅ success — [run 36514367497](https://github.com/Shadesman5/pagekit/actions/runs/36514367497) (infection-diff) |
+| CI — Frontend | ✅ success — [run 36514367496](https://github.com/Shadesman5/pagekit/actions/runs/36514367496) |
+| CI — Docker Image | ✅ success — [run 36514367511](https://github.com/Shadesman5/pagekit/actions/runs/36514367511) (hadolint, docker-image; publish-image skipped on pull request) |
+| CI — E2E workflow | e2e-smoke and e2e-merge skipped (PR smoke is opt-in, not a failure) |
+| Pull request | [#313](https://github.com/Shadesman5/pagekit/pull/313) |
+| Coverage gap pass | ran — first verifier FAIL (`BuildCommandDataGuardTest` duplicated `BuildCommandExcludeTest`); the same behavior stayed in `BuildCommandExcludeTest`; retry passed |
+| Cursor Bugbot (PR) | skipped |
+| Cursor Security Reviewer (PR) | skipped |
+| E2E | PASS |
+
+**CI head:** `5dc24710b6d49931334a260425e3f27ec83391b4`
+
+**Metrics (CI-owned):** [PR #313 quality-report comment](https://github.com/Shadesman5/pagekit/pull/313#issuecomment-5882409328) · [Quality Dashboard](https://shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Step 1: none. Step 2: none. Step 3: Security found a release ZIP could pack live `data/snapshots`, `data/state`, and `data/config.php`; the exclude then drops every path under `data/` except the six guards, and any `db.dump`. Bugbot and Security clean after that fix, then clean again before E2E. E2E PASS. Finalize: coverage verifier FAIL on a second class `BuildCommandDataGuardTest`; the same behavior stayed in `BuildCommandExcludeTest` and the retry passed. PR Bugbot skipped. PR Security skipped. `e2e-smoke` and `e2e-merge` skipped (PR smoke is opt-in). `publish-image` skipped on the pull request.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -147,7 +169,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -156,13 +178,19 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.8** — where a runtime-installed package is writable in the production image. `path.packages` stays `<root>/packages` and does not move into `data/`.
+- **Step 2.9** — backup tooling and release-update notes. This step makes `data/`, `storage/`, and `config.php` the set a backup copies. Dump format, restore, and snapshot retention stay as they are.
+- **Non-goal:** moving `config.php` out of the application root. The image keeps the symlink into the data volume.
+- **Non-goal:** a separate log directory or log rotation. Logs stay under `tmp/`.
+- **Historical records** stay as written. Past changelog sentences name the layout of that change.
+- **Bridges:** none.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- 2.8 — Extension Packaging & Prebuilt Assets
+- 2.9 — Automated Update System
 
 ---
 
@@ -302,7 +330,7 @@ The diff moves high-value state out of cache-eligible `tmp/`, enforces owner-onl
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -311,7 +339,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -320,7 +348,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -329,7 +357,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -338,22 +366,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_5_Data-Directory_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_5_Data-Directory_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_5_Data-Directory.md`
 - Predecessor: Step 2.7.4 — Standard Composer Layout (vendor/)
 - Successor: Step 2.8 — Extension Packaging & Prebuilt Assets
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
