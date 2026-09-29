@@ -8,9 +8,9 @@
   "issue": 299,
   "branch": "feature/data-directory",
   "model": null,
-  "status": "in_progress",
+  "status": "completed",
   "startedAt": "2026-09-28T21:22:44.066Z",
-  "completedAt": "2026-09-29T01:57:35.459Z",
+  "completedAt": "2026-09-29T03:19:09.222Z",
   "phases": [
     {
       "phaseKey": "36485646462-1-PLAN",
