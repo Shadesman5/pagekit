@@ -116,7 +116,7 @@ None. Callers still read `path.snapshots` and `path.system`. Those directories n
 - An existing `config.php` that names `pagekit.db` keeps that file. Only a new install writes `data/pagekit.db`.
 - A `pagekit_data` volume created at `/var/www/data` keeps its files at the volume root; recreating the container mounts that root at `/var/www/html/data`. While `PAGEKIT_DB_PATH` is set, a `config.php` that still says `/var/www/data/pagekit.db` is overridden. The failure record under `tmp/system` was container-local and is not on the volume.
 - System and console throw before they load when `data/`, `data/snapshots`, or `data/state` cannot be left at mode `0700`. The installer lists an unwritable `data/` on the requirements page and calls `ensure()` only after that list is empty.
-- The entrypoint narrows `data/` to `0700` when the account can, and still starts when that `chmod` fails and the directory is writable. The first PHP boot then throws if the process owns the directory and cannot hold `0700`.
+- The entrypoint narrows `data/` to `0700` when the account can, and still starts when that `chmod` fails and the directory is writable. The first PHP boot then throws whenever it cannot leave the directory at mode `0700`, including when the serving user can write it and does not own it.
 
 ---
 
@@ -139,10 +139,10 @@ No dual read and no copy-on-boot. `tmp/snapshots` and `tmp/system` are not creat
 
 | Gate | Result |
 |---|---|
-| CI — PHP Tests | ✅ success — [run 36514367498](https://github.com/Shadesman5/pagekit/actions/runs/36514367498) (phpunit 8.5, phpunit-mysql, phpunit-mysql-snapshot, phpstan, cs-fixer, security-audit, version-ssot) |
-| CI — Infection | ✅ success — [run 36514367497](https://github.com/Shadesman5/pagekit/actions/runs/36514367497) (infection-diff) |
-| CI — Frontend | ✅ success — [run 36514367496](https://github.com/Shadesman5/pagekit/actions/runs/36514367496) |
-| CI — Docker Image | ✅ success — [run 36514367511](https://github.com/Shadesman5/pagekit/actions/runs/36514367511) (hadolint, docker-image; publish-image skipped on pull request) |
+| CI — PHP Tests | ✅ success — [run 36514974225](https://github.com/Shadesman5/pagekit/actions/runs/36514974225) (phpunit 8.5, phpunit-mysql, phpunit-mysql-snapshot, phpstan, cs-fixer, security-audit, version-ssot) |
+| CI — Infection | ✅ success — [run 36514974341](https://github.com/Shadesman5/pagekit/actions/runs/36514974341) (infection-diff) |
+| CI — Frontend | ✅ success — [run 36514974286](https://github.com/Shadesman5/pagekit/actions/runs/36514974286) |
+| CI — Docker Image | ✅ success — [run 36514974313](https://github.com/Shadesman5/pagekit/actions/runs/36514974313) (hadolint, docker-image; publish-image skipped on pull request) |
 | CI — E2E workflow | e2e-smoke and e2e-merge skipped (PR smoke is opt-in, not a failure) |
 | Pull request | [#313](https://github.com/Shadesman5/pagekit/pull/313) |
 | Coverage gap pass | ran — first verifier FAIL (`BuildCommandDataGuardTest` duplicated `BuildCommandExcludeTest`); the same behavior stayed in `BuildCommandExcludeTest`; retry passed |
@@ -150,7 +150,7 @@ No dual read and no copy-on-boot. `tmp/snapshots` and `tmp/system` are not creat
 | Cursor Security Reviewer (PR) | skipped |
 | E2E | PASS |
 
-**CI head:** `5dc24710b6d49931334a260425e3f27ec83391b4`
+**CI head:** `e42b52829a8ce0380c64072de6ff1e895f78f472`
 
 **Metrics (CI-owned):** [PR #313 quality-report comment](https://github.com/Shadesman5/pagekit/pull/313#issuecomment-5882409328) · [Quality Dashboard](https://shadesman5.github.io/pagekit/quality/)
 
@@ -191,6 +191,7 @@ None.
 
 - 2.8 — Extension Packaging & Prebuilt Assets
 - 2.9 — Automated Update System
+- 4.11 — Container Orchestration & Deployment
 
 ---
 
@@ -200,128 +201,7 @@ None.
      Doc-writer copies the handover here and does not judge. Post-close review verifies each
      note against the code, writes what is still unowned, then sets this section back to None. -->
 
-Security:
-## Security review result
-
-The change is a net hardening of where private runtime state lives and how it is protected.
-
----
-
-### Scope reviewed
-
-The diff implements Step 2.7.5: move SQLite DB, package snapshots, and extension failure state from `tmp/` / repo root into `data/`, enforce owner-only directories, update Docker volume layout, and tighten release/build exclusions.
-
----
-
-### Areas examined (no exploitable issues)
-
-#### 1. Web exposure of `data/` (DB dumps, snapshots)
-
-**Controls (unchanged + strengthened):**
-
-- `path.data`, `path.snapshots`, and `path.system` sit beside `public/`, not under it (`public/index.php`).
-- SQLite resolution still joins relative paths to the app root and **rejects any path under `path.public`**:
-
-```64:77:app/modules/database/index.php
-                    // Reject any resolved path under the document root — Apache
-                    // .htaccess is not universal (Nginx / php -S).
-                    $publicRoot = $app->has('path.public')
-                        ? (string) $app->get('path.public')
-                        : $app->get('path').'/public';
-                    $dbPath = $canonicalizeFilesystemPath($connectionParams['path']);
-                    $publicDir = Path::directory($canonicalizeFilesystemPath($publicRoot));
-                    if (str_starts_with($dbPath, $publicDir) || $dbPath === rtrim($publicDir, '/')) {
-                        throw new \InvalidArgumentException(sprintf(
-                            'SQLite database path "%s" must not be under the public webroot "%s".',
-                            $connectionParams['path'],
-                            $publicRoot,
-                        ));
-                    }
-```
-
-- Shipped `data/.htaccess`, `data/snapshots/.htaccess`, and `data/state/.htaccess` use `Require all denied`.
-- Docker vhost keeps `DocumentRoot /var/www/html/public`; `data/` is not under the docroot.
-- Shared-hosting root rewrite still sends `/data/*` → `public/data/*` (404), not app-root `data/`.
-
-**Attacker-controlled path:** None over HTTP without misconfiguration that already existed for `config.php` / `tmp/`.
-
----
-
-#### 2. Permission enforcement (`RuntimeDirectories`)
-
-`RuntimeDirectories::ensure()` is **fail-closed** for system/console/installer boots: create (if missing), `chmod 0700`, verify mode, else `\RuntimeException` (boot/installer does not continue).
-
-Boot order calls `ensure(path.data)` → `ensure(path.snapshots)` → `ensure(path.system)` before the app loads, so parent `data/` is narrowed before children are created.
-
-**Installer gap considered:** requirements only check `is_writable($path/data)` before `ensure()`. That is not an exposure window: `ensure()` still runs before `new App` and blocks service if mode cannot be held at `0700`.
-
----
-
-#### 3. Docker entrypoint `chmod … || true`
-
-```109:117:docker/entrypoint.sh
-# A volume mounted over the private directory can arrive wider than owner-only.
-# Narrow it when this account may; one owned by someone else can refuse the mode
-# and still be writable, which is what the start actually requires.
-chmod 0700 "$data_dir" 2>/dev/null || true
-
-if ! can_write "$data_dir"; then
-    echo "entrypoint: data/ has to be writable by the serving user because the snapshots, the failure record, and an SQLite file live there ($data_dir)" >&2
-    exit 1
-fi
-```
-
-Entrypoint can start if `chmod` fails but the directory is writable. **Impact:** local/co-tenant read of `data/` on a mis-mounted volume (e.g. overly permissive host volume). That requires host/volume misconfiguration and local access, not a remote HTTP primitive. PHP `ensure()` on the first request still enforces `0700` when the process owns the directory. **Not rated medium+** under the triage rules.
-
----
-
-#### 4. Release / image leakage of secrets
-
-**Improvements in the diff:**
-
-- `BuildCommand` excludes live content under `data/` (including `data/pagekit.db`, `db.dump`, snapshot metadata) while explicitly packing guard files.
-- `.dockerignore` excludes `data/*` (except guards) and `**/db.dump`.
-
-This closes a real gap: the old exclude matched root `pagekit.db` only; the new default `data/pagekit.db` is now excluded.
-
-`SelfUpdater` still does not list `data/` in `ignoreFolder` (pre-existing pattern). Mitigation is the build filter; a malicious update ZIP would require admin-level update authority.
-
----
-
-#### 5. Volume path change (`/var/www/data` → `/var/www/html/data`)
-
-Operational/migration concern, not a new remote attack path. `PAGEKIT_DB_PATH` still overrides `config.php` when set; webroot and `.htaccess` guards are unchanged in effect.
-
----
-
-#### 6. Removed `tmp/snapshots` symlink logic
-
-Removing symlink indirection **reduces** misconfiguration risk (snapshots landing in disposable `tmp/`). CI now checks `data/` writability instead of symlink target integrity—a test coverage change, not a product bypass.
-
----
-
-#### 7. Authorization / snapshots
-
-Snapshot ID validation and admin-only restore/purge behavior live in existing `SnapshotStore` / controller code; this diff only moves the store path to `data/snapshots`. No new unauthenticated route or privilege annotation was added.
-
----
-
-### Security-related TODOs in the diff
-
-None represent missing controls on newly introduced attacker-controlled paths. Deferred work (Step 2.8 container package writability, Step 2.9 backup/update hardening) is forward debt, not an open hole introduced here.
-
----
-
-### Optional hardening (below report threshold)
-
-- Add `/data` and `/data/pagekit.db` to the `docker-image.yml` webroot-denial probes alongside `/config.php` and `/tmp`—regression detection only.
-- Add `data/` to `SelfUpdater::$ignoreFolder` in a future update step for defense-in-depth against a bad release artifact.
-
----
-
-### Conclusion
-
-The diff moves high-value state out of cache-eligible `tmp/`, enforces owner-only directories at boot, adds defense-in-depth Apache denials, and prevents DB/snapshot content from entering release ZIPs or Docker build context. Traced HTTP, path-resolution, and permission paths do not yield a realistic medium-or-higher exploit introduced by these changes.
+None.
 
 ---
 
@@ -330,7 +210,10 @@ The diff moves high-value state out of cache-eligible `tmp/`, enforces owner-onl
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-None.
+- **The in-app updater stops when `data/` is not there yet.** `UpdateController::updateAction()` calls `SelfUpdater::update()`, which includes `app/installer/requirements.php` from the archive (`zip://…#app/installer/requirements.php`) and throws when `PagekitRequirements::getFailedRequirements()` is non-empty, before `extract()`. The constructor requires `is_writable($path.'/data')`. A path that does not exist is not writable, so an installation that has not yet got `data/` never receives the release that would have created it. Creating the directory by hand (mode `0700`, owned by the user that runs the update) lets that archive through; the hand copy of `tmp/snapshots` and `tmp/system` is that creation when there is something to move. Recorded default: the check passes when `data/` is missing and the application root can hold it. The other exit is to keep the refusal. → **2.9**
+- **An archive can replace live files under `data/`.** `SelfUpdater::$ignoreFolder` is `packages` and `storage`, and `$cleanFolder` is `app` and `vendor`. `extract()` writes every remaining archive name, so `data/pagekit.db`, a snapshot, or `data/state/…` in the zip overwrites the installation. `cleanup()` does not walk `data/`, so a file the archive omits stays. `BuildCommand::$excludes` drops every path under `data/` except the six guards, and `(^|/)db.dump$` drops a dump anywhere; `execute()` adds `DATA_GUARDS` by name. Recorded default: an update replaces those six guards and does not replace or delete any other path under `data/`. The other exit is to skip the whole of `data/`, so the guards on an installed tree never change. → **2.9**
+- **A second replica with its own `data/` splits the installation.** `path.data`, `path.snapshots`, and `path.system` are `<root>/data` and its two children. In the image that directory is the `pagekit_data` mount, and `config.php` is a symlink into it, so the mount also holds the configuration, the SQLite file, the only copy of a removed package, and the failure record. `tmp/` is recreated on start and may be emptied. A per-replica `data/` is a second database file and a second snapshot store. → **4.11**
+- **The image smoke does not request `/data`.** The webroot probes in `.github/workflows/docker-image.yml` request `/config.php`, `/composer.json`, `/app/console/app.php`, and `/tmp`, and do not request `/data` or `/data/pagekit.db`. The document root is `public/`, so those URLs are not the files on the volume unless a symlink or an alias appears. The status check is what would catch a served database: the body test looks for `<?php` or `"require"`, which a SQLite file does not contain. → **2.9**
 
 ---
 
@@ -366,7 +249,20 @@ None.
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-None.
+**The in-app updater and a missing `data/`.**
+
+- `UpdateController::updateAction()` (`app/installer/src/Controller/UpdateController.php`) builds `SelfUpdater` with the application root and calls `update($file)`.
+- `SelfUpdater::update()` filters the archive name list, then includes `zip://{$file}#app/installer/requirements.php`. That file returns `new PagekitRequirements($path)` with `$path` from the updater. `update()` throws when `getFailedRequirements()` is non-empty, before `extract()`.
+- `PagekitRequirements` adds `$path/data` to the writable list and checks `is_writable`. A missing path is not writable.
+- `extract()` is `ZipArchive::extractTo` of the filtered list. The six guards are in a release built by `BuildCommand::execute()`, so extract is what creates `data/`, `data/snapshots/`, and `data/state/` on a tree that does not have them.
+- Exit A — the writable check is met when `data/` is absent and the application root is writable. The archive still creates the directory. Exit B — the refusal stays, and the directory is created by hand before the update. Recorded default: A.
+
+**What an update writes under `data/`.**
+
+- `SelfUpdater::$ignoreFolder` drops names that start with `packages` or `storage`. `$keepFile` is `.htaccess` and `public/.htaccess`. Everything else in the archive, including `data/…`, stays on the extract list.
+- `$cleanFolder` is `app` and `vendor`. `cleanup()` / `doCleanup()` unlink files under those two that the archive does not name. `data/` is not walked, so an omitted database or snapshot is not deleted.
+- `BuildCommand::DATA_GUARDS` is the six paths `data/.htaccess`, `data/.gitignore`, `data/snapshots/.htaccess`, `data/snapshots/.gitignore`, `data/state/.htaccess`, `data/state/.gitignore`. `execute()` `addFile`s each. `$excludes` matches `^data/` except those six, and `(^|/)db.dump$`.
+- Exit A — the updater writes the six guards and refuses every other `data/` name, and still does not delete under `data/`. Exit B — `data/` is skipped entirely, and the guards already on disk stay. Recorded default: A.
 
 ---
 
