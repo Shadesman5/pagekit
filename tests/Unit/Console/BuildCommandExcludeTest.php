@@ -60,12 +60,25 @@ final class BuildCommandExcludeTest extends TestCase
     {
         $patterns = $this->excludes();
 
-        self::assertContains('^data\\/[^\\/]+\\.db', $patterns);
+        self::assertContains(
+            '^data\\/(?!(?:\\.htaccess|\\.gitignore|snapshots\\/\\.htaccess|snapshots\\/\\.gitignore|state\\/\\.htaccess|state\\/\\.gitignore)$)',
+            $patterns,
+        );
+        self::assertContains('(^|\\/)db\\.dump$', $patterns);
 
         $filter = '/'.implode('|', $patterns).'/i';
 
         self::assertSame(1, preg_match($filter, 'data/pagekit.db'));
         self::assertSame(1, preg_match($filter, 'data/other.db'));
+        self::assertSame(1, preg_match($filter, 'data/pagekit.db-wal'));
+        self::assertSame(1, preg_match($filter, 'data/pagekit.db-shm'));
+        self::assertSame(1, preg_match($filter, 'data/config.php'));
+        self::assertSame(1, preg_match($filter, 'data/snapshots/db.dump'));
+        self::assertSame(1, preg_match($filter, 'data/snapshots/20260101-blog-deadbeef/db.dump'));
+        self::assertSame(1, preg_match($filter, 'data/snapshots/20260101-blog-deadbeef/metadata.json'));
+        self::assertSame(1, preg_match($filter, 'data/state/failures.php'));
+        self::assertSame(1, preg_match($filter, 'db.dump'));
+        self::assertSame(1, preg_match($filter, 'packages/pagekit/blog/db.dump'));
         self::assertSame(0, preg_match($filter, 'nested/data/pagekit.db'));
         self::assertSame(0, preg_match($filter, 'data/.htaccess'));
         self::assertSame(0, preg_match($filter, 'data/.gitignore'));
@@ -73,7 +86,27 @@ final class BuildCommandExcludeTest extends TestCase
         self::assertSame(0, preg_match($filter, 'data/snapshots/.gitignore'));
         self::assertSame(0, preg_match($filter, 'data/state/.htaccess'));
         self::assertSame(0, preg_match($filter, 'data/state/.gitignore'));
-        self::assertSame(0, preg_match($filter, 'data/snapshots/db.dump'));
+
+        $guards = (new \ReflectionClassConstant(BuildCommand::class, 'DATA_GUARDS'))->getValue();
+
+        self::assertSame([
+            'data/.htaccess',
+            'data/.gitignore',
+            'data/snapshots/.htaccess',
+            'data/snapshots/.gitignore',
+            'data/state/.htaccess',
+            'data/state/.gitignore',
+        ], $guards);
+
+        foreach ($guards as $guard) {
+            self::assertSame(0, preg_match($filter, $guard));
+        }
+
+        $source = file_get_contents(dirname(__DIR__, 3).'/app/console/src/Commands/BuildCommand.php');
+
+        self::assertIsString($source);
+        self::assertStringContainsString('foreach (self::DATA_GUARDS as $guard)', $source);
+        self::assertStringContainsString('addFile("{$path}/{$guard}", $guard)', $source);
     }
 
     /**
