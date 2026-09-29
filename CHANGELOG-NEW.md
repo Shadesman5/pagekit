@@ -1,5 +1,23 @@
 # Changelog
 
+## Pagekit 1.2.47 - Data Directory (September 29, 2026)
+
+### 💥 Breaking Changes
+
+- **Private state lives under `data/`** — boot names `path.data` as `<root>/data`, snapshots as `data/snapshots`, and the failure record as `data/state`. Those three directories are mode `0700` or the boot throws. A fresh SQLite install writes `data/pagekit.db`. An existing `config.php` that already names a database file keeps that file. `PAGEKIT_DB_PATH` still overrides, and a path under the public webroot is still refused. Nothing copies `tmp/snapshots` or `tmp/system`. (Closes #299)
+- **The production data volume is `/var/www/html/data`** — `PAGEKIT_DATA_DIR` is that directory, `pagekit_data` mounts there, and `config.php` stays a symlink into it. The entrypoint no longer links `tmp/snapshots` and refuses to start unless `data/` is writable by the serving user. A volume that already exists keeps its files at the volume root. While `PAGEKIT_DB_PATH` is set, a `config.php` that still says `/var/www/data/pagekit.db` is overridden. The failure record that was container-local under `tmp/system` is not on that volume.
+
+### ❌ Removed
+
+- **The guards under `tmp/snapshots` and `tmp/system`** — those four files are gone. The same deny and ignore rules ship under `data/`, `data/snapshots/`, and `data/state/`.
+
+### 🔒 Security
+
+- **`data/` stays outside the webroot and owner-only** — `data/.htaccess`, `data/snapshots/.htaccess`, and `data/state/.htaccess` deny every request. `RuntimeDirectories::ensure()` leaves the three directories at mode `0700` or throws, before system and console load and, on the installer, after the requirements list is empty and before the installer serves.
+- **A release does not pack a live `data/` tree** — every path under `data/` is excluded except the six guard files, which are added by name, and `db.dump` is excluded anywhere. The image build context ignores the contents of `data/` except those guards, and ignores `db.dump`.
+
+---
+
 ## Pagekit 1.2.46 - Standard Composer Layout (September 28, 2026)
 
 ### 💥 Breaking Changes
