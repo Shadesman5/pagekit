@@ -77,6 +77,17 @@ Living instructions and the installation spec point at `data/`. A fresh install 
 
 No PHPUnit tests. Gates: production verifier PASS; production tester PASS; test-writer skip. No deviations.
 
+### Release exclude (Checklist Step 3)
+
+A release ZIP could pack live `data/snapshots`, `data/state`, and `data/config.php`. The Step 1 pattern matched only `data/*.db`. Every path under `data/` is excluded except the six guard files, and `db.dump` is excluded anywhere. `execute()` adds those guards by name, because Finder ignores dotfiles.
+
+| File | Change |
+|---|---|
+| `app/console/src/Commands/BuildCommand.php` | `$excludes` drops every path under `data/` except the six guards, and drops `(^|/)db.dump$`. `DATA_GUARDS` is added with `addFile`. |
+| `tests/Unit/Console/BuildCommandExcludeTest.php` | The filter matches `data/pagekit.db`, `data/*.db-wal`, `data/*.db-shm`, `data/config.php`, snapshot dumps and metadata, `data/state/<file>`, and any `db.dump`. The six guards and a nested `data/` do not match. `execute()` adds each `DATA_GUARDS` entry. |
+
+Gates: Bugbot clean. Security: one medium (release ZIP could pack live `data/snapshots`, `data/state`, and `data/config.php`); fix-loop excluded live `data/` except the six guards and any `db.dump`. Bugbot and Security clean again on that tree, then clean a second time before E2E. E2E PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -86,6 +97,8 @@ No PHPUnit tests. Gates: production verifier PASS; production tester PASS; test-
 - **The installer baseline keeps its two identifiers.** Undefined `$config` and `$path` in `app/installer/app.php` are counted 4 and 4. A new ignore was rejected. Those counts match the reads of the boot variables the include injects.
 - **The installation README and the spec agree on the two files that mean installed.** `tests/e2e/README.md` requires no `config.php` and no `data/pagekit.db`, and says a root `pagekit.db` is not that database. Leaving the old "no pagekit.db" sentence was rejected: it would still treat the root file as the install. That README and `installation.spec.js` name the same two files.
 - **The printed fresh-install line follows the clean-state command.** `TestConfig::printSetupInstructions` names `config.php`, `pagekit.db`, and `data/pagekit.db`. Naming only the SQLite default there was rejected: the clean-state command also removes a leftover root `pagekit.db`. The default path and `test-config.example.json` are `data/pagekit.db`.
+- **Live files under `data/` stay out of a release, and the six guards stay in.** `BuildCommand::$excludes` drops every path under `data/` except those guards, and `(^|/)db.dump$` drops a dump anywhere. A blanket `^data/` was rejected: the filter would also drop the guards. Excluding only `data/snapshots/`, `data/state/`, and `data/config.php` was rejected: a SQLite sidecar or any other file beside the database would still be packed. The filter matches `data/pagekit.db`, `data/*.db-wal`, `data/*.db-shm`, `data/config.php`, `data/snapshots/<id>/db.dump`, `data/state/<file>`, and any `db.dump`, and does not match the six guard paths.
+- **The six guards are packed by name.** `BuildCommand::DATA_GUARDS` is `addFile`'d in `execute()`. Relying on the filter exception alone was rejected: Finder ignores dotfiles, so that exception never sees them. `execute()` adds each entry, and the list stays those six paths.
 
 ---
 
@@ -159,7 +172,128 @@ _TBD / None_
      Doc-writer copies the handover here and does not judge. Post-close review verifies each
      note against the code, writes what is still unowned, then sets this section back to None. -->
 
-_TBD / None_
+Security:
+## Security review result
+
+The change is a net hardening of where private runtime state lives and how it is protected.
+
+---
+
+### Scope reviewed
+
+The diff implements Step 2.7.5: move SQLite DB, package snapshots, and extension failure state from `tmp/` / repo root into `data/`, enforce owner-only directories, update Docker volume layout, and tighten release/build exclusions.
+
+---
+
+### Areas examined (no exploitable issues)
+
+#### 1. Web exposure of `data/` (DB dumps, snapshots)
+
+**Controls (unchanged + strengthened):**
+
+- `path.data`, `path.snapshots`, and `path.system` sit beside `public/`, not under it (`public/index.php`).
+- SQLite resolution still joins relative paths to the app root and **rejects any path under `path.public`**:
+
+```64:77:app/modules/database/index.php
+                    // Reject any resolved path under the document root — Apache
+                    // .htaccess is not universal (Nginx / php -S).
+                    $publicRoot = $app->has('path.public')
+                        ? (string) $app->get('path.public')
+                        : $app->get('path').'/public';
+                    $dbPath = $canonicalizeFilesystemPath($connectionParams['path']);
+                    $publicDir = Path::directory($canonicalizeFilesystemPath($publicRoot));
+                    if (str_starts_with($dbPath, $publicDir) || $dbPath === rtrim($publicDir, '/')) {
+                        throw new \InvalidArgumentException(sprintf(
+                            'SQLite database path "%s" must not be under the public webroot "%s".',
+                            $connectionParams['path'],
+                            $publicRoot,
+                        ));
+                    }
+```
+
+- Shipped `data/.htaccess`, `data/snapshots/.htaccess`, and `data/state/.htaccess` use `Require all denied`.
+- Docker vhost keeps `DocumentRoot /var/www/html/public`; `data/` is not under the docroot.
+- Shared-hosting root rewrite still sends `/data/*` → `public/data/*` (404), not app-root `data/`.
+
+**Attacker-controlled path:** None over HTTP without misconfiguration that already existed for `config.php` / `tmp/`.
+
+---
+
+#### 2. Permission enforcement (`RuntimeDirectories`)
+
+`RuntimeDirectories::ensure()` is **fail-closed** for system/console/installer boots: create (if missing), `chmod 0700`, verify mode, else `\RuntimeException` (boot/installer does not continue).
+
+Boot order calls `ensure(path.data)` → `ensure(path.snapshots)` → `ensure(path.system)` before the app loads, so parent `data/` is narrowed before children are created.
+
+**Installer gap considered:** requirements only check `is_writable($path/data)` before `ensure()`. That is not an exposure window: `ensure()` still runs before `new App` and blocks service if mode cannot be held at `0700`.
+
+---
+
+#### 3. Docker entrypoint `chmod … || true`
+
+```109:117:docker/entrypoint.sh
+# A volume mounted over the private directory can arrive wider than owner-only.
+# Narrow it when this account may; one owned by someone else can refuse the mode
+# and still be writable, which is what the start actually requires.
+chmod 0700 "$data_dir" 2>/dev/null || true
+
+if ! can_write "$data_dir"; then
+    echo "entrypoint: data/ has to be writable by the serving user because the snapshots, the failure record, and an SQLite file live there ($data_dir)" >&2
+    exit 1
+fi
+```
+
+Entrypoint can start if `chmod` fails but the directory is writable. **Impact:** local/co-tenant read of `data/` on a mis-mounted volume (e.g. overly permissive host volume). That requires host/volume misconfiguration and local access, not a remote HTTP primitive. PHP `ensure()` on the first request still enforces `0700` when the process owns the directory. **Not rated medium+** under the triage rules.
+
+---
+
+#### 4. Release / image leakage of secrets
+
+**Improvements in the diff:**
+
+- `BuildCommand` excludes live content under `data/` (including `data/pagekit.db`, `db.dump`, snapshot metadata) while explicitly packing guard files.
+- `.dockerignore` excludes `data/*` (except guards) and `**/db.dump`.
+
+This closes a real gap: the old exclude matched root `pagekit.db` only; the new default `data/pagekit.db` is now excluded.
+
+`SelfUpdater` still does not list `data/` in `ignoreFolder` (pre-existing pattern). Mitigation is the build filter; a malicious update ZIP would require admin-level update authority.
+
+---
+
+#### 5. Volume path change (`/var/www/data` → `/var/www/html/data`)
+
+Operational/migration concern, not a new remote attack path. `PAGEKIT_DB_PATH` still overrides `config.php` when set; webroot and `.htaccess` guards are unchanged in effect.
+
+---
+
+#### 6. Removed `tmp/snapshots` symlink logic
+
+Removing symlink indirection **reduces** misconfiguration risk (snapshots landing in disposable `tmp/`). CI now checks `data/` writability instead of symlink target integrity—a test coverage change, not a product bypass.
+
+---
+
+#### 7. Authorization / snapshots
+
+Snapshot ID validation and admin-only restore/purge behavior live in existing `SnapshotStore` / controller code; this diff only moves the store path to `data/snapshots`. No new unauthenticated route or privilege annotation was added.
+
+---
+
+### Security-related TODOs in the diff
+
+None represent missing controls on newly introduced attacker-controlled paths. Deferred work (Step 2.8 container package writability, Step 2.9 backup/update hardening) is forward debt, not an open hole introduced here.
+
+---
+
+### Optional hardening (below report threshold)
+
+- Add `/data` and `/data/pagekit.db` to the `docker-image.yml` webroot-denial probes alongside `/config.php` and `/tmp`—regression detection only.
+- Add `data/` to `SelfUpdater::$ignoreFolder` in a future update step for defense-in-depth against a bad release artifact.
+
+---
+
+### Conclusion
+
+The diff moves high-value state out of cache-eligible `tmp/`, enforces owner-only directories at boot, adds defense-in-depth Apache denials, and prevents DB/snapshot content from entering release ZIPs or Docker build context. Traced HTTP, path-resolution, and permission paths do not yield a realistic medium-or-higher exploit introduced by these changes.
 
 ---
 
