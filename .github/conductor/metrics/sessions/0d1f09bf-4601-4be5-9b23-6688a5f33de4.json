@@ -160,21 +160,52 @@
       "startedAt": "2026-09-29T01:13:51.156Z",
       "durationMs": 2623909,
       "completedAt": "2026-09-29T01:57:35.459Z"
+    },
+    {
+      "phaseKey": "36511829883-1-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-09-29T02:16:48.324Z",
+      "durationMs": 3735898,
+      "agent": {
+        "id": "bc-66039263-46d9-44d8-bc92-4b87dfbbe57e",
+        "runId": "run-8864c261-e3f7-4691-bc7e-678ee1fbb800",
+        "url": "https://cursor.com/agents/bc-66039263-46d9-44d8-bc92-4b87dfbbe57e",
+        "model": null
+      },
+      "github": {
+        "runId": 36511829883,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/36511829883",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 423439,
+        "output": 23647,
+        "cacheRead": 4103680,
+        "cacheWrite": 0,
+        "total": 4550766
+      },
+      "tokensSource": "cursor-api",
+      "result": "Finalized. PR: #313. Version: 1.2.47. Ticket archived to done/. Bugbot skipped. Security skipped.",
+      "outcome": "success"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 1092005,
-      "output": 120842,
-      "cacheRead": 12795136,
+      "input": 1515444,
+      "output": 144489,
+      "cacheRead": 16898816,
       "cacheWrite": 0,
-      "total": 14007983
+      "total": 18558749
     },
-    "durationMs": 11225413,
-    "phaseCount": 3,
+    "durationMs": 14961311,
+    "phaseCount": 4,
     "escalations": 0,
-    "ghaJobs": 2,
-    "cloudAgents": 3
+    "ghaJobs": 3,
+    "cloudAgents": 4
   },
   "v1Continued": true,
   "manualImport": {
