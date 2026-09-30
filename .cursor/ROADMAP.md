@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.46
-> **Current Step**: 2.7.5 (Data Directory (`data/`))
+> **Current Version**: 1.2.47
+> **Current Step**: 2.8 (Extension Packaging & Prebuilt Assets)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -97,7 +97,7 @@ Canonical: [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc) § DX. Thin DI-backe
 | 2.7.2  | ↳ Module Dependency Integrity         | ✅     | 🛡️    | #268  | #304    |
 | 2.7.3  | ↳ Static Module Registration          | ✅     | 🛡️    | #266  | #306    |
 | 2.7.4  | ↳ Standard Composer Layout (vendor/)  | ✅     | 🛡️    | #271  | #308    |
-| 2.7.5  | ↳ Data Directory (data/)              | ⏳     | ⏳    | #299  | -       |
+| 2.7.5  | ↳ Data Directory (data/)              | ✅     | 🛡️    | #299  | #313    |
 | 2.8    | Extension Packaging & Prebuilt Assets | ⏳     | ⏳    | -     | -       |
 | 2.9    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.10   | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |

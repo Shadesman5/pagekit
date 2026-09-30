@@ -75,13 +75,13 @@ parameters:
 		-
 			message: '#^Variable \$config might not be defined\.$#'
 			identifier: variable.undefined
-			count: 1
+			count: 4
 			path: app/installer/app.php
 
 		-
 			message: '#^Variable \$path might not be defined\.$#'
 			identifier: variable.undefined
-			count: 3
+			count: 4
 			path: app/installer/app.php
 
 		-

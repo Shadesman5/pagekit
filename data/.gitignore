@@ -1,0 +1,11 @@
+# A database file and anything else written here stay out of the repository.
+*
+# The guards, and the two children that ship their own.
+!.htaccess
+!.gitignore
+!snapshots/
+!state/
+!snapshots/.htaccess
+!snapshots/.gitignore
+!state/.htaccess
+!state/.gitignore

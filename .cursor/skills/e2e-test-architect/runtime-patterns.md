@@ -33,7 +33,7 @@ Playwright manages the server itself (`webServer: php pagekit start --no-ansi`, 
 outside CI a server already running on that URL is reused.
 
 ```bash
-rm -f config.php pagekit.db   # Fresh state for the installation spec
+rm -f config.php pagekit.db data/pagekit.db   # Fresh state for the installation spec
 NO_SERVER=1 npx playwright test  # Use your own already-running server instead
 ```
 

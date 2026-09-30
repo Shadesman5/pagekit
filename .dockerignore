@@ -20,6 +20,22 @@ storage/
 *.log
 npm-debug.log
 
+# Private runtime state. The image only needs the guards; a snapshot dump is a
+# database and must not be sent with the build context. Re-include the parent
+# directories or the nested exceptions never match.
+data/*
+!data/.htaccess
+!data/.gitignore
+!data/snapshots/
+!data/state/
+data/snapshots/*
+!data/snapshots/.htaccess
+!data/snapshots/.gitignore
+data/state/*
+!data/state/.htaccess
+!data/state/.gitignore
+**/db.dump
+
 # Local installation artefacts — a container install creates its own
 config.php
 pagekit.db

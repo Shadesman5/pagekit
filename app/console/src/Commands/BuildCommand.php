@@ -12,6 +12,20 @@ use Symfony\Component\Finder\Finder;
 class BuildCommand extends Command
 {
     /**
+     * Deny rules under data/. Finder skips names that start with a dot, so these are added by name.
+     *
+     * @var list<string>
+     */
+    private const DATA_GUARDS = [
+        'data/.htaccess',
+        'data/.gitignore',
+        'data/snapshots/.htaccess',
+        'data/snapshots/.gitignore',
+        'data/state/.htaccess',
+        'data/state/.gitignore',
+    ];
+
+    /**
      * {@inheritdoc}
      */
     protected ?string $name = 'build';
@@ -26,6 +40,11 @@ class BuildCommand extends Command
      */
     protected array $excludes = [
         '^(tmp|config\.php|pagekit.+\.zip|pagekit.db|.+\.map)',
+        // Live files under data/ must not enter a release. Guard names stay inside
+        // `(?:...)`: these patterns are joined with `|`, and a bare `|` would split one.
+        '^data\/(?!(?:\.htaccess|\.gitignore|snapshots\/\.htaccess|'
+            . 'snapshots\/\.gitignore|state\/\.htaccess|state\/\.gitignore)$)',
+        '(^|\/)db\.dump$',
         '^app\/assets\/[^\/]+\/(dist\/vue-.+\.js|dist\/jquery\.js|lodash\.js)',
         '^app\/assets\/(jquery|vue)\/(src|perf|external)',
         '^vendor\/lusitanian\/oauth\/examples',
@@ -82,6 +101,10 @@ class BuildCommand extends Command
 
         $zip->addFile("{$path}/.bowerrc", '.bowerrc');
         $zip->addFile("{$path}/.htaccess", '.htaccess');
+
+        foreach (self::DATA_GUARDS as $guard) {
+            $zip->addFile("{$path}/{$guard}", $guard);
+        }
 
         $zip->addEmptyDir('tmp/');
         $zip->addEmptyDir('tmp/cache/');

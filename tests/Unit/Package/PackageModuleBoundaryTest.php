@@ -320,6 +320,12 @@ final class PackageModuleBoundaryTest extends TestCase
         $path = $this->registrationRoot();
 
         try {
+            // The installer include narrows this directory; the other boots must leave it alone.
+            self::assertTrue(chmod($path.'/data', 0755));
+            $initial = fileperms($path.'/data');
+            self::assertIsInt($initial);
+            self::assertSame(0755, $initial & 0777);
+
             foreach (self::BOOT_FILES as $file) {
                 $manager = $this->managerRegisteredBy($path, $this->root().'/'.$file);
                 $module = $this->registeredPackage($manager, $file);
@@ -344,6 +350,16 @@ final class PackageModuleBoundaryTest extends TestCase
                 self::assertSame($shipsPackages, $manager->isRegistered('theme-one'), $file);
                 self::assertSame($shipsPackages ? ['blog'] : [], $manager->nodeTypes('blog'), $file);
                 self::assertSame($file === 'app/console/app.php', $manager->isRegistered('console'), $file);
+
+                if ($file === 'app/installer/app.php') {
+                    $this->assertOwnerOnlyState($path);
+                } else {
+                    $mode = fileperms($path.'/data');
+                    self::assertIsInt($mode, $file);
+                    self::assertSame(0755, $mode & 0777, $file);
+                    self::assertDirectoryDoesNotExist($path.'/data/snapshots', $file);
+                    self::assertDirectoryDoesNotExist($path.'/data/state', $file);
+                }
             }
         } finally {
             $this->removeTree($path);
@@ -1270,7 +1286,7 @@ final class PackageModuleBoundaryTest extends TestCase
                 self::markTestSkipped('symlink() is unavailable on this host');
             }
 
-            foreach (['tmp/cache', 'tmp/logs', 'tmp/sessions'] as $directory) {
+            foreach (['tmp/cache', 'tmp/logs', 'tmp/sessions', 'data'] as $directory) {
                 self::assertTrue(mkdir($path.'/'.$directory, 0755, true), $directory);
             }
 
@@ -1286,11 +1302,44 @@ final class PackageModuleBoundaryTest extends TestCase
         }
     }
 
+    private function assertOwnerOnlyState(string $path): void
+    {
+        $root = realpath($path);
+        self::assertNotFalse($root);
+        $root = strtr($root, '\\', '/');
+
+        foreach (['data', 'data/snapshots', 'data/state'] as $directory) {
+            $full = $path.'/'.$directory;
+            self::assertDirectoryExists($full, $directory);
+
+            $real = realpath($full);
+            self::assertNotFalse($real, $directory);
+            self::assertStringStartsWith($root.'/', strtr($real, '\\', '/'), $directory);
+
+            $mode = fileperms($full);
+            self::assertIsInt($mode, $directory);
+            self::assertSame(0700, $mode & 0777, $directory);
+        }
+    }
+
     private function managerRegisteredBy(string $base, string $bootFile): ModuleManager
     {
         // Included boot files read these two names from the including scope.
         $path = $base;
-        $config = ['path' => $path, 'config.file' => false];
+        // The installer include creates these from the config the front controller
+        // would have passed; this include supplies that config itself.
+        $config = [
+            'path' => $path,
+            'path.data' => $path.'/data',
+            'path.snapshots' => $path.'/data/snapshots',
+            'path.system' => $path.'/data/state',
+            'config.file' => false,
+        ];
+        // The installer include reads these keys before registration; they have to be this tree.
+        self::assertDirectoryExists($path.'/data');
+        self::assertSame($path.'/data', $config['path.data'] ?? null);
+        self::assertSame($path.'/data/snapshots', $config['path.snapshots'] ?? null);
+        self::assertSame($path.'/data/state', $config['path.system'] ?? null);
         $app = null;
 
         try {

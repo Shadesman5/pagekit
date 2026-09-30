@@ -219,7 +219,7 @@ class TestConfig {
    */
   getSQLiteConfig() {
     this._ensureConfig();
-    return this.config.database?.sqlite || { path: 'pagekit.db', prefix: 'pk_' };
+    return this.config.database?.sqlite || { path: 'data/pagekit.db', prefix: 'pk_' };
   }
 
   // ═══════════════════════════════════════
@@ -813,7 +813,7 @@ class TestConfig {
     this.log('   • YOUR_SITE_TITLE → Your site title');
 
     this.info('Step 3: Prepare test environment', '3️⃣');
-    this.log('   • For fresh installation: Remove config.php and pagekit.db');
+    this.log('   • For fresh installation: Remove config.php, pagekit.db and data/pagekit.db');
     this.log('   • For existing installation: Ensure admin credentials match config');
 
     this.info('Step 4: Verify accessibility', '4️⃣');

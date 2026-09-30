@@ -153,7 +153,7 @@ No extra setup step: `playwright.config.js` declares a `webServer` that runs `ph
 pnpm test:e2e
 
 # Fresh state for the installation spec: remove the local install first
-rm -f config.php pagekit.db
+rm -f config.php pagekit.db data/pagekit.db
 npx playwright test tests/e2e/specs/01-setup/installation.spec.js
 ```
 
@@ -161,8 +161,8 @@ npx playwright test tests/e2e/specs/01-setup/installation.spec.js
 
 1. Start Pagekit yourself and set `site.url` / `site.adminUrl` in `test-config.json` to that URL.
 2. Run with `NO_SERVER=1` so Playwright does not start a second server.
-3. For the **installation spec**: Pagekit must **not** be installed yet (no `config.php` in the project root, no `pagekit.db`). If it is already installed, the app will not redirect to `/installer` and the test will fail.
-4. The database comes from the install itself — SQLite (`pagekit.db`) by default, MySQL via the `database.mysql` block in `test-config.json`.
+3. For the **installation spec**: Pagekit must **not** be installed yet (no `config.php`, no `data/pagekit.db`). A `pagekit.db` left in the project root is not the installation database. If it is already installed, the app will not redirect to `/installer` and the test will fail.
+4. The database comes from the install itself — SQLite (`data/pagekit.db`) by default, MySQL via the `database.mysql` block in `test-config.json`.
 
 ## Writing New Tests
 

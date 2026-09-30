@@ -8,7 +8,7 @@
 set -eu
 
 app_dir=/var/www/html
-data_dir=${PAGEKIT_DATA_DIR:-/var/www/data}
+data_dir=${PAGEKIT_DATA_DIR:-/var/www/html/data}
 config_link=$app_dir/config.php
 
 # Whether a PAGEKIT_AUTO_* switch is on, accepting the spellings the application
@@ -104,49 +104,15 @@ cd "$app_dir"
 
 # A volume can be mounted empty and tmp/ is container-local, so the directories
 # the application writes to are recreated on every start.
-mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/sessions tmp/system tmp/temp
+mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/sessions tmp/temp
 
-# The snapshots of removed packages are the one thing the application writes
-# under tmp/ that is not a cache: a snapshot holds the only copy of a package
-# the installation no longer has on disk, and restoring one is what the panel
-# offers instead of a removal nobody can take back. tmp/ lives and dies with the
-# container - a newer image, a down and an up - so the store goes on the data
-# volume beside config.php, and tmp/snapshots is the link the application
-# reaches it through.
-#
-# Made here rather than left to the first snapshot: through a link that points
-# nowhere, the application would create the name it holds instead of what it
-# points at, and land back in the container's own tmp/.
-snapshots_dir=$data_dir/snapshots
-snapshots_link=$app_dir/tmp/snapshots
+# A volume mounted over the private directory can arrive wider than owner-only.
+# Narrow it when this account may; one owned by someone else can refuse the mode
+# and still be writable, which is what the start actually requires.
+chmod 0700 "$data_dir" 2>/dev/null || true
 
-# Anything else at that name is somewhere snapshots are already being kept, or
-# would be. Replacing it with the link would hide whatever is in it, and writing
-# through it would fill a directory the container takes with it, so this is
-# somebody's decision to look at rather than one to make here.
-if [ -e "$snapshots_link" ] && [ ! -L "$snapshots_link" ]; then
-    echo "entrypoint: $snapshots_link is not the link into $snapshots_dir that the image makes it" >&2
-    echo "entrypoint: snapshots kept anywhere else under tmp/ are lost with the container" >&2
-    exit 1
-fi
-
-# The start ends here rather than carrying on, because carrying on is the
-# failure: the application keeps its snapshots wherever this link leads, takes
-# one before every removal and reports each removal as undoable. Led into the
-# container's own tmp/, it would go on saying so and lose the lot with the
-# container.
-#
-# Written through rather than only made, and through the link the application
-# uses: mkdir -p is content with a directory that is already there, whoever may
-# write it, and the link needs nothing but a writable tmp/. A store that cannot
-# be written is the same start, with a removal that promised a way back and has
-# none for the discovery.
-if ! mkdir -p "$snapshots_dir" ||
-    ! ln -sfn "$snapshots_dir" "$snapshots_link" ||
-    ! can_write "$snapshots_link"; then
-    echo "entrypoint: cannot keep the package snapshots in $snapshots_dir" >&2
-    echo "entrypoint: a snapshot is the only copy of a removed package, so it may not live in a directory the container takes with it" >&2
-    echo "entrypoint: mount the data volume at $data_dir and let the account the container serves as (uid 33) write it" >&2
+if ! can_write "$data_dir"; then
+    echo "entrypoint: data/ has to be writable by the serving user because the snapshots, the failure record, and an SQLite file live there ($data_dir)" >&2
     exit 1
 fi
 

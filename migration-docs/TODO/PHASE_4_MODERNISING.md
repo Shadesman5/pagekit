@@ -234,10 +234,10 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
   - **Manifests / Helm chart**: Deployment, Service, Ingress, ConfigMap for application config, external Secret references — never secrets in manifests.
   - **Probes**: liveness / readiness (plus startup where boot is slow) wired to the 4.6 endpoints. A readiness probe that only checks TCP is worthless while migrations run.
   - **Scaling**: HorizontalPodAutoscaler hints; resource requests/limits derived from measured 4.5 numbers, not guesses.
-  - **Shared state (the real blocker)**: `storage/` (uploads), `tmp/` (cache, logs, the upload staging under `tmp/temp/packages`) and whatever writable package root Step 2.7.5 gives runtime-installed packages are node-local today — a package installed through one replica's panel lands in one replica's tree. Decide PVC (ReadWriteMany) vs. object storage for uploads, route sessions/cache to Redis instead of the filesystem, and either share the package root the same way or keep the container on the packages its image was built with — without this a second replica serves inconsistent state.
+  - **Shared state (the real blocker)**: `storage/` (uploads), `tmp/` (cache, logs, the upload staging under `tmp/temp/packages`) and whatever writable package root Step 2.8 (item 10) gives runtime-installed packages are node-local today — a package installed through one replica's panel lands in one replica's tree. Decide PVC (ReadWriteMany) vs. object storage for uploads, route sessions/cache to Redis instead of the filesystem, and either share the package root the same way or keep the container on the packages its image was built with — without this a second replica serves inconsistent state. `data/` is the private copy: snapshots, the failure record, the SQLite file, and in the image the `config.php` the application-root symlink points at. Every replica has to see that same directory. A per-replica `data/` is a second database file and a second snapshot store. `tmp/` may move to Redis. `data/` is not cache and is not emptied.
   - **Migrations**: init container or pre-upgrade hook; never during image build, never concurrently across replicas.
 - **Out of scope**: Managed-service specifics (EKS/GKE/AKS provisioning), service mesh, GitOps tooling.
-- **Risk**: Medium–High — the shared-state decision reaches into uploads, cache, and sessions.
+- **Risk**: Medium–High — the shared-state decision reaches into uploads, cache, sessions, and `data/`.
 
 ---
 
